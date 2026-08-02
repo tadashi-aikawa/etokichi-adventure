@@ -49,45 +49,46 @@
     prebattleStatRows: $$("[data-fighter][data-stat]"),
     gameStartButton: $("#game-start-button"),
   };
+  const actorImage = (source) => window.etokichiAssetUrl?.(source) ?? source;
 
   const HERO_IMAGES = {
-    idle: "assets/etokichi/idle.webp",
-    battleIdle: "assets/etokichi/walk-right-2.webp",
-    galaxyCharge: "assets/etokichi/galaxy-charge.webp",
-    cast: "assets/etokichi/cast.webp",
-    galaxyRecoil: "assets/etokichi/galaxy-recoil.webp",
-    galaxyRayCast: "assets/etokichi/galaxy-ray-cast.webp",
-    punchCast: "assets/etokichi/punch-cast.webp",
-    starRingCast: "assets/etokichi/star-ring-cast.webp",
-    pentagramNovaWindup: "assets/etokichi/pentagram-nova-windup.webp",
-    pentagramNovaRush: "assets/etokichi/pentagram-nova-rush.webp",
-    pentagramNovaDive: "assets/etokichi/pentagram-nova-dive.webp",
-    etoileDriveCast: "assets/etokichi/etoile-drive-cast.webp",
-    throwKissCast: "assets/etokichi/throw-kiss-cast.webp",
-    statusSerenity: "assets/etokichi/status-serenity.webp",
-    victoryClimax: "assets/etokichi/victory-climax.webp",
-    walk: ["assets/etokichi/walk-right-1.webp", "assets/etokichi/walk-right-2.webp", "assets/etokichi/walk-right-3.webp"],
-    defeat: "assets/etokichi/defeat.webp",
+    idle: actorImage("assets/etokichi/idle.webp"),
+    battleIdle: actorImage("assets/etokichi/walk-right-2.webp"),
+    galaxyCharge: actorImage("assets/etokichi/galaxy-charge.webp"),
+    cast: actorImage("assets/etokichi/cast.webp"),
+    galaxyRecoil: actorImage("assets/etokichi/galaxy-recoil.webp"),
+    galaxyRayCast: actorImage("assets/etokichi/galaxy-ray-cast.webp"),
+    punchCast: actorImage("assets/etokichi/punch-cast.webp"),
+    starRingCast: actorImage("assets/etokichi/star-ring-cast.webp"),
+    pentagramNovaWindup: actorImage("assets/etokichi/pentagram-nova-windup.webp"),
+    pentagramNovaRush: actorImage("assets/etokichi/pentagram-nova-rush.webp"),
+    pentagramNovaDive: actorImage("assets/etokichi/pentagram-nova-dive.webp"),
+    etoileDriveCast: actorImage("assets/etokichi/etoile-drive-cast.webp"),
+    throwKissCast: actorImage("assets/etokichi/throw-kiss-cast.webp"),
+    statusSerenity: actorImage("assets/etokichi/status-serenity.webp"),
+    victoryClimax: actorImage("assets/etokichi/victory-climax.webp"),
+    walk: ["walk-right-1", "walk-right-2", "walk-right-3"].map((name) => actorImage(`assets/etokichi/${name}.webp`)),
+    defeat: actorImage("assets/etokichi/defeat.webp"),
   };
 
   const ENEMY_IMAGES = {
-    idle: "assets/enemies/kuroboshi/idle.webp",
-    darkOrbitCast: "assets/enemies/kuroboshi/dark-orbit-cast.webp",
-    blackMeteorCast: "assets/enemies/kuroboshi/black-meteor-cast.webp",
-    meteorClawCast: "assets/enemies/kuroboshi/meteor-claw-cast.webp",
-    crescentHornCast: "assets/enemies/kuroboshi/crescent-horn-cast.webp",
-    statusEase: "assets/enemies/kuroboshi/status-ease.webp",
-    victoryClimax: "assets/enemies/kuroboshi/victory-climax.webp",
+    idle: actorImage("assets/enemies/kuroboshi/idle.webp"),
+    darkOrbitCast: actorImage("assets/enemies/kuroboshi/dark-orbit-cast.webp"),
+    blackMeteorCast: actorImage("assets/enemies/kuroboshi/black-meteor-cast.webp"),
+    meteorClawCast: actorImage("assets/enemies/kuroboshi/meteor-claw-cast.webp"),
+    crescentHornCast: actorImage("assets/enemies/kuroboshi/crescent-horn-cast.webp"),
+    statusEase: actorImage("assets/enemies/kuroboshi/status-ease.webp"),
+    victoryClimax: actorImage("assets/enemies/kuroboshi/victory-climax.webp"),
   };
 
   const techniques = [
-    { id: "punch", icon: "punch", name: "エトキチパンチ", cost: 16, power: 90, accuracy: 91, critical: 8, range: 0, duration: 2200, impactDelay: 1250, kind: "strike", animation: "physicalPunch", attackStat: "power", gutsDamage: 0 },
-    { id: "pentagramNova", icon: "pentagramNova", name: "エトキチ・ペンタグラムノヴァ", cardName: "ペンタグラムノヴァ", cost: 62, power: 380, accuracy: 55, critical: 32, range: 0, duration: 6500, impactDelay: 5200, kind: "super", animation: "pentagramNova", attackStat: "power", gutsDamage: 26, knockback: 70 },
-    { id: "starRing", icon: "starRing", name: "スターリング", cost: 24, power: 124, accuracy: 81, critical: 16, range: 1, duration: 2700, impactDelay: 1650, kind: "strike", animation: "physicalStarRing", attackStat: "power", gutsDamage: 12 },
+    { id: "punch", icon: "punch", name: "エトキチパンチ", cost: 16, power: 90, accuracy: 91, critical: 8, range: 0, duration: 2200, cameraReleaseDelay: 820, impactDelay: 1250, kind: "strike", animation: "physicalPunch", attackStat: "power", gutsDamage: 0 },
+    { id: "pentagramNova", icon: "pentagramNova", name: "エトキチ・ペンタグラムノヴァ", cardName: "ペンタグラムノヴァ", cost: 62, power: 380, accuracy: 55, critical: 32, range: 0, duration: 6500, cameraReleaseDelay: 1120, impactDelay: 5200, kind: "super", animation: "pentagramNova", attackStat: "power", gutsDamage: 26, knockback: 70 },
+    { id: "starRing", icon: "starRing", name: "スターリング", cost: 24, power: 124, accuracy: 81, critical: 16, range: 1, duration: 2700, cameraReleaseDelay: 880, impactDelay: 1650, kind: "strike", animation: "physicalStarRing", attackStat: "power", gutsDamage: 12 },
     { id: "etoileDrive", icon: "etoileDrive", name: "エトワール・ドライブ", cost: 32, power: 0, accuracy: 100, critical: 0, range: 1, duration: 3400, kind: "support", animation: "etoileDrive", attackStat: "intelligence", gutsDamage: 0 },
-    { id: "galaxyRay", icon: "galaxyRay", name: "ギャラクシーレイ", cost: 32, power: 172, accuracy: 71, critical: 12, range: 2, duration: 2800, impactDelay: 1900, kind: "shot", animation: "galaxyRay", attackStat: "intelligence", gutsDamage: 5 },
-    { id: "galaxyFlash", icon: "galaxyFlash", name: "エトキチギャラクシーフラッシュ", cardName: "ギャラクシーフラッシュ", cost: 48, power: 292, accuracy: 62, critical: 24, range: 3, duration: 4600, kind: "special", attackStat: "intelligence", gutsDamage: 18, knockback: 35 },
-    { id: "throwKiss", icon: "throwKiss", name: "投げキッス", cost: 20, power: 46, accuracy: 93, critical: 5, range: 2, duration: 2800, impactDelay: 1850, kind: "shot", animation: "throwKiss", attackStat: "intelligence", gutsDamage: 32 },
+    { id: "galaxyRay", icon: "galaxyRay", name: "ギャラクシーレイ", cost: 32, power: 172, accuracy: 71, critical: 12, range: 2, duration: 2800, cameraReleaseDelay: 1210, impactDelay: 1900, kind: "shot", animation: "galaxyRay", attackStat: "intelligence", gutsDamage: 5 },
+    { id: "galaxyFlash", icon: "galaxyFlash", name: "エトキチギャラクシーフラッシュ", cardName: "ギャラクシーフラッシュ", cost: 48, power: 292, accuracy: 62, critical: 24, range: 3, duration: 4600, cameraReleaseDelay: 2700, kind: "special", attackStat: "intelligence", gutsDamage: 18, knockback: 35 },
+    { id: "throwKiss", icon: "throwKiss", name: "投げキッス", cost: 20, power: 46, accuracy: 93, critical: 5, range: 2, duration: 2800, cameraReleaseDelay: 950, impactDelay: 1850, kind: "shot", animation: "throwKiss", attackStat: "intelligence", gutsDamage: 32 },
   ];
 
   const heroTechniqueIcons = {
@@ -101,10 +102,10 @@
   };
 
   const enemyTechniques = [
-    { name: "メテオクロー", cost: 16, power: 82, accuracy: 88, critical: 10, range: 0, duration: 2300, impactDelay: 1350, kind: "strike", animation: "physicalMeteorClaw", attackStat: "power", gutsDamage: 0 },
-    { name: "クレセントホーン", cost: 23, power: 118, accuracy: 78, critical: 18, range: 1, duration: 2900, impactDelay: 1800, kind: "strike", animation: "physicalCrescentHorn", attackStat: "power", gutsDamage: 8 },
-    { name: "ダークオービット", cost: 30, power: 154, accuracy: 69, critical: 14, range: 2, duration: 3200, impactDelay: 2200, kind: "shot", animation: "darkOrbit", attackStat: "intelligence", gutsDamage: 14 },
-    { name: "ブラックメテオ", cost: 43, power: 230, accuracy: 59, critical: 25, range: 3, duration: 4200, impactDelay: 3000, kind: "shot", animation: "blackMeteor", attackStat: "intelligence", gutsDamage: 0 },
+    { name: "メテオクロー", cost: 16, power: 82, accuracy: 88, critical: 10, range: 0, duration: 2300, cameraReleaseDelay: 850, impactDelay: 1350, kind: "strike", animation: "physicalMeteorClaw", attackStat: "power", gutsDamage: 0 },
+    { name: "クレセントホーン", cost: 23, power: 118, accuracy: 78, critical: 18, range: 1, duration: 2900, cameraReleaseDelay: 940, impactDelay: 1800, kind: "strike", animation: "physicalCrescentHorn", attackStat: "power", gutsDamage: 8 },
+    { name: "ダークオービット", cost: 30, power: 154, accuracy: 69, critical: 14, range: 2, duration: 3200, cameraReleaseDelay: 1100, impactDelay: 2200, kind: "shot", animation: "darkOrbit", attackStat: "intelligence", gutsDamage: 14 },
+    { name: "ブラックメテオ", cost: 43, power: 230, accuracy: 59, critical: 25, range: 3, duration: 4200, cameraReleaseDelay: 1200, impactDelay: 3000, kind: "shot", animation: "blackMeteor", attackStat: "intelligence", gutsDamage: 0 },
   ];
 
   const fighterStats = {
@@ -407,7 +408,7 @@
     refs.gameShell.classList.remove("prebattle");
     refs.startScreen.classList.remove("visible");
     refs.resultScreen.classList.remove("visible");
-    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.removeProperty("--victory-focus-x");
     refs.hero.className = "combatant hero";
     refs.enemy.className = "combatant enemy";
@@ -623,6 +624,10 @@
 
   function transitionTechniqueSprite(sprite, nextSource, duration = 210) {
     if (!sprite || sprite.getAttribute("src") === nextSource) return;
+    if (window.etokichiRenderer?.handlesFighters) {
+      sprite.src = nextSource;
+      return;
+    }
     const combatant = sprite.closest(".combatant");
     if (!combatant || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       sprite.src = nextSource;
@@ -696,13 +701,14 @@
 
     const actionGuts = state.heroGuts;
     const serenityAttack = isSpecialActive("hero", "serenity");
+    const impactDelay = technique.impactDelay ?? (technique.kind === "special" ? 3150 : technique.kind === "shot" ? 390 : 250);
     beginTechniqueResolution("hero", serenityAttack);
     stopHeroWalk();
     state.heroGuts -= actionCost;
     state.heroBusyUntil = now + technique.duration;
     state.actionLockUntil = now + technique.duration;
     state.actionActor = "hero";
-    startCamera("hero", technique.duration);
+    startCamera("hero", technique.duration, technique.cameraReleaseDelay);
     const token = ++state.heroActionToken;
     const actionStartedAt = now;
     const isPentagramNova = technique.animation === "pentagramNova";
@@ -745,7 +751,7 @@
           setTimeout(() => {
             if (token !== state.heroActionToken) return;
             refs.hero.classList.remove("pentagram-nova-sequence", "pentagram-nova-rush", "pentagram-nova-miss");
-            refs.arena.classList.remove("pentagram-nova-mode", "pentagram-nova-missed", "camera-hero");
+            refs.arena.classList.remove("pentagram-nova-mode", "pentagram-nova-missed", "camera-hero", "camera-track-release");
             if (state.phase === "battle") transitionTechniqueSprite(refs.heroSprite, HERO_IMAGES.battleIdle, 260);
           }, 1700);
           return;
@@ -777,13 +783,14 @@
         refs.hero.classList.add("pentagram-nova-finisher");
         transitionTechniqueSprite(refs.heroSprite, HERO_IMAGES.pentagramNovaDive, 260);
         pentagramFinisherMotion = startPentagramNovaFinisherRise(comboEndPoint);
-        createPentagramNovaDive(pentagramFinisherMotion.airTarget);
+        createPentagramNovaUppercut(pentagramFinisherMotion);
         sound("novaRise");
       }, 4080);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state.heroActionToken || pentagramWillHit !== true) return;
         refs.hero.classList.add("pentagram-nova-diving");
         pentagramFinisherMotion = startPentagramNovaFinisherDive(pentagramFinisherMotion);
+        createPentagramNovaDive(pentagramFinisherMotion?.enemyGroundTarget);
         sound("novaDive");
       }, 4650);
       setTimeout(() => {
@@ -904,7 +911,6 @@
       }, 1560);
     }
 
-    const impactDelay = technique.impactDelay ?? (technique.kind === "special" ? 3150 : technique.kind === "shot" ? 390 : 250);
     if (technique.kind === "shot" && !technique.animation) createProjectile(false);
 
     if (!isPentagramNova) {
@@ -975,12 +981,13 @@
   function enemyAttack(technique, now) {
     const actionGuts = state.enemyGuts;
     const serenityAttack = isSpecialActive("enemy", "serenity");
+    const impactDelay = technique.impactDelay ?? (technique.kind === "shot" ? 420 : 270);
     beginTechniqueResolution("enemy", serenityAttack);
     state.enemyGuts -= getTechniqueCost(technique, "enemy");
     state.enemyBusyUntil = now + technique.duration;
     state.actionLockUntil = now + technique.duration;
     state.actionActor = "enemy";
-    startCamera("enemy", technique.duration);
+    startCamera("enemy", technique.duration, technique.cameraReleaseDelay);
     const token = ++state.enemyActionToken;
     refs.enemy.classList.remove("moving-forward", "moving-back");
     if (technique.animation === "darkOrbit") refs.enemy.classList.add("dark-orbit-sequence");
@@ -1068,11 +1075,10 @@
       }, 1710);
     }
 
-    const delay = technique.impactDelay ?? (technique.kind === "shot" ? 420 : 270);
     setTimeout(() => {
       if (state.phase !== "battle" || token !== state.enemyActionToken) return;
       resolveHit("enemy", technique, actionGuts, serenityAttack);
-    }, delay);
+    }, impactDelay);
     setTimeout(() => {
       if (token !== state.enemyActionToken) return;
       refs.enemy.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "technique-recoil");
@@ -1224,6 +1230,7 @@
   }
 
   function createDodgeAfterimages(target, direction) {
+    if (window.etokichiRenderer?.handlesFighters) return;
     const sprite = target.querySelector(".sprite");
     for (let index = 0; index < 3; index += 1) {
       const afterimage = document.createElement("img");
@@ -1266,7 +1273,7 @@
   }
 
   function startPushCamera(side, duration) {
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.setProperty("--push-camera-duration", `${duration}ms`);
     refs.arena.style.setProperty("--push-travel-duration", `${PUSH_TRAVEL_DURATION}ms`);
     void refs.arena.offsetWidth;
@@ -1274,13 +1281,16 @@
     setTimeout(() => refs.arena.classList.remove("push-camera", "push-camera-hero", "push-camera-enemy"), duration);
   }
 
-  function startCamera(side, duration) {
+  function startCamera(side, duration, releaseDelay = null) {
     const cameraClass = side === "hero" ? "camera-hero" : "camera-enemy";
-    refs.arena.classList.remove("camera-hero", "camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release");
     refs.arena.style.setProperty("--camera-duration", `${duration}ms`);
+    if (Number.isFinite(releaseDelay)) refs.arena.style.setProperty("--camera-release-delay", `${releaseDelay}ms`);
+    else refs.arena.style.removeProperty("--camera-release-delay");
     void refs.arena.offsetWidth;
     refs.arena.classList.add(cameraClass);
-    setTimeout(() => refs.arena.classList.remove(cameraClass), duration);
+    if (Number.isFinite(releaseDelay)) refs.arena.classList.add("camera-track-release");
+    setTimeout(() => refs.arena.classList.remove(cameraClass, "camera-track-release"), duration);
   }
 
   function hasBattleSpecial(side, type) {
@@ -1406,7 +1416,7 @@
     const token = ++state.specialCameraToken;
     const element = side === "hero" ? refs.hero : refs.enemy;
     const totalDuration = duration + SPECIAL_POST_PAUSE;
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.hero.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.enemy.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.arena.style.setProperty("--special-action-duration", `${duration}ms`);
@@ -1726,7 +1736,7 @@
     state.specials = { hero: freshSpecialState(), enemy: freshSpecialState() };
     refs.hero.classList.remove("moving-forward", "moving-back", "hero-walking", "walk-facing-left", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
     refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "camera-hero", "camera-enemy", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.arena.classList.add("battle-ending");
     updateUI();
 
@@ -1769,6 +1779,7 @@
   function createVictoryCelebration(winner) {
     const projection = getStageProjection();
     const winnerX = winner === "hero" ? projection.heroX : projection.enemyX;
+    const usesPixiParticles = spawnPixiEffect("victoryCelebration", { side: winner });
     const celebration = document.createElement("div");
     celebration.className = `victory-celebration victory-${winner}`;
     celebration.style.setProperty("--winner-x", `${winnerX}%`);
@@ -1781,16 +1792,18 @@
     name.textContent = winner === "hero" ? "エトキチ" : "クロボシ";
     title.append(label, name);
     celebration.append(title);
-    for (let index = 0; index < 26; index += 1) {
-      const angle = index * (360 / 26);
-      const particle = document.createElement("i");
-      particle.textContent = index % 3 === 0 ? "✦" : "◆";
-      particle.style.setProperty("--victory-angle", `${angle}deg`);
-      particle.style.setProperty("--victory-counter-angle", `${-angle}deg`);
-      particle.style.setProperty("--victory-distance", `${random(140, 410)}px`);
-      particle.style.setProperty("--victory-delay", `${1.7 + (index % 7) * .09}s`);
-      particle.style.setProperty("--victory-size", `${random(10, 25)}px`);
-      celebration.append(particle);
+    if (!usesPixiParticles) {
+      for (let index = 0; index < 26; index += 1) {
+        const angle = index * (360 / 26);
+        const particle = document.createElement("i");
+        particle.textContent = index % 3 === 0 ? "✦" : "◆";
+        particle.style.setProperty("--victory-angle", `${angle}deg`);
+        particle.style.setProperty("--victory-counter-angle", `${-angle}deg`);
+        particle.style.setProperty("--victory-distance", `${random(140, 410)}px`);
+        particle.style.setProperty("--victory-delay", `${1.7 + (index % 7) * .09}s`);
+        particle.style.setProperty("--victory-size", `${random(10, 25)}px`);
+        celebration.append(particle);
+      }
     }
     refs.effects.append(celebration);
     setTimeout(() => celebration.remove(), RESULT_EFFECT_CLEANUP_DELAY);
@@ -1798,6 +1811,14 @@
 
   function updateUI() {
     const projection = getStageProjection();
+    window.etokichiRenderer?.setProjection({
+      heroX: projection.heroX,
+      enemyX: projection.enemyX,
+      pan: projection.pan,
+      zoom: projection.zoom,
+      backdropPan: projection.backdropPan,
+      backdropZoom: projection.backdropZoom,
+    });
     setProjectionStyle(refs.hero, "hero-x", "--x", projection.heroX.toFixed(2));
     setProjectionStyle(refs.enemy, "enemy-x", "--x", projection.enemyX.toFixed(2));
     setProjectionStyle(refs.arena, "stage-pan", "--stage-pan", `${projection.pan.toFixed(1)}px`);
@@ -2035,7 +2056,12 @@
     if (!heroAttacks) navigator.vibrate?.(35);
   }
 
+  function spawnPixiEffect(type, options = {}) {
+    return window.etokichiRenderer?.spawnEffect?.(type, options) === true;
+  }
+
   function createCriticalScreenBurst(target) {
+    if (spawnPixiEffect("criticalScreenBurst", { side: target === refs.hero ? "hero" : "enemy" })) return;
     const projection = getStageProjection();
     const burst = document.createElement("i");
     burst.className = "critical-screen-burst";
@@ -2045,6 +2071,7 @@
   }
 
   function createImpact(heroAttacks, y = null) {
+    if (spawnPixiEffect("impact", { heroAttacks, y })) return;
     const projection = getStageProjection();
     const impact = document.createElement("i");
     impact.className = `impact ${heroAttacks ? "" : "purple"}`;
@@ -2055,6 +2082,7 @@
   }
 
   function createEtoileDriveEffect(duration) {
+    if (spawnPixiEffect("etoileDrive", { duration })) return;
     const origin = getEffectPoint(refs.heroSprite, .5, .5);
     const effect = document.createElement("div");
     effect.className = "etoile-drive-effect";
@@ -2086,6 +2114,7 @@
   }
 
   function createProjectile(enemy) {
+    if (spawnPixiEffect("projectile", { enemy })) return;
     const projectile = document.createElement("i");
     projectile.className = `projectile ${enemy ? "enemy-shot" : ""}`;
     refs.effects.append(projectile);
@@ -2110,6 +2139,7 @@
   }
 
   function createPhysicalDust(side, color) {
+    if (spawnPixiEffect("dust", { side, color })) return;
     const sprite = side === "hero" ? refs.heroSprite : refs.enemySprite;
     const origin = getEffectPoint(sprite, .5, .86);
     const dust = document.createElement("div");
@@ -2128,6 +2158,7 @@
   }
 
   function createPunchTrail() {
+    if (spawnPixiEffect("punchTrail")) return;
     const origin = getEffectPoint(refs.heroSprite, .68, .5);
     const target = getEffectPoint(refs.enemySprite, .45, .52);
     const trail = document.createElement("div");
@@ -2143,6 +2174,7 @@
   }
 
   function createStarRingSweep() {
+    if (spawnPixiEffect("starRing")) return;
     const origin = getEffectPoint(refs.heroSprite, .53, .56);
     const target = getEffectPoint(refs.enemySprite, .43, .54);
     const sweep = document.createElement("div");
@@ -2161,6 +2193,7 @@
   }
 
   function createMeteorClawTrail() {
+    if (spawnPixiEffect("meteorClaw")) return;
     const target = getEffectPoint(refs.heroSprite, .52, .52);
     const slashes = document.createElement("div");
     slashes.className = "meteor-claw-trail";
@@ -2177,6 +2210,7 @@
   }
 
   function createCrescentHornRush() {
+    if (spawnPixiEffect("crescentRush")) return;
     const origin = getEffectPoint(refs.enemySprite, .34, .58);
     const target = getEffectPoint(refs.heroSprite, .58, .58);
     const rush = document.createElement("div");
@@ -2193,6 +2227,7 @@
   }
 
   function createPhysicalContact(heroAttacks, variant) {
+    if (spawnPixiEffect("physicalContact", { heroAttacks, variant })) return;
     const target = getEffectPoint(heroAttacks ? refs.enemySprite : refs.heroSprite, .5, .54);
     const contact = document.createElement("div");
     contact.className = `physical-contact ${variant}`;
@@ -2208,6 +2243,7 @@
   }
 
   function createPentagramNovaCharge() {
+    if (spawnPixiEffect("novaCharge")) return;
     const origin = getEffectPoint(refs.heroSprite, .5, .54);
     const charge = document.createElement("div");
     charge.className = "pentagram-nova-charge-effect";
@@ -2227,6 +2263,7 @@
   }
 
   function createPentagramNovaRush() {
+    if (spawnPixiEffect("novaRush")) return;
     const origin = getEffectPoint(refs.heroSprite, .64, .52);
     const target = getEffectPoint(refs.enemySprite, .46, .52);
     const rush = document.createElement("div");
@@ -2243,13 +2280,14 @@
 
   function createPentagramNovaCapture() {
     const target = getEffectPoint(refs.enemySprite, .5, .52);
+    const captureLift = -clamp(refs.arena.getBoundingClientRect().height * .38, 180, 300);
+    refs.enemy.style.setProperty("--nova-capture-lift-mid", `${captureLift * .7}px`);
+    refs.enemy.style.setProperty("--nova-capture-lift", `${captureLift}px`);
+    if (spawnPixiEffect("novaCapture")) return;
     const capture = document.createElement("div");
     capture.className = "pentagram-nova-capture";
     capture.style.left = `${target.x}px`;
     capture.style.top = `${target.y}px`;
-    const captureLift = -clamp(refs.arena.getBoundingClientRect().height * .38, 180, 300);
-    refs.enemy.style.setProperty("--nova-capture-lift-mid", `${captureLift * .7}px`);
-    refs.enemy.style.setProperty("--nova-capture-lift", `${captureLift}px`);
     capture.style.setProperty("--capture-lift-mid", `${captureLift * .7}px`);
     capture.style.setProperty("--capture-lift", `${captureLift}px`);
     capture.append(document.createElement("b"), document.createElement("span"));
@@ -2277,22 +2315,26 @@
       { x: target.x - radiusX * .62, y: target.y + radiusY * .82 },
       { x: target.x, y: target.y - radiusY },
     ];
-    const svgNamespace = "http://www.w3.org/2000/svg";
-    const path = document.createElementNS(svgNamespace, "svg");
-    path.classList.add("pentagram-nova-path");
-    path.setAttribute("viewBox", `0 0 ${arenaRect.width} ${arenaRect.height}`);
-    path.setAttribute("preserveAspectRatio", "none");
-    points.slice(0, -1).forEach((point, index) => {
-      const line = document.createElementNS(svgNamespace, "line");
-      line.setAttribute("x1", point.x);
-      line.setAttribute("y1", point.y);
-      line.setAttribute("x2", points[index + 1].x);
-      line.setAttribute("y2", points[index + 1].y);
-      line.setAttribute("pathLength", "1");
-      path.append(line);
-    });
-    refs.effects.append(path);
-    setTimeout(() => path.remove(), 4000);
+    const usesPixiPath = spawnPixiEffect("novaPath", { points });
+    window.etokichiRenderer?.startFighterMotion?.("hero", "novaCombo", { points, duration: 2480 });
+    if (!usesPixiPath) {
+      const svgNamespace = "http://www.w3.org/2000/svg";
+      const path = document.createElementNS(svgNamespace, "svg");
+      path.classList.add("pentagram-nova-path");
+      path.setAttribute("viewBox", `0 0 ${arenaRect.width} ${arenaRect.height}`);
+      path.setAttribute("preserveAspectRatio", "none");
+      points.slice(0, -1).forEach((point, index) => {
+        const line = document.createElementNS(svgNamespace, "line");
+        line.setAttribute("x1", point.x);
+        line.setAttribute("y1", point.y);
+        line.setAttribute("x2", points[index + 1].x);
+        line.setAttribute("y2", points[index + 1].y);
+        line.setAttribute("pathLength", "1");
+        path.append(line);
+      });
+      refs.effects.append(path);
+      setTimeout(() => path.remove(), 4000);
+    }
 
     const transformAt = (point, rotation, scale = 1) =>
       `translate(${point.x - origin.x}px, ${point.y - origin.y}px) rotate(${rotation}deg) scale(${scale})`;
@@ -2340,6 +2382,11 @@
       { transform: `translate(${airContact.x}px,${airContact.y + 12}px) rotate(-8deg) scale(1.04)`, offset: .88 },
       { transform: `translate(${airContact.x}px,${airContact.y}px) rotate(0) scale(1)`, offset: 1 },
     ], { duration: 570, easing: "cubic-bezier(.16,.78,.18,1)", fill: "forwards" });
+    window.etokichiRenderer?.startFighterMotion?.("hero", "novaRise", {
+      enemyGroundTarget,
+      airTarget,
+      duration: 570,
+    });
     return { animation, enemyGroundTarget, airTarget };
   }
 
@@ -2364,31 +2411,48 @@
       { transform: `translate(${impact.x - 14}px,${impact.y - 35}px) rotate(-14deg) scale(1.18,.84)`, offset: .76 },
       { transform: `translate(${impact.x}px,${impact.y}px) rotate(-5deg) scale(1.08,.9)`, offset: 1 },
     ], { duration: 550, easing: "cubic-bezier(.12,.82,.16,1)", fill: "forwards" });
+    window.etokichiRenderer?.startFighterMotion?.("hero", "novaDive", {
+      enemyGroundTarget: motion.enemyGroundTarget,
+      duration: 550,
+    });
     return { ...motion, animation };
   }
 
   function createPentagramNovaStrike(index) {
+    const usesPixiEffect = spawnPixiEffect("novaStrike", { index });
     const target = getEffectPoint(refs.enemySprite, .5, .5);
-    const angles = [-72, 144, 0, -144, 72];
-    const strike = document.createElement("div");
-    strike.className = "pentagram-nova-strike";
-    strike.style.left = `${target.x}px`;
-    strike.style.top = `${target.y}px`;
-    strike.style.setProperty("--strike-angle", `${angles[index]}deg`);
-    strike.append(document.createElement("b"), document.createElement("span"));
-    for (let rayIndex = 0; rayIndex < 6; rayIndex += 1) {
-      const ray = document.createElement("i");
-      ray.style.setProperty("--ray-angle", `${rayIndex * 60}deg`);
-      strike.append(ray);
+    let strike;
+    if (!usesPixiEffect) {
+      const angles = [-72, 144, 0, -144, 72];
+      strike = document.createElement("div");
+      strike.className = "pentagram-nova-strike";
+      strike.style.left = `${target.x}px`;
+      strike.style.top = `${target.y}px`;
+      strike.style.setProperty("--strike-angle", `${angles[index]}deg`);
+      strike.append(document.createElement("b"), document.createElement("span"));
+      for (let rayIndex = 0; rayIndex < 6; rayIndex += 1) {
+        const ray = document.createElement("i");
+        ray.style.setProperty("--ray-angle", `${rayIndex * 60}deg`);
+        strike.append(ray);
+      }
+      refs.effects.append(strike);
     }
-    refs.effects.append(strike);
     refs.arena.classList.remove("nova-hit-pulse");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("nova-hit-pulse");
-    setTimeout(() => strike.remove(), 620);
+    if (strike) setTimeout(() => strike.remove(), 620);
+  }
+
+  function createPentagramNovaUppercut(motion) {
+    if (!motion) return;
+    if (spawnPixiEffect("novaUppercut", {
+      enemyGroundTarget: motion.enemyGroundTarget,
+      airTarget: motion.airTarget,
+    })) return;
   }
 
   function createPentagramNovaDive(targetPoint) {
+    if (spawnPixiEffect("novaDive", { targetPoint })) return;
     const target = targetPoint || getEffectPoint(refs.enemySprite, .5, .62);
     const dive = document.createElement("div");
     dive.className = "pentagram-nova-dive-effect";
@@ -2405,26 +2469,31 @@
   }
 
   function createPentagramNovaImpact(critical) {
-    const target = getEffectPoint(refs.enemySprite, .5, .68);
-    const impactEffect = document.createElement("div");
-    impactEffect.className = `pentagram-nova-impact${critical ? " critical" : ""}`;
-    impactEffect.style.left = `${target.x}px`;
-    impactEffect.style.top = `${target.y}px`;
-    impactEffect.append(document.createElement("b"), document.createElement("span"));
-    for (let index = 0; index < 14; index += 1) {
-      const shard = document.createElement("i");
-      shard.style.setProperty("--nova-impact-angle", `${index * 25.7}deg`);
-      shard.style.setProperty("--nova-impact-distance", `${random(110, 245)}px`);
-      impactEffect.append(shard);
+    const usesPixiEffect = spawnPixiEffect("novaImpact", { critical });
+    let impactEffect;
+    if (!usesPixiEffect) {
+      const target = getEffectPoint(refs.enemySprite, .5, .68);
+      impactEffect = document.createElement("div");
+      impactEffect.className = `pentagram-nova-impact${critical ? " critical" : ""}`;
+      impactEffect.style.left = `${target.x}px`;
+      impactEffect.style.top = `${target.y}px`;
+      impactEffect.append(document.createElement("b"), document.createElement("span"));
+      for (let index = 0; index < 14; index += 1) {
+        const shard = document.createElement("i");
+        shard.style.setProperty("--nova-impact-angle", `${index * 25.7}deg`);
+        shard.style.setProperty("--nova-impact-distance", `${random(110, 245)}px`);
+        impactEffect.append(shard);
+      }
+      refs.effects.append(impactEffect);
     }
-    refs.effects.append(impactEffect);
     refs.arena.classList.remove("shake");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("shake");
-    setTimeout(() => impactEffect.remove(), critical ? 1750 : 1450);
+    if (impactEffect) setTimeout(() => impactEffect.remove(), critical ? 1750 : 1450);
   }
 
   function createGalaxyRayCharge() {
+    if (spawnPixiEffect("galaxyRayCharge")) return;
     const origin = getEffectPoint(refs.heroSprite, .79, .5);
     const charge = document.createElement("div");
     charge.className = "galaxy-ray-charge";
@@ -2441,6 +2510,7 @@
   }
 
   function createGalaxyRay() {
+    if (spawnPixiEffect("galaxyRay")) return;
     const origin = getEffectPoint(refs.heroSprite, .88, .48);
     const target = getEffectPoint(refs.enemySprite, .48, .5);
     const shot = document.createElement("div");
@@ -2466,6 +2536,7 @@
   }
 
   function createKissCharge() {
+    if (spawnPixiEffect("kissCharge")) return;
     const origin = getEffectPoint(refs.heroSprite, .73, .42);
     const charge = document.createElement("div");
     charge.className = "kiss-charge";
@@ -2486,6 +2557,7 @@
   }
 
   function createThrowingKiss() {
+    if (spawnPixiEffect("throwingKiss")) return;
     const origin = getEffectPoint(refs.heroSprite, .76, .42);
     const target = getEffectPoint(refs.enemySprite, .48, .48);
     const projectile = document.createElement("div");
@@ -2510,6 +2582,7 @@
   }
 
   function createKissBurst() {
+    if (spawnPixiEffect("kissBurst")) return;
     const target = getEffectPoint(refs.enemySprite, .48, .48);
     const burst = document.createElement("div");
     burst.className = "kiss-burst";
@@ -2530,6 +2603,10 @@
   }
 
   function createKissMissBreak() {
+    if (spawnPixiEffect("kissMiss")) {
+      sound("kissBreak");
+      return;
+    }
     const target = getEffectPoint(refs.enemySprite, .48, .48);
     const broken = document.createElement("div");
     broken.className = "kiss-miss-break";
@@ -2551,6 +2628,7 @@
   }
 
   function createDarkOrbitField() {
+    if (spawnPixiEffect("darkOrbitField")) return;
     const origin = getEffectPoint(refs.enemySprite, .5, .52);
     const field = document.createElement("div");
     field.className = "dark-orbit-field";
@@ -2567,6 +2645,7 @@
   }
 
   function createDarkOrbitVolley() {
+    if (spawnPixiEffect("darkOrbitVolley")) return;
     const origin = getEffectPoint(refs.enemySprite, .38, .48);
     const target = getEffectPoint(refs.heroSprite, .5, .5);
     const volley = document.createElement("div");
@@ -2586,6 +2665,7 @@
   }
 
   function createBlackMeteorSky() {
+    if (spawnPixiEffect("blackMeteorSky")) return;
     const target = getEffectPoint(refs.heroSprite, .5, .45);
     const sky = document.createElement("div");
     sky.className = "black-meteor-sky";
@@ -2601,6 +2681,7 @@
   }
 
   function createBlackMeteor() {
+    if (spawnPixiEffect("blackMeteor")) return;
     const target = getEffectPoint(refs.heroSprite, .5, .58);
     const meteor = document.createElement("div");
     meteor.className = "black-meteor";
@@ -2621,25 +2702,30 @@
   }
 
   function createBlackMeteorImpact() {
-    const target = getEffectPoint(refs.heroSprite, .5, .68);
-    const impact = document.createElement("div");
-    impact.className = "black-meteor-impact";
-    impact.style.left = `${target.x}px`;
-    impact.style.top = `${target.y}px`;
-    for (let index = 0; index < 10; index += 1) {
-      const debris = document.createElement("i");
-      debris.style.setProperty("--debris-angle", `${index * 36}deg`);
-      debris.style.setProperty("--debris-distance", `${random(85, 175)}px`);
-      impact.append(debris);
+    const usesPixiEffect = spawnPixiEffect("blackMeteorImpact");
+    let impact;
+    if (!usesPixiEffect) {
+      const target = getEffectPoint(refs.heroSprite, .5, .68);
+      impact = document.createElement("div");
+      impact.className = "black-meteor-impact";
+      impact.style.left = `${target.x}px`;
+      impact.style.top = `${target.y}px`;
+      for (let index = 0; index < 10; index += 1) {
+        const debris = document.createElement("i");
+        debris.style.setProperty("--debris-angle", `${index * 36}deg`);
+        debris.style.setProperty("--debris-distance", `${random(85, 175)}px`);
+        impact.append(debris);
+      }
+      refs.effects.append(impact);
     }
-    refs.effects.append(impact);
     refs.arena.classList.remove("shake");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("shake");
-    setTimeout(() => impact.remove(), 1200);
+    if (impact) setTimeout(() => impact.remove(), 1200);
   }
 
   function createGalaxyCharge() {
+    if (spawnPixiEffect("galaxyCharge")) return;
     const origin = getEffectPoint(refs.heroSprite, .72, .53);
     const field = document.createElement("div");
     field.className = "galaxy-charge-field";
@@ -2667,6 +2753,7 @@
     const targetX = enemyRect.left - arenaRect.left + enemyRect.width * .52;
     const beamLength = clamp(targetX - originX, 260, arenaRect.width - originX + 70);
     state.galaxyBeamY = originY;
+    if (spawnPixiEffect("galaxyFlash")) return;
 
     const beam = document.createElement("div");
     beam.className = "galaxy-flash";

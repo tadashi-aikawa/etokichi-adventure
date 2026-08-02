@@ -65,6 +65,24 @@ button { font: inherit; }
   box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 0 80px rgba(91, 64, 196, .15);
 }
 
+.pixi-stage { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.renderer-pixi .battle-backdrop,
+.renderer-pixi .space-haze,
+.renderer-pixi .stars,
+.renderer-pixi .arena-floor,
+.renderer-pixi .fighter-shadow { display: none; }
+.renderer-pixi .combatant .sprite,
+.renderer-pixi .sprite-transition-ghost,
+.renderer-pixi .dodge-afterimage,
+.renderer-pixi .etoile-status-aura { visibility: hidden; }
+.renderer-pixi .combatant .sprite { animation: none !important; transition: none !important; }
+.renderer-pixi .combatant { animation: none !important; transition: none !important; }
+.renderer-pixi .arena.shake { animation: none; }
+.renderer-pixi .combatant::before,
+.renderer-pixi .combatant::after { content: none !important; }
+.renderer-pixi .victory-celebration::before,
+.renderer-pixi .victory-celebration::after { content: none; }
+
 .battle-backdrop { position: absolute; z-index: 0; inset: -7%; translate: var(--backdrop-pan) 0; scale: var(--backdrop-zoom); background: url("assets/backgrounds/cosmic-ranch-colosseum.webp") center 50% / cover no-repeat; filter: saturate(1.04) contrast(1.06) brightness(.76); transform-origin: center 58%; transition: translate .08s linear, scale .16s ease-out; }
 .battle-backdrop::after { position: absolute; inset: 0; content: ""; background: radial-gradient(ellipse at 50% 52%,transparent 32%,rgba(4,2,13,.16) 72%,rgba(3,2,11,.46) 100%),linear-gradient(to bottom,rgba(8,5,24,.03) 48%,rgba(7,3,14,.2)); box-shadow: inset 0 0 90px rgba(3,1,12,.52); }
 .game-shell.prebattle .battle-backdrop { filter: saturate(.96) contrast(1.07) brightness(.66); }
