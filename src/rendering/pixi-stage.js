@@ -155,13 +155,17 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   const actorShadows = new Container();
   const fighterLayer = new Container();
   const effectLayer = new Container();
+  const dramaticShade = new Graphics();
+  dramaticShade.alpha = 0;
+  dramaticShade.visible = false;
   const cameraRoot = new Container();
   const vignette = new Sprite(vignetteTexture);
   vignette.anchor.set(.5);
   vignette.alpha = .72;
 
   world.addChild(stars, haze, floor, particles);
-  cameraRoot.addChild(background, world, actorShadows, fighterLayer, effectLayer);
+  // 超必殺技の暗幕は背景だけに掛ける。キャラと技エフェクトは前面で明るさを保つ。
+  cameraRoot.addChild(background, world, dramaticShade, actorShadows, fighterLayer, effectLayer);
   app.stage.addChild(cameraRoot, vignette);
   app.stage.eventMode = "none";
 
@@ -451,6 +455,10 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     vignette.position.set(width / 2, height / 2);
     vignette.width = width;
     vignette.height = height;
+    dramaticShade
+      .clear()
+      .rect(-width, -height, width * 3, height * 3)
+      .fill({ color: 0xffffff });
     for (const mote of motes) {
       mote.sprite.position.set(mote.xRatio * width, mote.yRatio * height);
       mote.sprite.width = mote.size;
@@ -532,6 +540,19 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       projectionChanged = true;
     }
     if (projectionChanged) applyProjection();
+
+    const shadeMode = arena.classList.contains("black-meteor-mode")
+      ? "meteor"
+      : arena.classList.contains("pentagram-nova-mode")
+        ? "nova"
+        : arena.classList.contains("special-mode")
+          ? "galaxy"
+          : null;
+    const shadeTarget = prebattle ? 0 : shadeMode === "meteor" ? .55 : shadeMode === "nova" ? .46 : shadeMode === "galaxy" ? .5 : 0;
+    const shadeSmoothing = 1 - Math.exp(-ticker.deltaMS / (shadeTarget > dramaticShade.alpha ? 230 : 360));
+    dramaticShade.alpha += (shadeTarget - dramaticShade.alpha) * shadeSmoothing;
+    dramaticShade.tint = shadeMode === "meteor" ? 0x070210 : shadeMode === "nova" ? 0x16082b : 0x09041a;
+    dramaticShade.visible = dramaticShade.alpha > .003;
 
     stars.y = (elapsed * 2.8) % 45;
     haze.rotation = Math.sin(elapsed * .12) * .008;

@@ -377,6 +377,69 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
+  function makeGalaxyCharge() {
+    const container = new Container();
+    const violetHalo = glow(0x5120b7, 300, .48);
+    const cyanCloud = glow(COLORS.cyan, 190, .3);
+    const magentaCloud = glow(COLORS.pink, 220, .34);
+    const accretionOuter = new Graphics().ellipse(0, 0, 82, 34).stroke({ color: 0xb070ff, alpha: .9, width: 7 });
+    const accretionInner = new Graphics().ellipse(0, 0, 58, 22).stroke({ color: COLORS.cyan, alpha: .9, width: 5 });
+    const coreGlow = glow(COLORS.white, 78, .95);
+    const voidCore = new Graphics()
+      .circle(0, 0, 18)
+      .fill({ color: 0x070218, alpha: .98 })
+      .stroke({ color: 0xff86e8, alpha: .9, width: 3 });
+    const dust = [];
+    const stars = [];
+    container.addChild(violetHalo, magentaCloud, cyanCloud, accretionOuter, accretionInner, coreGlow, voidCore);
+    for (let index = 0; index < 18; index += 1) {
+      const color = [COLORS.cyan, COLORS.pink, COLORS.violet, COLORS.white][index % 4];
+      const mote = glow(color, 13 + index % 4 * 4, .82);
+      container.addChildAt(mote, 3);
+      dust.push({ sprite: mote, angle: index * Math.PI * 2 / 18, radius: 55 + index % 5 * 17, speed: 1.7 + index % 4 * .31 });
+    }
+    for (let index = 0; index < 10; index += 1) {
+      const star = drawStar(new Graphics(), 3 + index % 3 * 1.7, index % 3 === 0 ? 0xff9ee9 : COLORS.white, .95);
+      star.blendMode = "add";
+      container.addChild(star);
+      stars.push({ sprite: star, angle: index * Math.PI * 2 / 10 + .24, radius: 72 + index % 4 * 18, speed: 2.2 + index % 3 * .4 });
+    }
+    return add(container, 1950, (progress, elapsed) => {
+      container.position.copyFrom(point("hero", .72, .53));
+      const form = Math.min(1, easeOut(progress * 2.2));
+      const collapse = progress > .79 ? (1 - progress) / .21 : 1;
+      violetHalo.scale.set(.62 + form * .52 + Math.sin(elapsed * 5) * .08);
+      violetHalo.alpha = collapse * (.34 + Math.sin(elapsed * 4.2) * .1);
+      cyanCloud.position.set(Math.cos(elapsed * 2.1) * 24, Math.sin(elapsed * 2.7) * 17);
+      magentaCloud.position.set(Math.cos(elapsed * 1.7 + Math.PI) * 28, Math.sin(elapsed * 2.3 + 1.2) * 20);
+      cyanCloud.scale.set(.72 + Math.sin(elapsed * 6) * .15);
+      magentaCloud.scale.set(.76 + Math.cos(elapsed * 5.1) * .16);
+      cyanCloud.alpha = collapse * (.2 + Math.sin(elapsed * 5.7) * .08);
+      magentaCloud.alpha = collapse * (.24 + Math.cos(elapsed * 4.8) * .09);
+      accretionOuter.rotation = elapsed * 2.8;
+      accretionInner.rotation = -elapsed * 4.1;
+      accretionOuter.scale.set(.35 + form * .75, .55 + form * .45);
+      accretionInner.scale.set(.3 + form * .7, .48 + form * .52);
+      coreGlow.scale.set(.42 + form * .7 + Math.sin(elapsed * 16) * .1);
+      coreGlow.alpha = collapse * (.64 + Math.sin(elapsed * 13) * .2);
+      voidCore.scale.set(.58 + form * .46 + Math.sin(elapsed * 9) * .06);
+      dust.forEach(({ sprite, angle, radius, speed }, index) => {
+        const inward = radius * (1 - progress * .68);
+        const orbit = angle + elapsed * speed;
+        sprite.position.set(Math.cos(orbit) * inward, Math.sin(orbit) * inward * .6);
+        sprite.scale.set(.45 + form * .65);
+        sprite.alpha = collapse * (.5 + Math.sin(elapsed * 8 + index) * .28);
+      });
+      stars.forEach(({ sprite, angle, radius, speed }, index) => {
+        const orbit = angle - elapsed * speed;
+        sprite.position.set(Math.cos(orbit) * radius * (1 - progress * .52), Math.sin(orbit) * radius * .54 * (1 - progress * .52));
+        sprite.rotation = -orbit + elapsed * 2;
+        sprite.alpha = collapse * (.62 + Math.sin(elapsed * 10 + index * 1.7) * .34);
+      });
+      container.alpha = collapse;
+    });
+  }
+
   function makeGalaxyFlash() {
     const origin = point("hero", .735, .535);
     const target = point("enemy", .52, .52);
@@ -387,43 +450,77 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     container.position.copyFrom(origin);
     container.rotation = Math.atan2(dy, dx);
 
+    const cosmicBody = new Graphics()
+      .poly([0, -54, length * .9, -74, length + 28, 0, length * .9, 74, 0, 54])
+      .fill({ color: 0x16052f, alpha: .98 });
     const outer = new Graphics()
-      .poly([0, -48, length * .91, -72, length + 24, 0, length * .91, 72, 0, 48])
-      .fill({ color: COLORS.cyan, alpha: .34 });
+      .poly([0, -47, length * .92, -63, length + 22, 0, length * .92, 63, 0, 47])
+      .fill({ color: 0x7c32e5, alpha: .62 });
     const body = new Graphics()
-      .poly([0, -32, length * .94, -50, length + 14, 0, length * .94, 50, 0, 32])
-      .fill({ color: COLORS.gold, alpha: .88 });
+      .poly([0, -34, length * .95, -48, length + 15, 0, length * .95, 48, 0, 34])
+      .fill({ color: 0x1ea9e8, alpha: .62 });
     const inner = new Graphics()
-      .poly([0, -17, length * .97, -23, length + 7, 0, length * .97, 23, 0, 17])
-      .fill({ color: COLORS.white, alpha: .98 });
+      .poly([0, -10, length * .98, -17, length + 8, 0, length * .98, 17, 0, 10])
+      .fill({ color: COLORS.white, alpha: .92 });
     outer.blendMode = "add";
     body.blendMode = "add";
     inner.blendMode = "add";
 
-    const sourceHalo = glow(COLORS.cyan, 205, .76);
-    const sourceCore = glow(COLORS.white, 118, .98);
-    const sourceRing = new Graphics().circle(0, 0, 69).stroke({ color: COLORS.gold, alpha: .88, width: 6 });
-    const sourceRingTwo = new Graphics().circle(0, 0, 91).stroke({ color: COLORS.cyan, alpha: .7, width: 4 });
-    const headHalo = glow(COLORS.cyan, 235, .72);
-    const headCore = glow(COLORS.white, 128, .94);
-    const headWave = new Graphics().ellipse(0, 0, 68, 96).stroke({ color: COLORS.white, alpha: .82, width: 7 });
+    const sourceHalo = glow(0x7f35e8, 225, .76);
+    const sourceCloud = glow(COLORS.pink, 168, .48);
+    const sourceCore = glow(COLORS.white, 105, .96);
+    const sourceVoid = new Graphics().circle(0, 0, 23).fill({ color: 0x09021b, alpha: .98 }).stroke({ color: COLORS.cyan, alpha: .9, width: 4 });
+    const sourceRing = new Graphics().ellipse(0, 0, 72, 31).stroke({ color: COLORS.pink, alpha: .9, width: 6 });
+    const sourceRingTwo = new Graphics().ellipse(0, 0, 96, 43).stroke({ color: COLORS.cyan, alpha: .76, width: 4 });
+    const headHalo = glow(0x8653ff, 255, .72);
+    const headCloud = glow(COLORS.pink, 190, .48);
+    const headCore = glow(COLORS.white, 115, .92);
+    const headWave = new Graphics().ellipse(0, 0, 73, 104).stroke({ color: COLORS.cyan, alpha: .86, width: 7 });
+    const strands = [
+      { graphic: new Graphics(), color: COLORS.pink, width: 9, phase: .3, amplitude: 27 },
+      { graphic: new Graphics(), color: COLORS.cyan, width: 7, phase: 2.2, amplitude: 19 },
+      { graphic: new Graphics(), color: 0xbd83ff, width: 5, phase: 4.1, amplitude: 35 },
+    ];
+    strands.forEach(({ graphic }) => { graphic.blendMode = "add"; });
+    const nebulae = [];
+    for (let index = 0; index < 9; index += 1) {
+      const cloud = glow([0x6b32d6, COLORS.pink, COLORS.cyan][index % 3], 82 + index % 3 * 24, .32);
+      cloud.blendMode = "add";
+      container.addChild(cloud);
+      nebulae.push({ sprite: cloud, offset: (index + .5) / 9, y: (index % 2 ? -1 : 1) * (12 + index % 3 * 13) });
+    }
     const streaks = [];
-    container.addChild(outer, body, inner, sourceHalo, sourceRingTwo, sourceRing, sourceCore, headHalo, headCore, headWave);
-    for (let index = 0; index < 14; index += 1) {
-      const streak = new Graphics().roundRect(-22, -2, 44 + index % 4 * 12, 4, 2).fill({ color: index % 3 ? COLORS.cyan : COLORS.white, alpha: .82 });
+    const starfield = [];
+    container.addChildAt(cosmicBody, 0);
+    container.addChild(outer, body, ...strands.map(({ graphic }) => graphic), inner, sourceHalo, sourceCloud, sourceRingTwo, sourceRing, sourceCore, sourceVoid, headHalo, headCloud, headCore, headWave);
+    for (let index = 0; index < 18; index += 1) {
+      const color = [COLORS.cyan, COLORS.pink, 0xb88cff, COLORS.white][index % 4];
+      const streak = new Graphics().roundRect(-24, -2, 42 + index % 5 * 12, 3 + index % 2 * 2, 2).fill({ color, alpha: .86 });
       container.addChild(streak);
-      streaks.push({ sprite: streak, offset: index / 14, y: (index - 6.5) * 9 });
+      streaks.push({ sprite: streak, offset: index / 18, y: (index - 8.5) * 7 });
+    }
+    for (let index = 0; index < 28; index += 1) {
+      const star = index % 4 === 0
+        ? drawStar(new Graphics(), 3 + index % 3, index % 8 === 0 ? 0xff9ee9 : COLORS.white, .95)
+        : glow([COLORS.cyan, COLORS.pink, 0xb88cff][index % 3], 5 + index % 5, .86);
+      star.blendMode = "add";
+      container.addChild(star);
+      starfield.push({ sprite: star, offset: (index + .35) / 28, y: (index % 9 - 4) * 10, speed: .55 + index % 5 * .13 });
     }
     return add(container, 1250, (progress, elapsed) => {
       const reveal = Math.min(1, easeOut(progress * 6.2));
       const fade = progress > .78 ? (1 - progress) / .22 : 1;
+      cosmicBody.scale.set(reveal, .9 + Math.sin(elapsed * 17) * .08);
       outer.scale.set(reveal, .9 + Math.sin(elapsed * 25) * .12);
       body.scale.set(reveal, .9 + Math.sin(elapsed * 31) * .08);
       inner.scale.set(reveal, .92 + Math.sin(elapsed * 38) * .07);
+      cosmicBody.alpha = fade * (.86 + Math.sin(elapsed * 13) * .1);
       outer.alpha = (.25 + Math.sin(elapsed * 18) * .08) * fade;
-      body.alpha = (.78 + Math.sin(elapsed * 24) * .14) * fade;
-      inner.alpha = (.9 + Math.sin(elapsed * 34) * .1) * fade;
+      body.alpha = (.54 + Math.sin(elapsed * 24) * .18) * fade;
+      inner.alpha = (.68 + Math.sin(elapsed * 34) * .2) * fade;
       sourceHalo.scale.set(.82 + Math.sin(elapsed * 19) * .16);
+      sourceCloud.position.set(Math.cos(elapsed * 5) * 16, Math.sin(elapsed * 6) * 14);
+      sourceCloud.scale.set(.72 + Math.sin(elapsed * 11) * .2);
       sourceCore.scale.set(.82 + Math.sin(elapsed * 27) * .13);
       sourceRing.rotation = elapsed * 3.8;
       sourceRingTwo.rotation = -elapsed * 2.7;
@@ -431,15 +528,38 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       sourceRingTwo.scale.set(.68 + reveal * .32);
       const headX = length * reveal;
       headHalo.x = headX;
+      headCloud.x = headX + Math.sin(elapsed * 16) * 11;
+      headCloud.y = Math.cos(elapsed * 13) * 13;
       headCore.x = headX;
       headWave.x = headX;
       headHalo.scale.set(.75 + Math.sin(elapsed * 17) * .18);
       headCore.scale.set(.82 + Math.sin(elapsed * 29) * .13);
       headWave.scale.set(.62 + reveal * .55);
       headWave.alpha = fade * (.55 + Math.sin(elapsed * 20) * .25);
+      strands.forEach(({ graphic, color, width, phase, amplitude }, strandIndex) => {
+        graphic.clear().moveTo(0, Math.sin(elapsed * 15 + phase) * amplitude * .4);
+        for (let segment = 1; segment <= 12; segment += 1) {
+          const x = length * reveal * segment / 12;
+          const envelope = Math.sin(segment / 12 * Math.PI);
+          const y = Math.sin(elapsed * (13 + strandIndex * 3) + segment * 1.35 + phase) * amplitude * envelope;
+          graphic.lineTo(x, y);
+        }
+        graphic.stroke({ color, alpha: fade * (.56 + Math.sin(elapsed * 8 + phase) * .18), width });
+      });
+      nebulae.forEach(({ sprite, offset, y }, index) => {
+        sprite.position.set(length * offset, y + Math.sin(elapsed * (5 + index % 3) + index) * 17);
+        sprite.scale.set(.68 + Math.sin(elapsed * 8 + index) * .22, .72 + Math.cos(elapsed * 6 + index) * .2);
+        sprite.alpha = offset <= reveal ? fade * (.2 + Math.sin(elapsed * 7 + index) * .1) : 0;
+      });
       streaks.forEach(({ sprite, offset, y }) => {
         sprite.position.set(((elapsed * length * 2.2 + offset * length) % length) * reveal, y + Math.sin(elapsed * 11 + offset * 18) * 12);
         sprite.alpha = reveal * fade * .82;
+      });
+      starfield.forEach(({ sprite, offset, y, speed }, index) => {
+        const x = ((offset + elapsed * speed) % 1) * length;
+        sprite.position.set(x, y + Math.sin(elapsed * 9 + index * .9) * 7);
+        sprite.rotation = elapsed * (1.8 + index % 4 * .4);
+        sprite.alpha = x <= length * reveal ? fade * (.55 + Math.sin(elapsed * 12 + index) * .38) : 0;
       });
       container.alpha = fade;
     });
@@ -976,7 +1096,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     blackMeteorSky: () => makeVortex({ side: "hero" }),
     blackMeteor: () => makeMeteor({ side: "hero" }),
     blackMeteorImpact: () => makeBurst({ side: "hero", yRatio: .68, color: COLORS.violet, secondary: COLORS.white, duration: 1200, radius: 230, count: 18 }),
-    galaxyCharge: () => makeCharge({ side: "hero", xRatio: .72, yRatio: .53, color: COLORS.gold, secondary: COLORS.cyan, duration: 1950, radius: 100, count: 16 }),
+    galaxyCharge: () => makeGalaxyCharge(),
     victoryCelebration: (options) => makeVictory(options.side),
     galaxyFlash: () => {
       makeGalaxyFlash();
