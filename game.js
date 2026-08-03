@@ -49,7 +49,8 @@
     prebattleStatRows: $$("[data-fighter][data-stat]"),
     gameStartButton: $("#game-start-button"),
   };
-  const actorImage = (source) => window.etokichiAssetUrl?.(source) ?? source;
+  const assetUrl = (source) => window.etokichiAssetUrl?.(source) ?? source;
+  const actorImage = assetUrl;
 
   const HERO_IMAGES = {
     idle: actorImage("assets/etokichi/idle.webp"),
@@ -165,15 +166,15 @@
   const BATTLE_MUSIC_VOLUME = .22;
   const VICTORY_MUSIC_VOLUME = .18;
   const SOUND_EFFECT_VOLUME = 1.15;
-  const entranceMusic = new Audio("assets/audio/arena-overture-intro.mp3");
+  const entranceMusic = new Audio(assetUrl("assets/audio/arena-overture-intro.mp3"));
   entranceMusic.loop = false;
   entranceMusic.preload = "auto";
   entranceMusic.volume = 0;
-  const battleMusic = new Audio("assets/audio/ceremonial-colosseum.mp3");
+  const battleMusic = new Audio(assetUrl("assets/audio/ceremonial-colosseum.mp3"));
   battleMusic.loop = true;
   battleMusic.preload = "auto";
   battleMusic.volume = 0;
-  const victoryMusic = new Audio("assets/audio/arena-crest-victory.mp3");
+  const victoryMusic = new Audio(assetUrl("assets/audio/arena-crest-victory.mp3"));
   victoryMusic.loop = false;
   victoryMusic.preload = "auto";
   victoryMusic.volume = 0;
