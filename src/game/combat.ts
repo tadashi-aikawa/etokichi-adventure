@@ -7,6 +7,57 @@ export const GENKI_EFFECT = {
   maxGutsRegenMultiplier: 2,
 } as const;
 
+export const CHARM_EFFECT = {
+  duration: 10000,
+  triggerChance: 0.8,
+  evasionMultiplier: 0.5,
+} as const;
+
+export const ZONE_EFFECT = {
+  duration: 10000,
+  finalSecondsThreshold: 10,
+  opponentLifeThreshold: 0.2,
+  opponentLifeTriggerChance: 0.5,
+  hitRateMultiplier: 1.5,
+  techniqueCostMultiplier: 1.5,
+  gutsRegenMultiplier: 1.5,
+  gutsRecovery: 50,
+  evasionMultiplier: 0.5,
+  criticalMultiplier: 1.5,
+} as const;
+
+export function applyCharmEvasionPenalty(hitRate: number, charmed: boolean): number {
+  if (!charmed) return hitRate;
+  const evasionRate = 100 - hitRate;
+  return 100 - evasionRate * CHARM_EFFECT.evasionMultiplier;
+}
+
+export function shouldGuaranteeZone(
+  remainingSeconds: number,
+  ownLifeRatio: number,
+  opponentLifeRatio: number,
+): boolean {
+  return remainingSeconds < ZONE_EFFECT.finalSecondsThreshold && ownLifeRatio < opponentLifeRatio;
+}
+
+export function reachedZoneLifeThreshold(opponentLifeRatio: number): boolean {
+  return opponentLifeRatio < ZONE_EFFECT.opponentLifeThreshold;
+}
+
+export function closeToMinimumRange(
+  heroX: number,
+  enemyX: number,
+  attacker: "hero" | "enemy",
+  minimumStageX: number,
+  maximumStageX: number,
+  targetDistance: number,
+): { heroX: number; enemyX: number } {
+  if (attacker === "hero") {
+    return { heroX: Math.max(minimumStageX, enemyX - targetDistance), enemyX };
+  }
+  return { heroX, enemyX: Math.min(maximumStageX, heroX + targetDistance) };
+}
+
 export function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }

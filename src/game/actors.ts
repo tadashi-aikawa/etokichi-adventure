@@ -12,6 +12,14 @@ export function shouldMirror(profile: CharacterProfile, side: Side): boolean {
   return profile.baseFacing !== desiredFacing(side);
 }
 
+export function getImageFacing(profile: CharacterProfile, source: string): Facing {
+  for (const [key, image] of Object.entries(profile.images)) {
+    if (typeof image === "string" && image === source) return profile.imageFacings?.[key] ?? profile.baseFacing;
+    if (Array.isArray(image) && image.includes(source)) return profile.imageFacings?.[key] ?? profile.baseFacing;
+  }
+  return profile.baseFacing;
+}
+
 export function createBattleActor(side: Side, profile: CharacterProfile): BattleActor {
   return { side, profile };
 }

@@ -1,4 +1,5 @@
 import type { CharacterId, CharacterProfile, TechniqueDefinition } from "./types.ts";
+import { CHARM_EFFECT } from "./combat.ts";
 
 type AssetResolver = (source: string) => string;
 
@@ -32,6 +33,14 @@ const icon = {
   discoveryComet:
     '<path d="M32 5l3.4 10.6L46 19l-10.6 3.4L32 33l-3.4-10.6L18 19l10.6-3.4L32 5z"/><path d="M5 38c7-10 13-14 20-16M8 43c6-8 10-11 16-14" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>',
   nap: '<path d="M27 7c-9 3-14 12-11 21 3 8 12 12 21 8-6 0-12-4-14-10-2-7 0-14 4-19z"/><path d="M7 34h27v9H7z"/><path d="M35 8h8l-8 7h8l-8 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>',
+  businessCard:
+    '<rect x="7" y="11" width="28" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="3" transform="rotate(-12 21 20)"/><rect x="14" y="18" width="28" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="3" transform="rotate(9 28 27)"/><path d="M21 24h13M23 29h8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+  closingTime:
+    '<circle cx="17" cy="17" r="10" fill="none" stroke="currentColor" stroke-width="4"/><path d="M17 11v7l5 3M24 30h17v13H14V30h4v-4h8v4" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 35h27" fill="none" stroke="currentColor" stroke-width="3"/>',
+  angelWink:
+    '<path d="M5 19c5-7 13-8 19-1-6 7-14 7-19 1z" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="15" cy="19" r="3"/><path d="M31 14c-5-7-14-3-14 4 0 7 8 12 14 18 6-6 14-11 14-18 0-7-9-11-14-4z"/><path d="M6 35c5 4 10 4 15 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+  approvalMeteor:
+    '<path d="M7 7h24v31H7zM13 14h12M13 20h12M13 26h8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="33" cy="33" r="10"/><path d="M29 33l3 3 6-7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 5l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
 } as const;
 
 const etokichiTechniques: TechniqueDefinition[] = [
@@ -318,6 +327,79 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   },
 ];
 
+const salarymanEtokichiTechniques: TechniqueDefinition[] = [
+  {
+    id: "businessCardStrike",
+    name: "名刺ストライク",
+    iconSvg: icon.businessCard,
+    cost: 15,
+    power: 76,
+    accuracy: 94,
+    critical: 9,
+    range: 0,
+    duration: 2300,
+    cameraReleaseDelay: 850,
+    impactDelay: 1370,
+    kind: "strike",
+    animation: "businessCardStrike",
+    attackStat: "power",
+    gutsDamage: 8,
+  },
+  {
+    id: "angelWink",
+    name: "エンジェルウィンク",
+    iconSvg: icon.angelWink,
+    cost: 31,
+    power: 54,
+    accuracy: 89,
+    critical: 6,
+    range: 2,
+    duration: 3200,
+    cameraReleaseDelay: 1080,
+    impactDelay: 2150,
+    kind: "shot",
+    animation: "angelWink",
+    attackStat: "intelligence",
+    gutsDamage: 28,
+    charmChance: CHARM_EFFECT.triggerChance,
+  },
+  {
+    id: "approvalMeteor",
+    name: "稟議書メテオ",
+    iconSvg: icon.approvalMeteor,
+    cost: 45,
+    power: 238,
+    accuracy: 61,
+    critical: 22,
+    range: 3,
+    duration: 4200,
+    cameraReleaseDelay: 1220,
+    impactDelay: 3050,
+    kind: "shot",
+    animation: "approvalMeteor",
+    attackStat: "intelligence",
+    gutsDamage: 18,
+  },
+  {
+    id: "closingTimeDash",
+    name: "定時ダッシュ",
+    iconSvg: icon.closingTime,
+    cost: 24,
+    power: 126,
+    accuracy: 82,
+    critical: 15,
+    range: 3,
+    duration: 1250,
+    cameraReleaseDelay: 300,
+    impactDelay: 980,
+    kind: "strike",
+    animation: "closingTimeDash",
+    attackStat: "power",
+    gutsDamage: 14,
+    closesDistance: true,
+  },
+];
+
 export function createCharacterProfiles(resolveAsset: AssetResolver): Record<CharacterId, CharacterProfile> {
   const asset = resolveAsset;
   return {
@@ -401,6 +483,34 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       stats: { life: 430, power: 330, defense: 300, accuracy: 620, evasion: 780, intelligence: 620, gutsRegen: 5.4 },
       abilities: ["inspiration", "ease"],
       techniques: sutekichiTechniques,
+    },
+    salarymanEtokichi: {
+      id: "salarymanEtokichi",
+      baseFacing: "left",
+      imageFacings: {
+        businessCardStrikeCast: "right",
+        closingTimeDashCast: "right",
+      },
+      visualScale: 1.2,
+      name: "サラリーマンエトキチ",
+      subtitle: "STELLAR BUSINESS",
+      abilitiesLabel: "ひらめき・余裕・ゾーン",
+      images: {
+        idle: asset("assets/characters/salaryman-etokichi/idle.webp"),
+        battleIdle: asset("assets/characters/salaryman-etokichi/idle.webp"),
+        businessCardStrikeCast: asset("assets/characters/salaryman-etokichi/business-card-strike-cast.webp"),
+        closingTimeDashCast: asset("assets/characters/salaryman-etokichi/closing-time-dash-cast.webp"),
+        angelWinkCast: asset("assets/characters/salaryman-etokichi/angel-wink-cast.webp"),
+        approvalMeteorCast: asset("assets/characters/salaryman-etokichi/approval-meteor-cast.webp"),
+        victoryClimax: asset("assets/characters/salaryman-etokichi/victory-climax.webp"),
+        defeat: asset("assets/characters/salaryman-etokichi/defeat.webp"),
+        walk: [1, 2, 3].map((frame) => asset(`assets/characters/salaryman-etokichi/walk-${frame}.webp`)),
+      },
+      introPoseKeys: ["idle", "businessCardStrikeCast", "idle", "angelWinkCast"],
+      versusPoseKey: "businessCardStrikeCast",
+      stats: { life: 540, power: 430, defense: 470, accuracy: 590, evasion: 440, intelligence: 650, gutsRegen: 3.1 },
+      abilities: ["inspiration", "ease", "zone"],
+      techniques: salarymanEtokichiTechniques,
     },
   };
 }

@@ -12,6 +12,8 @@ const STATUS_COLORS = {
   "status-etoile": 0xfff2a0,
   "status-inspiration": 0xffe675,
   "status-genki": 0xffe675,
+  "status-charm": 0xff74b9,
+  "status-zone": 0x68efff,
 };
 
 const ACTION_CLASSES = [
@@ -22,12 +24,14 @@ const ACTION_CLASSES = [
   "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence",
   "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence",
   "sutekichi-comet-sequence", "sutekichi-nap-sequence",
+  "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence",
+  "approval-meteor-sequence",
   "galaxy-ray-recoil", "technique-recoil", "pentagram-nova-combo", "pentagram-nova-finisher",
   "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-peak",
   "special-action", "hurt", "critical-hit", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
-  "status-inspiration", "status-genki", "special-action-inspiration",
+  "status-inspiration", "status-genki", "status-charm", "status-zone", "special-action-inspiration",
 ];
 
 function textureScale(sprite, size, facing = 1) {
@@ -39,12 +43,21 @@ function textureScale(sprite, size, facing = 1) {
 
 function actorFacing(actor) {
   const profileFacing = actor.classes.has("mirror-character") ? -1 : 1;
+  const assetFacing = actor.classes.has("asset-facing-reversed") ? -1 : 1;
   const walkFacing = actor.classes.has("walk-reversed") ? -1 : 1;
-  return profileFacing * walkFacing;
+  return profileFacing * assetFacing * walkFacing;
 }
 
 function easeOutCubic(value) {
   return 1 - (1 - value) ** 3;
+}
+
+function createHeart(size, color) {
+  return new Graphics()
+    .circle(-size * .22, -size * .12, size * .28)
+    .circle(size * .22, -size * .12, size * .28)
+    .poly([-size * .46, 0, 0, size * .55, size * .46, 0])
+    .fill({ color, alpha: .96 });
 }
 
 function sampleMotionKeyframes(keyframes, progress) {
@@ -93,7 +106,12 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       star.visible = false;
       return star;
     });
-    aura.addChild(auraGlow, auraRingOuter, auraRingInner, ...genkiStars);
+    const charmHearts = Array.from({ length: 7 }, (_, index) => {
+      const heart = createHeart(1, index % 2 ? 0xff8ac5 : 0xffd2e9);
+      heart.visible = false;
+      return heart;
+    });
+    aura.addChild(auraGlow, auraRingOuter, auraRingInner, ...genkiStars, ...charmHearts);
 
     const trails = new Container();
     const sprite = new Sprite(texture);
@@ -109,6 +127,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       auraRingOuter,
       auraRingInner,
       genkiStars,
+      charmHearts,
       trails,
       sprite,
       source: elements[side].image.getAttribute("src") || elements[side].image.currentSrc,
@@ -126,6 +145,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       textureToken: 0,
       dodgeToken: 0,
       scriptedMotion: null,
+      closingMotion: null,
     };
   }
 
@@ -213,6 +233,9 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     if (actor.classes.has("pentagram-nova-sequence") && !nextClasses.has("pentagram-nova-sequence")) {
       actor.scriptedMotion = null;
     }
+    if (actor.classes.has("closing-time-dash-sequence") && !nextClasses.has("closing-time-dash-sequence")) {
+      actor.scriptedMotion = null;
+    }
     actor.classes = nextClasses;
     actor.container.zIndex = getFighterDepth(side, nextClasses);
   }
@@ -233,7 +256,22 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
 
   function setLayout(side, { x, groundY, size }) {
     const actor = actors[side];
-    actor.baseX = x;
+    if (actor.classes.has("closing-distance") && actor.scriptedMotion?.type === "closingTimeDash") {
+      const destination = actor.scriptedMotion.keyframes.at(-1);
+      destination.x = x;
+      destination.y = groundY - size * .5;
+      actor.baseX = x;
+      actor.closingMotion = null;
+    } else if (actor.classes.has("closing-distance")) {
+      if (!actor.closingMotion && Math.abs(x - actor.baseX) > .5) {
+        actor.closingMotion = { fromX: actor.baseX, targetX: x, startedAt: performance.now(), duration: 480 };
+      } else if (actor.closingMotion) {
+        actor.closingMotion.targetX = x;
+      }
+    } else {
+      actor.baseX = x;
+      actor.closingMotion = null;
+    }
     actor.baseY = groundY;
     actor.size = size;
     textureScale(actor.sprite, size, actorFacing(actor));
@@ -295,6 +333,21 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
         { x: target.x - 16, y: target.y - actor.size * .22, rotation: -.26, scale: 1.22, offset: .74 },
         { ...target, rotation: -.09, scale: 1.12, offset: 1 },
       ];
+    } else if (type === "closingTimeDash") {
+      const opponent = actors[side === "hero" ? "enemy" : "hero"];
+      const direction = opponent.baseX >= actor.baseX ? 1 : -1;
+      const contactGap = Math.max(actor.size, opponent.size) * .52;
+      const contact = {
+        x: opponent.baseX - direction * contactGap,
+        y: actor.baseY - actor.size * .5,
+      };
+      keyframes = [
+        { ...currentCenter, rotation: 0, scale: 1, offset: 0 },
+        { x: currentCenter.x - direction * actor.size * .07, y: currentCenter.y + actor.size * .035, rotation: direction * .1, scale: .94, offset: .16 },
+        { x: currentCenter.x, y: currentCenter.y - actor.size * .025, rotation: direction * -.08, scale: 1.04, offset: .27 },
+        { x: contact.x - direction * actor.size * .12, y: contact.y - actor.size * .025, rotation: direction * -.15, scale: 1.12, offset: .78 },
+        { ...contact, rotation: direction * -.08, scale: 1.16, offset: 1 },
+      ];
     } else {
       return false;
     }
@@ -318,6 +371,12 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     let scale = 1;
     let alpha = 1;
     let tint = 0xffffff;
+
+    if (actor.closingMotion) {
+      const progress = Math.min(1, (now - actor.closingMotion.startedAt) / actor.closingMotion.duration);
+      actor.baseX = actor.closingMotion.fromX
+        + (actor.closingMotion.targetX - actor.closingMotion.fromX) * easeOutCubic(progress);
+    }
 
     if (classes.has("moving-forward") || classes.has("moving-back") || classes.has("fighter-walking")) {
       offsetY -= Math.abs(Math.sin(elapsed * 12)) * actor.size * .025;
@@ -367,6 +426,38 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       rotation = direction * (.07 + Math.sin(elapsed * 1.9) * .025);
       scale *= 1 - settle * .08 + Math.sin(elapsed * 2.1) * .01;
       tint = 0xe8f6ff;
+    }
+    if (classes.has("business-card-strike-sequence")) {
+      const slash = Math.sin(Math.min(1, actionSeconds / .72) * Math.PI);
+      offsetX += direction * actor.size * .16 * slash;
+      rotation -= direction * .12 * slash;
+      scale += .08 * slash;
+    }
+    if (classes.has("closing-time-dash-sequence") && !actor.scriptedMotion) {
+      const dash = Math.sin(Math.min(1, actionSeconds / 1.25) * Math.PI);
+      offsetX += direction * actor.size * .3 * dash;
+      offsetY -= actor.size * .035 * dash;
+      rotation -= direction * .16 * dash;
+      scale += .11 * dash;
+    }
+    if (classes.has("angel-wink-sequence")) {
+      const wink = Math.sin(Math.min(1, actionSeconds / 1.35) * Math.PI);
+      offsetY -= actor.size * .055 * wink;
+      rotation = direction * .045 * wink;
+      scale += .07 * wink;
+      tint = 0xffe7f4;
+    }
+    if (classes.has("approval-meteor-sequence")) {
+      const charge = Math.min(1, actionSeconds / 1.55);
+      offsetY -= actor.size * (.04 + charge * .11);
+      rotation = direction * Math.sin(elapsed * 4.2) * .025;
+      scale += charge * .13 + Math.sin(elapsed * 8) * .018;
+      tint = 0xffeb9b;
+    }
+    if (classes.has("status-charm")) {
+      rotation += Math.sin(elapsed * 3.4) * .045;
+      offsetX += Math.sin(elapsed * 2.7) * actor.size * .012;
+      tint = 0xffe7f4;
     }
     if (classes.has("galaxy-ray-recoil") || classes.has("technique-recoil")) offsetX -= direction * actor.size * .08;
     if (classes.has("hurt") || classes.has("critical-hit")) {
@@ -476,6 +567,18 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       const starSize = actor.size * (.055 + index % 2 * .012) * (.9 + Math.sin(elapsed * 5 + index) * .14);
       star.scale.set(starSize);
       star.alpha = .72 + Math.sin(elapsed * 6 + index) * .2;
+    });
+    const charmActive = classes.has("status-charm");
+    actor.charmHearts.forEach((heart, index) => {
+      heart.visible = charmActive;
+      if (!charmActive) return;
+      const angle = elapsed * 1.8 + index * Math.PI * 2 / actor.charmHearts.length;
+      const radius = actor.size * (.38 + index % 2 * .06);
+      heart.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * .28 - actor.size * .33);
+      heart.rotation = -angle * .25;
+      const heartSize = actor.size * (.04 + index % 3 * .008) * (.9 + Math.sin(elapsed * 6 + index) * .18);
+      heart.scale.set(heartSize);
+      heart.alpha = .66 + Math.sin(elapsed * 7 + index) * .24;
     });
 
     if (actor.transitionStartedAt) {

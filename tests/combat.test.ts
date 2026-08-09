@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  applyCharmEvasionPenalty,
   calculateBaseHitRate,
   calculateRecoverySuccessChance,
+  CHARM_EFFECT,
+  closeToMinimumRange,
   GENKI_EFFECT,
   getRangeForDistance,
+  reachedZoneLifeThreshold,
+  shouldGuaranteeZone,
+  ZONE_EFFECT,
 } from "../src/game/combat.ts";
 
 describe("純粋な戦闘計算", () => {
@@ -43,5 +49,37 @@ describe("純粋な戦闘計算", () => {
     expect(calculateRecoverySuccessChance(65, 100)).toBe(80);
     expect(calculateRecoverySuccessChance(100, 100)).toBe(90);
     expect(calculateRecoverySuccessChance(0, 0)).toBe(25);
+  });
+
+  it("魅了は10秒続き、回避率を半分にする", () => {
+    expect(CHARM_EFFECT.duration).toBe(10000);
+    expect(CHARM_EFFECT.triggerChance).toBe(0.8);
+    expect(applyCharmEvasionPenalty(70, true)).toBe(85);
+    expect(applyCharmEvasionPenalty(70, false)).toBe(70);
+  });
+
+  it("ゾーンの2つの発動条件と効果倍率を定義する", () => {
+    expect(shouldGuaranteeZone(9.9, 0.4, 0.5)).toBe(true);
+    expect(shouldGuaranteeZone(10, 0.4, 0.5)).toBe(false);
+    expect(shouldGuaranteeZone(9, 0.5, 0.4)).toBe(false);
+    expect(reachedZoneLifeThreshold(0.199)).toBe(true);
+    expect(reachedZoneLifeThreshold(0.2)).toBe(false);
+    expect(ZONE_EFFECT).toMatchObject({
+      duration: 10000,
+      opponentLifeTriggerChance: 0.5,
+      hitRateMultiplier: 1.5,
+      techniqueCostMultiplier: 1.5,
+      gutsRegenMultiplier: 1.5,
+      gutsRecovery: 50,
+      evasionMultiplier: 0.5,
+      criticalMultiplier: 1.5,
+    });
+  });
+
+  it("接近技は攻撃側だけを動かして間合い0へ縮める", () => {
+    expect(closeToMinimumRange(100, 126, "hero", 10, 250, 14)).toEqual({ heroX: 112, enemyX: 126 });
+    expect(closeToMinimumRange(100, 126, "enemy", 10, 250, 14)).toEqual({ heroX: 100, enemyX: 114 });
+    expect(closeToMinimumRange(100, 132, "hero", 10, 250, 14)).toEqual({ heroX: 118, enemyX: 132 });
+    expect(getRangeForDistance(14, 80)).toBe(0);
   });
 });

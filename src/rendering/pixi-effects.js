@@ -1260,6 +1260,244 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
+  function drawBusinessCard(graphics, width = 54, height = 30) {
+    graphics
+      .roundRect(-width / 2, -height / 2, width, height, 4)
+      .fill({ color: COLORS.white, alpha: .97 })
+      .roundRect(-width * .34, -height * .18, width * .26, height * .12, 2)
+      .fill({ color: COLORS.gold, alpha: .9 })
+      .roundRect(-width * .34, height * .06, width * .5, height * .07, 2)
+      .fill({ color: 0x384665, alpha: .72 });
+    return graphics;
+  }
+
+  function drawDocument(graphics, width = 52, height = 70) {
+    graphics
+      .roundRect(-width / 2, -height / 2, width, height, 4)
+      .fill({ color: 0xfffdf0, alpha: .96 })
+      .roundRect(-width * .3, -height * .2, width * .6, 4, 2)
+      .fill({ color: 0x52627a, alpha: .7 })
+      .roundRect(-width * .3, -height * .06, width * .46, 4, 2)
+      .fill({ color: 0x52627a, alpha: .55 })
+      .circle(width * .2, height * .22, width * .14)
+      .stroke({ color: 0xd83e38, alpha: .86, width: 3 });
+    return graphics;
+  }
+
+  function makeBusinessCardStrike(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, side === "hero" ? .72 : .28, .46);
+    const target = point(targetSide, .5, .5);
+    const container = new Container();
+    const cards = Array.from({ length: 5 }, (_, index) => {
+      const card = drawBusinessCard(new Graphics(), 60, 34);
+      const trail = glow(index % 2 ? COLORS.cyan : COLORS.gold, 74, .3);
+      const unit = new Container();
+      unit.addChild(trail, card);
+      container.addChild(unit);
+      return { unit, lag: index * .075, wave: (index - 2) * 18, spin: index % 2 ? 1 : -1 };
+    });
+    return add(container, 1080, (progress, elapsed) => {
+      cards.forEach(({ unit, lag, wave, spin }) => {
+        const travel = easeInOut(clamp01((progress - lag) / (1 - lag)));
+        unit.position.set(
+          origin.x + (target.x - origin.x) * travel,
+          origin.y + (target.y - origin.y) * travel + Math.sin(travel * Math.PI) * wave,
+        );
+        unit.rotation = spin * (elapsed * 8 + travel * 2.2);
+        unit.alpha = progress < lag ? 0 : 1 - Math.max(0, progress - .82) / .18;
+        unit.scale.set(.66 + travel * .48);
+      });
+    });
+  }
+
+  function makeClosingTimeDash(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .5, .5);
+    const target = point(targetSide, .5, .5);
+    const { width } = getScreen();
+    const container = new Container();
+    const direction = target.x >= origin.x ? 1 : -1;
+    const destinationX = target.x - direction * width * .14;
+    const outerAura = new Graphics()
+      .poly([0, -138, 24, -102, 54, -126, 57, -80, 94, -92, 78, -44, 117, -34, 88, 0, 118, 36, 78, 43, 92, 91, 55, 80, 51, 128, 23, 101, 0, 141, -23, 101, -51, 128, -55, 80, -92, 91, -78, 43, -118, 36, -88, 0, -117, -34, -78, -44, -94, -92, -57, -80, -54, -126, -24, -102])
+      .fill({ color: COLORS.gold, alpha: .2 })
+      .stroke({ color: COLORS.white, alpha: .78, width: 4 });
+    outerAura.blendMode = "add";
+    const innerAura = new Graphics()
+      .poly([0, -112, 19, -76, 39, -98, 43, -58, 68, -72, 59, -31, 88, -19, 67, 4, 83, 32, 55, 35, 64, 69, 36, 62, 31, 101, 12, 75, 0, 111, -12, 75, -31, 101, -36, 62, -64, 69, -55, 35, -83, 32, -67, 4, -88, -19, -59, -31, -68, -72, -43, -58, -39, -98, -19, -76])
+      .fill({ color: 0xfff5a6, alpha: .28 })
+      .stroke({ color: COLORS.gold, alpha: .9, width: 3 });
+    innerAura.blendMode = "add";
+    const lightning = [
+      new Graphics().moveTo(-48, -103).lineTo(-71, -55).lineTo(-49, -62).lineTo(-67, -16).stroke({ color: COLORS.white, alpha: .95, width: 4 }),
+      new Graphics().moveTo(53, -86).lineTo(71, -46).lineTo(52, -51).lineTo(70, -8).stroke({ color: COLORS.cyan, alpha: .9, width: 4 }),
+      new Graphics().moveTo(-43, 55).lineTo(-65, 82).lineTo(-44, 78).lineTo(-57, 111).stroke({ color: COLORS.white, alpha: .86, width: 3 }),
+    ];
+    lightning.forEach((bolt) => { bolt.blendMode = "add"; });
+    const lines = Array.from({ length: 18 }, (_, index) => {
+      const length = 80 + index % 5 * 34;
+      const line = new Graphics().roundRect(-length, -2, length, 3 + index % 3, 3).fill({ color: index % 4 ? COLORS.gold : COLORS.white, alpha: .78 });
+      line.position.y = (index - 8.5) * 14;
+      container.addChild(line);
+      return { line, speed: 280 + index * 21, phase: index * 17 };
+    });
+    const particles = Array.from({ length: 20 }, (_, index) => {
+      const particle = glow(index % 4 ? COLORS.gold : COLORS.white, 8 + index % 3 * 4, .92);
+      container.addChild(particle);
+      return { particle, angle: index * Math.PI * 2 / 20, radius: 76 + index % 5 * 12, phase: index * .43 };
+    });
+    const impactRing = new Graphics().ellipse(0, 0, 48, 105).stroke({ color: COLORS.white, alpha: .95, width: 7 });
+    const impactRingOuter = new Graphics().ellipse(0, 0, 65, 132).stroke({ color: COLORS.gold, alpha: .82, width: 5 });
+    container.addChildAt(glow(COLORS.gold, 260, .5), 0);
+    container.addChild(outerAura, innerAura, ...lightning, impactRingOuter, impactRing);
+    return add(container, 860, (progress, elapsed) => {
+      const travel = easeInOut(clamp01((progress - .16) / .84));
+      const charge = easeOut(clamp01(progress / .2));
+      container.position.set(origin.x + (destinationX - origin.x) * travel, origin.y + (target.y - origin.y) * travel);
+      container.scale.x = direction;
+      const pulse = .88 + Math.sin(elapsed * 28) * .08 + charge * .1;
+      outerAura.scale.set(pulse);
+      outerAura.alpha = (.46 + Math.sin(elapsed * 23) * .18) * Math.sin(Math.min(1, progress * 1.7) * Math.PI * .5);
+      innerAura.scale.set(.83 + Math.sin(elapsed * 35) * .07);
+      innerAura.alpha = .62 + Math.sin(elapsed * 31) * .2;
+      lightning.forEach((bolt, index) => {
+        bolt.alpha = Math.sin(elapsed * (24 + index * 5) + index * 1.7) > .2 ? .95 : .08;
+      });
+      lines.forEach(({ line, speed, phase }, index) => {
+        line.position.x = -((elapsed * speed + phase) % 185) - 40;
+        line.alpha = (.3 + index % 4 * .13) * charge * (1 - Math.max(0, progress - .93) / .07);
+      });
+      particles.forEach(({ particle, angle, radius, phase }) => {
+        const currentAngle = angle + elapsed * (4.2 + phase % 2);
+        particle.position.set(Math.cos(currentAngle) * radius, Math.sin(currentAngle) * radius * .88);
+        particle.alpha = .5 + Math.sin(elapsed * 18 + phase) * .42;
+      });
+      const impact = clamp01((progress - .82) / .18);
+      impactRing.scale.set(.4 + impact * 2.2, .4 + impact * 1.1);
+      impactRingOuter.scale.set(.25 + impact * 2.8, .25 + impact * 1.25);
+      impactRing.alpha = impact > 0 ? 1 - impact : 0;
+      impactRingOuter.alpha = impact > 0 ? (1 - impact) * .82 : 0;
+      container.alpha = 1 - Math.max(0, progress - .96) / .04;
+    });
+  }
+
+  function makeAngelWink(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, side === "hero" ? .66 : .34, .3);
+    const target = point(targetSide, .5, .42);
+    const container = new Container();
+    const heart = drawHeart(new Graphics(), 55, COLORS.pink);
+    const leftWing = new Graphics().poly([-25, -2, -80, -38, -64, 4, -88, 27, -26, 18]).fill({ color: COLORS.white, alpha: .92 });
+    const rightWing = new Graphics().poly([25, -2, 80, -38, 64, 4, 88, 27, 26, 18]).fill({ color: COLORS.white, alpha: .92 });
+    const halo = glow(COLORS.pink, 175, .48);
+    const motes = Array.from({ length: 9 }, (_, index) => {
+      const mote = index % 3 ? drawHeart(new Graphics(), 12, 0xff9dca) : drawStar(new Graphics(), 7, COLORS.gold);
+      container.addChild(mote);
+      return { mote, lag: .055 + index * .038, wave: (index % 2 ? 1 : -1) * (15 + index * 2) };
+    });
+    container.addChildAt(halo, 0);
+    container.addChild(leftWing, rightWing, heart);
+    return add(container, 1520, (progress, elapsed) => {
+      const travel = easeInOut(clamp01(progress * 1.08));
+      const x = origin.x + (target.x - origin.x) * travel;
+      const y = origin.y + (target.y - origin.y) * travel - Math.sin(travel * Math.PI) * 45;
+      container.position.set(x, y);
+      const flap = .7 + Math.sin(elapsed * 15) * .3;
+      leftWing.scale.y = flap;
+      rightWing.scale.y = flap;
+      heart.scale.set(1 + Math.sin(elapsed * 20) * .08);
+      motes.forEach(({ mote, lag, wave }) => {
+        const previous = clamp01(travel - lag);
+        mote.position.set(
+          origin.x + (target.x - origin.x) * previous - x,
+          origin.y + (target.y - origin.y) * previous - Math.sin(previous * Math.PI) * 45 - y + Math.sin(elapsed * 8 + lag * 20) * wave,
+        );
+        mote.alpha = travel > lag ? (1 - progress) * .8 : 0;
+      });
+      container.alpha = 1 - Math.max(0, progress - .84) / .16;
+    });
+  }
+
+  function makeApprovalMeteorCharge(side = "hero") {
+    const container = new Container();
+    const documents = Array.from({ length: 8 }, () => {
+      const documentSheet = drawDocument(new Graphics(), 32, 44);
+      container.addChild(documentSheet);
+      return documentSheet;
+    });
+    const seal = new Graphics().circle(0, 0, 42).stroke({ color: 0xd83e38, alpha: .92, width: 6 });
+    container.addChildAt(glow(COLORS.gold, 280, .42), 0);
+    container.addChild(seal);
+    return add(container, 2100, (progress, elapsed) => {
+      container.position.copyFrom(point(side, .5, .36));
+      documents.forEach((documentSheet, index) => {
+        const angle = index * Math.PI * 2 / documents.length + elapsed * (index % 2 ? -1.05 : 1.25);
+        const radius = 115 - progress * 62 + index % 2 * 16;
+        documentSheet.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * .58);
+        documentSheet.rotation = angle + Math.PI / 2;
+      });
+      seal.rotation = elapsed * -.8;
+      seal.scale.set(.65 + progress * .75 + Math.sin(elapsed * 8) * .08);
+      container.alpha = 1 - Math.max(0, progress - .9) / .1;
+    });
+  }
+
+  function makeApprovalMeteor(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const screen = getScreen();
+    const target = point(targetSide, .5, .58);
+    const container = new Container();
+    const documents = Array.from({ length: 13 }, (_, index) => {
+      const documentSheet = drawDocument(new Graphics(), 42 + index % 3 * 5, 58 + index % 3 * 7);
+      container.addChild(documentSheet);
+      return { documentSheet, x: (index - 6) * 29, lag: index % 5 * .035, spin: index % 2 ? 1 : -1 };
+    });
+    const seal = new Graphics().circle(0, 0, 74).stroke({ color: 0xd83e38, alpha: .96, width: 11 });
+    const cross = new Graphics().moveTo(-42, 0).lineTo(42, 0).moveTo(0, -42).lineTo(0, 42).stroke({ color: 0xd83e38, alpha: .82, width: 8 });
+    container.addChild(glow(COLORS.gold, 420, .58), seal, cross);
+    return add(container, 1880, (progress, elapsed) => {
+      container.position.set(target.x, target.y);
+      documents.forEach(({ documentSheet, x, lag, spin }) => {
+        const fall = easeInOut(clamp01((progress - lag) / (.82 - lag)));
+        documentSheet.position.set(x + Math.sin(elapsed * 5 + x) * 14, -screen.height * .72 * (1 - fall));
+        documentSheet.rotation = spin * elapsed * 4.2;
+        documentSheet.alpha = progress < lag ? 0 : 1 - Math.max(0, progress - .84) / .16;
+      });
+      const impactProgress = clamp01((progress - .58) / .42);
+      seal.scale.set(.15 + easeOut(impactProgress) * 1.65);
+      cross.scale.copyFrom(seal.scale);
+      seal.alpha = Math.sin(impactProgress * Math.PI);
+      cross.alpha = seal.alpha;
+      container.alpha = 1 - Math.max(0, progress - .92) / .08;
+    });
+  }
+
+  function makeCharmStatus(side = "enemy", broken = false) {
+    const container = new Container();
+    const count = broken ? 10 : 13;
+    const hearts = Array.from({ length: count }, (_, index) => {
+      const heart = drawHeart(new Graphics(), broken ? 18 : 14 + index % 3 * 3, index % 2 ? COLORS.pink : 0xffb8dc);
+      container.addChild(heart);
+      return heart;
+    });
+    const ring = new Graphics().circle(0, 0, 44).stroke({ color: broken ? COLORS.white : COLORS.pink, alpha: .9, width: 5 });
+    container.addChild(ring);
+    return add(container, broken ? 680 : 1200, (progress) => {
+      container.position.copyFrom(point(side, .5, .2));
+      const burst = easeOut(progress);
+      hearts.forEach((heart, index) => {
+        const angle = index * Math.PI * 2 / hearts.length;
+        const distance = (broken ? 32 : 18) + burst * (broken ? 145 : 92 + index % 3 * 10);
+        heart.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance * .58 - burst * 35);
+        heart.rotation = angle + (broken ? progress * 4 : 0);
+        heart.alpha = (1 - progress) * .92;
+      });
+      ring.scale.set(.2 + burst * (broken ? 2.8 : 1.9));
+      ring.alpha = 1 - progress;
+    });
+  }
+
   const handlers = {
     criticalScreenBurst: (options) => makeBurst({ side: options.side, yRatio: .48, color: COLORS.ember, secondary: COLORS.white, duration: 900, radius: 210, count: 18, critical: true }),
     impact: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .55, color: options.characterId === "kuroboshi" || (!options.characterId && options.side === "enemy") ? COLORS.violet : COLORS.gold, secondary: COLORS.white, duration: 480, radius: 120, count: 10 }),
@@ -1302,6 +1540,13 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     sutekichiCometImpact: (options) => makeSutekichiCometImpact(options.side, options.index),
     sutekichiNapDream: (options) => makeSutekichiNapDream(options.side),
     sutekichiNapResult: (options) => makeSutekichiNapResult(options.success, options.side),
+    businessCardStrike: (options) => makeBusinessCardStrike(options.side),
+    closingTimeDash: (options) => makeClosingTimeDash(options.side),
+    angelWink: (options) => makeAngelWink(options.side),
+    approvalMeteorCharge: (options) => makeApprovalMeteorCharge(options.side),
+    approvalMeteor: (options) => makeApprovalMeteor(options.side),
+    charmStatus: (options) => makeCharmStatus(options.side),
+    charmBreak: (options) => makeCharmStatus(options.side, true),
     galaxyCharge: (options) => makeGalaxyCharge(options.side),
     victoryCelebration: (options) => makeVictory(options.side),
     galaxyFlash: (options) => {

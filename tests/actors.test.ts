@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createTechniqueAnimationPlan, getFighterDepth, SUTEKICHI_COMET_WAVES } from "../src/game/animation-plan.ts";
-import { createBattleActor, getTechnique, getWalkFrame, opponentOf, shouldMirror } from "../src/game/actors.ts";
+import {
+  createBattleActor,
+  getImageFacing,
+  getTechnique,
+  getWalkFrame,
+  opponentOf,
+  shouldMirror,
+} from "../src/game/actors.ts";
 import { createCharacterProfiles } from "../src/game/characters.ts";
 import type { CharacterId, Side } from "../src/game/types.ts";
 
@@ -56,6 +63,19 @@ describe("敵味方に依存しないキャラクターモデル", () => {
     expect(shouldMirror(profiles.etokichi, "enemy")).toBe(true);
     expect(shouldMirror(profiles.sutekichi, "hero")).toBe(true);
     expect(shouldMirror(profiles.sutekichi, "enemy")).toBe(false);
+    expect(shouldMirror(profiles.salarymanEtokichi, "hero")).toBe(true);
+    expect(shouldMirror(profiles.salarymanEtokichi, "enemy")).toBe(false);
+  });
+
+  it("サラリーマンエトキチの方向付き技画像は歩行画像とは逆の右向きである", () => {
+    const profile = profiles.salarymanEtokichi;
+    const businessCardStrike = profile.images.businessCardStrikeCast;
+    const closingTimeDash = profile.images.closingTimeDashCast;
+    expect(typeof businessCardStrike).toBe("string");
+    expect(typeof closingTimeDash).toBe("string");
+    expect(getImageFacing(profile, profile.images.walk?.[0] ?? "")).toBe("left");
+    expect(getImageFacing(profile, typeof businessCardStrike === "string" ? businessCardStrike : "")).toBe("right");
+    expect(getImageFacing(profile, typeof closingTimeDash === "string" ? closingTimeDash : "")).toBe("right");
   });
 
   it("全キャラクターが陣営に関係なく3フレームの移動素材を使う", () => {

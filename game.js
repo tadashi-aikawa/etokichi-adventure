@@ -1,13 +1,19 @@
-import { getWalkFrame, shouldMirror } from "./src/game/actors.ts";
+import { getImageFacing, getWalkFrame, shouldMirror } from "./src/game/actors.ts";
 import { SUTEKICHI_COMET_WAVES } from "./src/game/animation-plan.ts";
 import { createCharacterProfiles } from "./src/game/characters.ts";
 import {
+  applyCharmEvasionPenalty,
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
   calculateBaseHitRate,
   calculateRecoverySuccessChance,
+  CHARM_EFFECT,
+  closeToMinimumRange,
   GENKI_EFFECT,
   getRangeForDistance,
+  reachedZoneLifeThreshold,
+  shouldGuaranteeZone,
+  ZONE_EFFECT,
 } from "./src/game/combat.ts";
 
 (() => {
@@ -106,6 +112,8 @@ import {
     etoile: { label: "星纏", message: "Etoileの光が次の一撃を包む！", shortEffect: "次の攻撃: ダメージ×1.4・命中+10・会心+20", effectDuration: 30000, animationDuration: 2000, cssClass: "status-etoile" },
     inspiration: { label: "ひらめき", message: "3つの間合いを観測して新発見！ 知力・命中・G回復上昇", shortEffect: "知力技×1.45・命中+15・G回復×1.4", effectDuration: 10000, animationDuration: 2200, cssClass: "status-inspiration" },
     genki: { label: "元気", message: "ぐっすり眠って元気いっぱい！", shortEffect: "G回復×1.35・移動×1.15", effectDuration: GENKI_EFFECT.duration, animationDuration: 1400, cssClass: "status-genki" },
+    charm: { label: "魅了", message: "見惚れて行動不能！", shortEffect: "移動・攻撃不可 / 回避率×0.5", effectDuration: CHARM_EFFECT.duration, animationDuration: 0, cssClass: "status-charm" },
+    zone: { label: "ゾーン", message: "極限の集中状態へ！", shortEffect: "命中・会心・G回復↑ / 消費G↑・回避↓", effectDuration: ZONE_EFFECT.duration, animationDuration: 1400, cssClass: "status-zone" },
   };
   const SPECIAL_ACTION_CLASSES = ["special-action", "special-action-power", "special-action-grit", "special-action-ease", "special-action-real", "special-action-jealousy", "special-action-serenity", "special-action-awakening", "special-action-etoile", "special-action-inspiration"];
   const SPECIAL_TRIGGER_CHANCES = { awakening: .25, grit: .5, jealousy: .5, easeSecondDodge: .5, easeThirdDodge: .75 };
@@ -212,14 +220,28 @@ import {
     return {
       activeUntil: {},
       pending: {},
-      triggered: { power: false, grit: false, ease: false, real: false, jealousy: false, serenity: false, awakening: false, inspiration: false },
+      triggered: { power: false, grit: false, ease: false, real: false, jealousy: false, serenity: false, awakening: false, inspiration: false, zone: false },
       awakeningChecked: false,
       hitStreak: 0,
       dodgeStreak: 0,
       observedRanges: new Set(),
       realExhausted: false,
       serenityReadySince: 0,
+      zoneThresholdChecked: false,
     };
+  }
+
+  function syncSpriteAssetFacing(side, sprite, source) {
+    const profile = side === "hero" ? activeHero : activeEnemy;
+    const root = sprite.closest(".combatant, .monster-status");
+    if (!profile || !root || !source) return;
+    root.classList.toggle("asset-facing-reversed", getImageFacing(profile, source) !== profile.baseFacing);
+  }
+
+  function setSpriteSource(side, sprite, source) {
+    if (!sprite || !source) return;
+    syncSpriteAssetFacing(side, sprite, source);
+    sprite.src = source;
   }
 
   function applyHeroProfile(heroId) {
@@ -233,15 +255,16 @@ import {
     fighterAbilities.hero = [...profile.abilities];
     HERO_MAX_HP = profile.stats.life;
     refs.arena.dataset.heroId = heroId;
+    refs.hero.style.setProperty("--character-scale", String(profile.visualScale ?? 1));
     refs.heroName.textContent = profile.name;
     refs.heroSubtitle.textContent = profile.subtitle;
     refs.heroHp.textContent = profile.stats.life;
     if (state && ["title", "titleTransition", "opponentSelect", "intro", "ready"].includes(state.phase)) state.heroHp = profile.stats.life;
-    refs.heroSprite.src = profile.images.battleIdle ?? profile.images.idle;
+    setSpriteSource("hero", refs.heroSprite, profile.images.battleIdle ?? profile.images.idle);
     refs.heroSprite.alt = profile.name;
     refs.hero.classList.toggle("mirror-character", shouldMirror(profile, "hero"));
     refs.heroSpecials.setAttribute("aria-label", `${profile.name}の状態変化`);
-    refs.prebattleHeroSprite.src = profile.images.idle;
+    setSpriteSource("hero", refs.prebattleHeroSprite, profile.images.idle);
     refs.prebattleHeroSprite.alt = `ファイティングポーズを取る${profile.name}`;
     refs.prebattleHeroSprite.closest(".monster-status")?.classList.toggle("mirror-character", shouldMirror(profile, "hero"));
     refs.prebattleHeroName.textContent = profile.name;
@@ -269,15 +292,16 @@ import {
     fighterAbilities.enemy = [...profile.abilities];
     ENEMY_MAX_HP = profile.stats.life;
     refs.arena.dataset.enemyId = enemyId;
+    refs.enemy.style.setProperty("--character-scale", String(profile.visualScale ?? 1));
     refs.enemyName.textContent = profile.name;
     refs.enemySubtitle.textContent = profile.subtitle;
     refs.enemyHp.textContent = profile.stats.life;
     if (state && ["title", "titleTransition", "opponentSelect", "intro", "ready"].includes(state.phase)) state.enemyHp = profile.stats.life;
-    refs.enemySprite.src = profile.images.idle;
+    setSpriteSource("enemy", refs.enemySprite, profile.images.idle);
     refs.enemySprite.alt = profile.name;
     refs.enemy.classList.toggle("mirror-character", shouldMirror(profile, "enemy"));
     refs.enemySpecials.setAttribute("aria-label", `${profile.name}の状態変化`);
-    refs.prebattleEnemySprite.src = profile.images.idle;
+    setSpriteSource("enemy", refs.prebattleEnemySprite, profile.images.idle);
     refs.prebattleEnemySprite.alt = `ファイティングポーズを取る${profile.name}`;
     refs.prebattleEnemySprite.closest(".monster-status")?.classList.toggle("mirror-character", shouldMirror(profile, "enemy"));
     refs.prebattleEnemyName.textContent = profile.name;
@@ -301,13 +325,19 @@ import {
       const choices = profile.techniques.filter((technique) => technique.range === itemRange);
       const technique = choices[0];
       const stack = item.closest(".technique-stack");
-      stack.hidden = !technique;
-      if (!technique) return;
+      const cycle = side === "hero" ? stack.querySelector(".technique-cycle") : stack.querySelector(".enemy-technique-cycle");
+      stack.hidden = false;
+      stack.classList.toggle("empty-technique", !technique);
+      item.setAttribute("aria-hidden", String(!technique));
+      if (!technique) {
+        stack.classList.remove("has-multiple");
+        if (cycle) cycle.hidden = true;
+        return;
+      }
       item.querySelector(".technique-name").textContent = technique.name;
       const icon = item.querySelector(".technique-icon svg");
       icon.removeAttribute("fill");
       icon.innerHTML = technique.iconSvg;
-      const cycle = side === "hero" ? stack.querySelector(".technique-cycle") : stack.querySelector(".enemy-technique-cycle");
       if (cycle) {
         cycle.hidden = choices.length < 2;
         stack.classList.toggle("has-multiple", choices.length > 1);
@@ -361,8 +391,8 @@ import {
     setTimeout(() => {
       if (token !== prebattleIntroToken || state.phase !== "intro") return;
       setPrebattleIntroPhase("versus");
-      refs.prebattleHeroSprite.src = HERO_IMAGES[activeHero.versusPoseKey];
-      refs.prebattleEnemySprite.src = ENEMY_IMAGES[activeEnemy.versusPoseKey];
+      setSpriteSource("hero", refs.prebattleHeroSprite, HERO_IMAGES[activeHero.versusPoseKey]);
+      setSpriteSource("enemy", refs.prebattleEnemySprite, ENEMY_IMAGES[activeEnemy.versusPoseKey]);
       animatePrebattleStats(token);
     }, PREBATTLE_FOCUS_DURATION * 2);
   }
@@ -382,7 +412,7 @@ import {
     const changeFrame = () => {
       if (token !== prebattleIntroToken || performance.now() - startedAt >= duration) return;
       const frameIndex = Math.floor((performance.now() - startedAt) / 430) % frames.length;
-      sprite.src = frames[frameIndex];
+      setSpriteSource(side, sprite, frames[frameIndex]);
       setTimeout(changeFrame, 120);
     };
     changeFrame();
@@ -514,8 +544,8 @@ import {
     refs.enemy.className = "combatant enemy";
     refs.hero.classList.toggle("mirror-character", shouldMirror(activeHero, "hero"));
     refs.enemy.classList.toggle("mirror-character", shouldMirror(activeEnemy, "enemy"));
-    refs.heroSprite.src = HERO_IMAGES.idle;
-    refs.enemySprite.src = ENEMY_IMAGES.idle;
+    setSpriteSource("hero", refs.heroSprite, HERO_IMAGES.idle);
+    setSpriteSource("enemy", refs.enemySprite, ENEMY_IMAGES.idle);
     refs.enemySprite.style.removeProperty("filter");
     refs.effects.replaceChildren();
     updateUI();
@@ -580,6 +610,8 @@ import {
     if (actionLocked) shiftFiniteSpecialDeadlines(delta * 1000);
     updateSpecialTimers(now);
     state.time = Math.max(0, state.time - delta);
+    checkZoneTrigger("hero");
+    checkZoneTrigger("enemy");
     if (!state.koPending && (!actionLocked || state.actionActor !== "hero")) {
       state.heroGuts = Math.min(100, state.heroGuts + delta * fighterStats.hero.gutsRegen * getGutsRegenMultiplier("hero"));
     }
@@ -595,7 +627,7 @@ import {
       return;
     }
 
-    const heroFree = now >= state.heroBusyUntil && now >= state.actionLockUntil;
+    const heroFree = now >= state.heroBusyUntil && now >= state.actionLockUntil && !isCharmed("hero");
     let heroDirection = 0;
     if (heroFree) heroDirection = Number(keys.right) - Number(keys.left);
     moveHero(heroDirection, delta);
@@ -638,7 +670,8 @@ import {
   }
 
   function updateAI(now, delta) {
-    if (now < state.enemyBusyUntil || now < state.actionLockUntil) {
+    if (now < state.enemyBusyUntil || now < state.actionLockUntil || isCharmed("enemy")) {
+      state.aiDirection = 0;
       setMovementClass("enemy", 0);
       return;
     }
@@ -728,6 +761,7 @@ import {
     }
     const now = performance.now();
     element.classList.add("fighter-walking");
+    element.classList.remove("asset-facing-reversed");
     element.classList.toggle("walk-reversed", direction !== (isHero ? 1 : -1));
     if (now >= state.walkFrameAt[side]) {
       sprite.src = getWalkFrame(profile, state.walkFrame[side]);
@@ -743,14 +777,19 @@ import {
   }
 
   function transitionTechniqueSprite(sprite, nextSource, duration = 210) {
-    if (!sprite || sprite.getAttribute("src") === nextSource) return;
+    if (!sprite) return;
+    const side = sprite === refs.heroSprite ? "hero" : "enemy";
+    if (sprite.getAttribute("src") === nextSource) {
+      syncSpriteAssetFacing(side, sprite, nextSource);
+      return;
+    }
     if (window.etokichiRenderer?.handlesFighters) {
-      sprite.src = nextSource;
+      setSpriteSource(side, sprite, nextSource);
       return;
     }
     const combatant = sprite.closest(".combatant");
     if (!combatant || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      sprite.src = nextSource;
+      setSpriteSource(side, sprite, nextSource);
       return;
     }
 
@@ -764,7 +803,7 @@ import {
     ghost.style.filter = computed.filter === "none" ? "drop-shadow(0 12px 12px rgba(0,0,0,.38))" : computed.filter;
     combatant.append(ghost);
 
-    sprite.src = nextSource;
+    setSpriteSource(side, sprite, nextSource);
     sprite.animate([
       { opacity: .08, filter: "brightness(2.15) blur(5px) drop-shadow(0 0 18px rgba(255,255,255,.72))" },
       { opacity: 1, filter: "brightness(1) blur(0) drop-shadow(0 12px 12px rgba(0,0,0,.38))" },
@@ -827,6 +866,13 @@ import {
   }
 
   function performTechnique(side, technique, now) {
+    if (isCharmed(side)) {
+      if (side === "hero") {
+        popStatus(refs.hero, "魅了中");
+        sound("deny");
+      }
+      return;
+    }
     const profile = side === "hero" ? activeHero : activeEnemy;
     if (profile.id === "etokichi") performEtokichiTechnique(side, technique, now);
     else performProfileTechnique(side, technique, now);
@@ -1231,6 +1277,10 @@ import {
       sutekichiStellaSearch: "sutekichi-stella-search-sequence",
       sutekichiDiscoveryComet: "sutekichi-comet-sequence",
       sutekichiNap: "sutekichi-nap-sequence",
+      businessCardStrike: "business-card-strike-sequence",
+      closingTimeDash: "closing-time-dash-sequence",
+      angelWink: "angel-wink-sequence",
+      approvalMeteor: "approval-meteor-sequence",
     };
     actor.classList.add(animationClasses[technique.animation] ?? "attack-light");
     announceTechnique(technique.name, false, !isHero);
@@ -1244,6 +1294,10 @@ import {
       sutekichiStellaSearch: "sutekichiScan",
       sutekichiDiscoveryComet: "sutekichiCometCharge",
       sutekichiNap: "sutekichiNap",
+      businessCardStrike: "businessCardDraw",
+      closingTimeDash: "closingTimeDash",
+      angelWink: "angelWink",
+      approvalMeteor: "approvalMeteorCharge",
     };
     sound(openingSounds[technique.animation] ?? (technique.kind === "shot" ? "enemyShot" : "enemySwing"));
     if (technique.kind === "shot" && !technique.animation) createProjectile(side);
@@ -1367,6 +1421,39 @@ import {
         transitionTechniqueSprite(actorSprite, images.napCast, 260);
         createSutekichiNapDream(side);
       }, 260);
+    } else if (technique.animation === "businessCardStrike") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.businessCardStrikeCast, 220);
+        createBusinessCardStrike(side);
+        sound("businessCardStrike");
+      }, 420);
+    } else if (technique.animation === "closingTimeDash") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.closingTimeDashCast, 110);
+        createClosingTimeDash(side);
+        sound("closingTimeRush");
+      }, 120);
+    } else if (technique.animation === "angelWink") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.angelWinkCast, 220);
+        createAngelWink(side);
+        sound("angelWinkLaunch");
+      }, 520);
+    } else if (technique.animation === "approvalMeteor") {
+      refs.arena.classList.add("approval-meteor-mode");
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.approvalMeteorCast, 250);
+        createApprovalMeteorCharge(side);
+      }, 320);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        createApprovalMeteor(side);
+        sound("approvalMeteorFall");
+      }, 1320);
     }
 
     setTimeout(() => {
@@ -1376,8 +1463,8 @@ import {
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
-      actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "technique-recoil");
-      refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode");
+      actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "technique-recoil");
+      refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode", "approval-meteor-mode");
       if (state.phase === "battle") transitionTechniqueSprite(actorSprite, images.battleIdle, 240);
     }, technique.duration);
   }
@@ -1395,6 +1482,7 @@ import {
       resetHitStreak(attacker);
       recordDodge(defender);
       playDodge(target, defender);
+      if (technique.closesDistance) applyTechniqueClosing(attacker);
       if (technique.animation === "throwKiss") createKissMissBreak(attacker);
       popStatus(target, "MISS");
       sound("miss");
@@ -1404,6 +1492,11 @@ import {
 
     recordHit(attacker);
     resetDodgeStreak(defender);
+    const charmBrokenByHit = isCharmed(defender);
+    if (charmBrokenByHit) {
+      deactivateBattleSpecial(defender, "charm");
+      createCharmBreak(defender);
+    }
 
     const attackerStats = fighterStats[heroAttacks ? "hero" : "enemy"];
     const defenderStats = fighterStats[heroAttacks ? "enemy" : "hero"];
@@ -1413,6 +1506,7 @@ import {
     const lowLifeBoost = (heroAttacks ? state.heroHp : state.enemyHp) < 200 ? 1.14 : 1;
     let criticalChance = technique.critical + (isSpecialActive(attacker, "jealousy") ? 10 : 0);
     if (isSpecialActive(attacker, "awakening")) criticalChance = Math.min(99, criticalChance * 1.5);
+    if (isSpecialActive(attacker, "zone")) criticalChance *= ZONE_EFFECT.criticalMultiplier;
     if (isSpecialActive(attacker, "etoile")) criticalChance += 20;
     criticalChance = Math.min(99, criticalChance);
     const critical = Math.random() * 100 < criticalChance;
@@ -1441,6 +1535,7 @@ import {
     }
     createImpact(attacker, technique.kind === "special" ? state.galaxyBeamY : null, profileFor(attacker).id);
     if (technique.knockback) applyTechniqueKnockback(heroAttacks, technique.knockback, target);
+    if (technique.closesDistance) applyTechniqueClosing(attacker);
     if (technique.kind === "special") {
       refs.arena.classList.add("impact-freeze");
       setTimeout(() => refs.arena.classList.remove("impact-freeze"), 520);
@@ -1464,6 +1559,7 @@ import {
     if ((heroAttacks ? state.enemyHp : state.heroHp) <= 0) {
       scheduleKnockoutResolution(defender, attacker, target);
     } else {
+      if (technique.charmChance && Math.random() < technique.charmChance) activateCharm(defender);
       checkPostHitSpecials(attacker, defender);
     }
     return { hit: true, critical, damage, gutsDamage };
@@ -1474,7 +1570,7 @@ import {
 
   function pushEnemy() {
     const now = performance.now();
-    if (state.phase !== "battle" || now < state.heroBusyUntil || now < state.actionLockUntil) return;
+    if (state.phase !== "battle" || now < state.heroBusyUntil || now < state.actionLockUntil || isCharmed("hero")) return;
     if (getRange() !== 0) {
       popStatus(refs.hero, "接近時のみ");
       sound("deny");
@@ -1541,7 +1637,7 @@ import {
   }
 
   function enemyPush(now) {
-    if (getRange() !== 0) return;
+    if (getRange() !== 0 || isCharmed("enemy")) return;
     const totalDuration = PUSH_FOCUS_DURATION + PUSH_TRAVEL_DURATION;
     const battleState = state;
     state.enemyBusyUntil = now + totalDuration;
@@ -1613,6 +1709,58 @@ import {
     return performance.now() < (special.activeUntil[type] ?? 0) || isSpecialPinnedForResolution(side, type);
   }
 
+  function isCharmed(side) {
+    return isSpecialActive(side, "charm");
+  }
+
+  function activateCharm(side) {
+    const meta = battleSpecialMeta.charm;
+    const actor = side === "hero" ? refs.hero : refs.enemy;
+    state.specials[side].activeUntil.charm = performance.now() + meta.effectDuration;
+    actor.classList.add(meta.cssClass);
+    stopWalk(side);
+    if (side === "hero") {
+      keys.left = false;
+      keys.right = false;
+    } else {
+      state.aiDirection = 0;
+    }
+    createCharmStatus(side);
+    popStatus(actor, "魅了");
+    sound("charmed");
+  }
+
+  function checkZoneTrigger(side) {
+    const special = state.specials[side];
+    if (!hasBattleSpecial(side, "zone") || special.triggered.zone) return;
+    const opponent = side === "hero" ? "enemy" : "hero";
+    const ownLife = side === "hero" ? state.heroHp : state.enemyHp;
+    const opponentLife = side === "hero" ? state.enemyHp : state.heroHp;
+    const ownLifeRatio = ownLife / fighterStats[side].life;
+    const opponentLifeRatio = opponentLife / fighterStats[opponent].life;
+    if (shouldGuaranteeZone(state.time, ownLifeRatio, opponentLifeRatio)) {
+      activateZone(side);
+      return;
+    }
+    if (special.zoneThresholdChecked || !reachedZoneLifeThreshold(opponentLifeRatio)) return;
+    special.zoneThresholdChecked = true;
+    if (Math.random() < ZONE_EFFECT.opponentLifeTriggerChance) activateZone(side);
+  }
+
+  function activateZone(side) {
+    const meta = battleSpecialMeta.zone;
+    const special = state.specials[side];
+    const actor = side === "hero" ? refs.hero : refs.enemy;
+    const gutsKey = side === "hero" ? "heroGuts" : "enemyGuts";
+    special.triggered.zone = true;
+    special.activeUntil.zone = performance.now() + meta.effectDuration;
+    state[gutsKey] = Math.min(100, state[gutsKey] + ZONE_EFFECT.gutsRecovery);
+    actor.classList.add(meta.cssClass);
+    showBattleSpecialBanner(side, "zone", meta);
+    popStatus(actor, `ゾーン / G+${ZONE_EFFECT.gutsRecovery}`);
+    sound("zone");
+  }
+
   function isSpecialPinnedForResolution(side, type) {
     return state.actionSpecialSnapshot?.active[side]?.includes(type) ?? false;
   }
@@ -1622,7 +1770,7 @@ import {
     const active = { hero: [], enemy: [] };
     for (const side of ["hero", "enemy"]) {
       for (const [type, activeUntil] of Object.entries(state.specials[side].activeUntil)) {
-        if (Number.isFinite(activeUntil) && now < activeUntil) active[side].push(type);
+        if (!["charm", "zone"].includes(type) && Number.isFinite(activeUntil) && now < activeUntil) active[side].push(type);
       }
     }
     state.actionSpecialSnapshot = { attacker, consumeSerenity, active };
@@ -1754,6 +1902,15 @@ import {
       jealousy: { pose: images.starTouchCast },
       serenity: { pose: images.stellaSearchCast },
       awakening: { opening: images.idle, pose: images.discoveryCometCast, poseAt: .34 },
+    } : profile.id === "salarymanEtokichi" ? {
+      ease: { pose: images.angelWinkCast },
+      inspiration: { pose: images.approvalMeteorCast },
+      power: { pose: images.closingTimeDashCast },
+      grit: { opening: images.defeat, pose: images.businessCardStrikeCast, poseAt: .34 },
+      real: { pose: images.approvalMeteorCast },
+      jealousy: { pose: images.businessCardStrikeCast },
+      serenity: { pose: images.angelWinkCast },
+      awakening: { opening: images.defeat, pose: images.approvalMeteorCast, poseAt: .34 },
     } : {
       power: { pose: images.blackMeteorCast },
       grit: { opening: images.idle, pose: images.crescentHornCast, poseAt: .34 },
@@ -1825,7 +1982,7 @@ import {
     for (const side of ["hero", "enemy"]) {
       const activeUntil = state.specials[side].activeUntil;
       for (const [type, deadline] of Object.entries(activeUntil)) {
-        if (Number.isFinite(deadline)) activeUntil[type] = deadline + milliseconds;
+        if (!["charm", "zone"].includes(type) && Number.isFinite(deadline)) activeUntil[type] = deadline + milliseconds;
       }
     }
   }
@@ -1936,7 +2093,8 @@ import {
 
   function getTechniqueCost(technique, side) {
     const easeMultiplier = isSpecialActive(side, "ease") ? .65625 : 1;
-    return Math.max(1, Math.round(technique.cost * easeMultiplier));
+    const zoneMultiplier = isSpecialActive(side, "zone") ? ZONE_EFFECT.techniqueCostMultiplier : 1;
+    return Math.max(1, Math.round(technique.cost * easeMultiplier * zoneMultiplier));
   }
 
   function getDamageMultiplier(attacker, defender) {
@@ -1978,6 +2136,7 @@ import {
     if (state.specials[side].realExhausted) multiplier *= .5;
     if (isSpecialActive(side, "awakening")) multiplier *= 2;
     if (isSpecialActive(side, "inspiration")) multiplier *= 1.4;
+    if (isSpecialActive(side, "zone")) multiplier *= ZONE_EFFECT.gutsRegenMultiplier;
     return applyGenkiGutsRegenMultiplier(multiplier, isSpecialActive(side, "genki"));
   }
 
@@ -1995,13 +2154,16 @@ import {
     let hitRate = calculateBaseHitRate(technique.accuracy, guts, attackerStats.accuracy, defenderStats.evasion);
     const attacker = heroAttacks ? "hero" : "enemy";
     const defender = heroAttacks ? "enemy" : "hero";
-    if (isSpecialActive(defender, "serenity")) return 1;
-    if (isSpecialActive(attacker, "serenity")) return 99;
+    if (isSpecialActive(defender, "serenity")) hitRate = 1;
+    if (isSpecialActive(attacker, "serenity")) hitRate = 99;
     if (isSpecialActive(defender, "ease")) hitRate = (hitRate * hitRate) / 100;
     if (isSpecialActive(attacker, "awakening")) hitRate *= 1.5;
     if (isSpecialActive(defender, "awakening")) hitRate *= .5;
     if (isSpecialActive(attacker, "etoile")) hitRate += 10;
     if (isSpecialActive(attacker, "inspiration")) hitRate += 15;
+    if (isSpecialActive(attacker, "zone")) hitRate *= ZONE_EFFECT.hitRateMultiplier;
+    hitRate = applyCharmEvasionPenalty(hitRate, isSpecialActive(defender, "zone"));
+    hitRate = applyCharmEvasionPenalty(hitRate, isCharmed(defender));
     const minimumHitRate = isSpecialActive(defender, "awakening") ? 1 : 18;
     const maximumHitRate = isSpecialActive(attacker, "awakening") ? 99 : 96;
     return clamp(Math.round(hitRate), minimumHitRate, maximumHitRate);
@@ -2046,13 +2208,13 @@ import {
     ++state.enemyActionToken;
     ++state.specialCameraToken;
     state.specials = { hero: freshSpecialState(), enemy: freshSpecialState() };
-    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    const sharedTechniqueClasses = ["ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence"];
+    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "status-charm", "status-zone", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "status-charm", "status-zone", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    const sharedTechniqueClasses = ["ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence"];
     refs.hero.classList.remove(...sharedTechniqueClasses);
     refs.enemy.classList.remove(...sharedTechniqueClasses);
     refs.arena.classList.remove("sutekichi-comet-mode");
-    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.arena.classList.add("battle-ending");
     updateUI();
 
@@ -2066,11 +2228,11 @@ import {
       refs.hero.classList.remove("hurt", "critical-hit");
       refs.enemy.classList.remove("hurt", "critical-hit");
       if (heroWon) {
-        refs.heroSprite.src = HERO_IMAGES.battleIdle ?? HERO_IMAGES.idle;
+        setSpriteSource("hero", refs.heroSprite, HERO_IMAGES.battleIdle ?? HERO_IMAGES.idle);
         refs.hero.classList.add("result-winner");
         refs.enemy.classList.add("result-loser");
       } else {
-        refs.heroSprite.src = HERO_IMAGES.defeat ?? HERO_IMAGES.idle;
+        setSpriteSource("hero", refs.heroSprite, HERO_IMAGES.defeat ?? HERO_IMAGES.idle);
         refs.hero.classList.add("result-loser");
         refs.enemy.classList.add("result-winner");
       }
@@ -2081,7 +2243,7 @@ import {
       const winner = heroWon ? refs.hero : refs.enemy;
       const winnerSprite = heroWon ? refs.heroSprite : refs.enemySprite;
       const winnerImages = heroWon ? HERO_IMAGES : ENEMY_IMAGES;
-      winnerSprite.src = winnerImages.victoryClimax ?? winnerImages.battleIdle ?? winnerImages.idle;
+      setSpriteSource(heroWon ? "hero" : "enemy", winnerSprite, winnerImages.victoryClimax ?? winnerImages.battleIdle ?? winnerImages.idle);
       winner.classList.add("result-winner-climax");
       refs.arena.classList.add("victory-climax", heroWon ? "victory-hero" : "victory-enemy");
       sound("victoryClimax");
@@ -2160,18 +2322,24 @@ import {
     const range = getRange();
     const current = getSelectedTechnique(range);
     const enemyCurrent = range === null ? null : getSelectedEnemyTechnique(range);
-    const outsideTechniqueRange = range === null;
+    const outsideHeroTechniqueRange = range === null || !current;
+    const outsideEnemyTechniqueRange = range === null || !enemyCurrent;
     const distancePosition = getDistanceCursorPosition(state.enemyX - state.heroX);
     refs.heroDistanceRuler.style.setProperty("--distance-position", `${100 - distancePosition}%`);
     refs.enemyDistanceRuler.style.setProperty("--distance-position", `${distancePosition}%`);
-    refs.hitRate.textContent = current ? current.kind === "support" ? "自己強化" : `${calculateHitChance(current, state.heroGuts)}%` : "圏外";
-    refs.enemyHitRate.textContent = enemyCurrent ? enemyCurrent.kind === "support" ? "回復技" : `${calculateHitChance(enemyCurrent, state.enemyGuts, false)}%` : "圏外";
-    refs.heroDistanceRuler.classList.toggle("out-of-technique-range", outsideTechniqueRange);
-    refs.enemyDistanceRuler.classList.toggle("out-of-technique-range", outsideTechniqueRange);
+    refs.hitRate.textContent = current ? current.kind === "support" ? "自己強化" : `${calculateHitChance(current, state.heroGuts)}%` : range === null ? "圏外" : "技なし";
+    refs.enemyHitRate.textContent = enemyCurrent ? enemyCurrent.kind === "support" ? "回復技" : `${calculateHitChance(enemyCurrent, state.enemyGuts, false)}%` : range === null ? "圏外" : "技なし";
+    refs.heroDistanceRuler.classList.toggle("out-of-technique-range", outsideHeroTechniqueRange);
+    refs.enemyDistanceRuler.classList.toggle("out-of-technique-range", outsideEnemyTechniqueRange);
 
     refs.techniques.forEach((button) => {
       const buttonRange = Number(button.dataset.range);
       const technique = getSelectedTechnique(buttonRange);
+      if (!technique) {
+        button.classList.remove("active", "unaffordable", "power-tech", "intelligence-tech", "special-tech");
+        button.disabled = true;
+        return;
+      }
       const cost = getTechniqueCost(technique, "hero");
       button.classList.toggle("active", buttonRange === range);
       button.classList.toggle("unaffordable", state.heroGuts < cost);
@@ -2187,7 +2355,7 @@ import {
         icon.innerHTML = technique.iconSvg;
       }
       button.querySelector(".technique-cost b").textContent = cost;
-      button.disabled = state.phase !== "battle";
+      button.disabled = state.phase !== "battle" || isCharmed("hero");
     });
     refs.techniqueCycleDotGroups.forEach((group) => {
       const cycleRange = Number(group.dataset.cycleRange);
@@ -2222,6 +2390,11 @@ import {
       [...group.children].forEach((dot, index) => dot.classList.toggle("active", index === selectedIndex));
     });
     refs.enemyTechniqueCycleButtons.forEach((button) => { button.disabled = state.phase !== "battle"; });
+    const heroCharmed = isCharmed("hero");
+    refs.attackButton.disabled = state.phase !== "battle" || heroCharmed || !current;
+    refs.pushButton.disabled = state.phase !== "battle" || heroCharmed;
+    refs.moveLeft.disabled = state.phase !== "battle" || heroCharmed;
+    refs.moveRight.disabled = state.phase !== "battle" || heroCharmed;
     renderSpecialBadges("hero", refs.heroSpecials);
     renderSpecialBadges("enemy", refs.enemySpecials);
     renderCombatStatus("hero", refs.heroCombatStatus);
@@ -2469,6 +2642,22 @@ import {
     if (heroAttacks) state.enemyX = Math.min(STAGE_MAX_X, state.enemyX + distance);
     else state.heroX = Math.max(STAGE_MIN_X, state.heroX - distance);
     setTimeout(() => target.classList.remove("flash-knockback"), 1100);
+  }
+
+  function applyTechniqueClosing(attacker) {
+    const actor = attacker === "hero" ? refs.hero : refs.enemy;
+    const positions = closeToMinimumRange(
+      state.heroX,
+      state.enemyX,
+      attacker,
+      STAGE_MIN_X,
+      STAGE_MAX_X,
+      MIN_FIGHTER_DISTANCE + 1,
+    );
+    actor.classList.add("closing-distance");
+    state.heroX = positions.heroX;
+    state.enemyX = positions.enemyX;
+    setTimeout(() => actor.classList.remove("closing-distance"), 480);
   }
 
   function createProjectile(actorSide) {
@@ -3230,6 +3419,130 @@ import {
     setTimeout(() => effect.remove(), 1500);
   }
 
+  function createBusinessCardStrike(side) {
+    if (spawnPixiEffect("businessCardStrike", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), side === "hero" ? .7 : .3, .46);
+    const target = getEffectPoint(targetSpriteFor(side), .5, .5);
+    const effect = document.createElement("div");
+    effect.className = "business-card-strike-effect";
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
+    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
+    for (let index = 0; index < 5; index += 1) {
+      const card = document.createElement("i");
+      card.style.setProperty("--card-index", index);
+      card.style.setProperty("--card-delay", `${index * 55}ms`);
+      effect.append(card);
+    }
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 1100);
+  }
+
+  function createClosingTimeDash(side) {
+    window.etokichiRenderer?.startFighterMotion?.(side, "closingTimeDash", { duration: 860 });
+    if (spawnPixiEffect("closingTimeDash", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), .5, .58);
+    const target = getEffectPoint(targetSpriteFor(side), .5, .58);
+    const effect = document.createElement("div");
+    effect.className = "closing-time-dash-effect";
+    effect.classList.toggle("enemy-dash", side === "enemy");
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
+    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
+    for (let index = 0; index < 12; index += 1) {
+      const speedLine = document.createElement("i");
+      speedLine.style.setProperty("--card-index", index);
+      effect.append(speedLine);
+    }
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 900);
+  }
+
+  function createAngelWink(side) {
+    if (spawnPixiEffect("angelWink", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), side === "hero" ? .66 : .34, .3);
+    const target = getEffectPoint(targetSpriteFor(side), .5, .42);
+    const effect = document.createElement("div");
+    effect.className = "angel-wink-effect";
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
+    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
+    const heart = document.createElement("b");
+    heart.textContent = "♥";
+    effect.append(heart, document.createElement("i"), document.createElement("i"));
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 1550);
+  }
+
+  function createApprovalMeteorCharge(side) {
+    if (spawnPixiEffect("approvalMeteorCharge", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), .5, .38);
+    const effect = document.createElement("div");
+    effect.className = "approval-meteor-charge-effect";
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    for (let index = 0; index < 8; index += 1) {
+      const documentSheet = document.createElement("i");
+      documentSheet.style.setProperty("--document-angle", `${index * 45}deg`);
+      effect.append(documentSheet);
+    }
+    effect.append(document.createElement("b"));
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 2100);
+  }
+
+  function createApprovalMeteor(side) {
+    if (spawnPixiEffect("approvalMeteor", { side })) return;
+    const target = getEffectPoint(targetSpriteFor(side), .5, .58);
+    const effect = document.createElement("div");
+    effect.className = "approval-meteor-effect";
+    effect.style.left = `${target.x}px`;
+    effect.style.top = `${target.y}px`;
+    for (let index = 0; index < 11; index += 1) {
+      const documentSheet = document.createElement("i");
+      documentSheet.style.setProperty("--document-index", index);
+      documentSheet.style.setProperty("--document-offset", `${(index - 5) * 24}px`);
+      effect.append(documentSheet);
+    }
+    const stamp = document.createElement("b");
+    stamp.textContent = "承認";
+    effect.append(stamp);
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 1900);
+  }
+
+  function createCharmStatus(side) {
+    if (spawnPixiEffect("charmStatus", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), .5, .2);
+    const effect = document.createElement("div");
+    effect.className = "charm-status-effect";
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    for (let index = 0; index < 8; index += 1) {
+      const heart = document.createElement("i");
+      heart.textContent = "♥";
+      heart.style.setProperty("--heart-angle", `${index * 45}deg`);
+      effect.append(heart);
+    }
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 1200);
+  }
+
+  function createCharmBreak(side) {
+    if (spawnPixiEffect("charmBreak", { side })) return;
+    const origin = getEffectPoint(spriteFor(side), .5, .25);
+    const effect = document.createElement("div");
+    effect.className = "charm-break-effect";
+    effect.style.left = `${origin.x}px`;
+    effect.style.top = `${origin.y}px`;
+    effect.textContent = "♡";
+    refs.effects.append(effect);
+    setTimeout(() => effect.remove(), 700);
+  }
+
   function createGalaxyCharge(side) {
     if (spawnPixiEffect("galaxyCharge", { side })) return;
     const origin = getEffectPoint(spriteFor(side), .72, .53);
@@ -3549,6 +3862,16 @@ import {
       sutekichiNap: () => { [523,659,784].forEach((frequency, index) => tone(frequency, .75, "sine", .014, index * .28, frequency * .75, .35)); },
       sutekichiNapSuccess: () => { sparkle([523,659,784,1047,1319,1568], 0, .02); tone(262, 1.1, "sine", .018, 0, 1047); },
       sutekichiNapFail: () => { tone(440, .32, "triangle", .018, 0, 220); tone(294, .4, "sine", .014, .16, 147); },
+      businessCardDraw: () => { whoosh(1540, 390, .24, 0, -.38, .015); tone(1180, .18, "triangle", .014, .03, 1640, .35); },
+      businessCardStrike: () => { [0,.055,.11].forEach((delay, index) => whoosh(2100 - index * 240, 260, .2, delay, index % 2 ? .45 : -.45, .017)); },
+      closingTimeDash: () => { tone(72, .62, "sawtooth", .025, 0, 196, .24); noiseBurst(.34, .013, 860, .03, .32); },
+      closingTimeRush: () => { whoosh(2300, 72, .68, 0, .35, .035); tone(96, .72, "sawtooth", .026, .02, 42, -.3); },
+      angelWink: () => { sparkle([659,880,1175], 0, .014); tone(523, .5, "sine", .014, .05, 1047); },
+      angelWinkLaunch: () => { sparkle([988,1319,1760,2093], 0, .017); whoosh(1680, 480, .42, .04, .42, .012); },
+      approvalMeteorCharge: () => { tone(147, 1.45, "sine", .027, 0, 784); [392,523,659].forEach((frequency, index) => tone(frequency, .5, "triangle", .011, .24 + index * .18, frequency * 1.5)); },
+      approvalMeteorFall: () => { whoosh(2500, 54, 1.1, 0, .3, .036); tone(330, 1.1, "sawtooth", .026, 0, 44); },
+      charmed: () => { sparkle([784,1047,1319,1760], 0, .016); tone(523, .62, "sine", .014, .04, 988); },
+      zone: () => { tone(147, .9, "sine", .026, 0, 1175); tone(294, .72, "triangle", .018, .08, 1760); sparkle([659,988,1319,1976], .18, .018); },
       miss: () => { noiseBurst(.13, .024, 2600); tone(1180, .16, "sine", .025, 0, 430); tone(560, .2, "triangle", .016, .035, 1040); },
       hit: () => { impact(false); crowdReaction(); },
       push: () => { whoosh(740, 64, .23, 0, -.45, .018); impact(true, .055, .35); },

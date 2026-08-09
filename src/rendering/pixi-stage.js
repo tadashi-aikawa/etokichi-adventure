@@ -474,8 +474,10 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     world.position.set(width / 2 + projection.pan, height / 2);
     world.scale.set(projection.zoom);
 
-    const heroSize = clamp(width * .22, 155, 320) * projection.zoom;
-    const enemySize = clamp(width * .23, 165, 335) * projection.zoom;
+    const heroVisualScale = Number.parseFloat(arena.querySelector("#hero")?.style.getPropertyValue("--character-scale")) || 1;
+    const enemyVisualScale = Number.parseFloat(arena.querySelector("#enemy")?.style.getPropertyValue("--character-scale")) || 1;
+    const heroSize = clamp(width * .22, 155, 320) * projection.zoom * heroVisualScale;
+    const enemySize = clamp(width * .23, 165, 335) * projection.zoom * enemyVisualScale;
     heroShadow.position.set(width * projection.heroX / 100, height * .89);
     enemyShadow.position.set(width * projection.enemyX / 100, height * .89);
     heroShadow.width = heroSize * .68;
