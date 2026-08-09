@@ -26,6 +26,10 @@ export const ZONE_EFFECT = {
   criticalMultiplier: 1.5,
 } as const;
 
+export function canActivateBattleSpecialDuringKnockout(knockoutPending: boolean, specialType: string): boolean {
+  return !knockoutPending || specialType === "grit" || specialType === "awakening";
+}
+
 export function applyCharmEvasionPenalty(hitRate: number, charmed: boolean): number {
   if (!charmed) return hitRate;
   const evasionRate = 100 - hitRate;

@@ -3,6 +3,7 @@ import {
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
   applyCharmEvasionPenalty,
+  canActivateBattleSpecialDuringKnockout,
   calculateBaseHitRate,
   calculateRecoverySuccessChance,
   CHARM_EFFECT,
@@ -74,6 +75,14 @@ describe("純粋な戦闘計算", () => {
       evasionMultiplier: 0.5,
       criticalMultiplier: 1.5,
     });
+  });
+
+  it("K.O.判定待ちでは根性と覚醒以外の状態変化を発動しない", () => {
+    expect(canActivateBattleSpecialDuringKnockout(true, "inspiration")).toBe(false);
+    expect(canActivateBattleSpecialDuringKnockout(true, "zone")).toBe(false);
+    expect(canActivateBattleSpecialDuringKnockout(true, "grit")).toBe(true);
+    expect(canActivateBattleSpecialDuringKnockout(true, "awakening")).toBe(true);
+    expect(canActivateBattleSpecialDuringKnockout(false, "inspiration")).toBe(true);
   });
 
   it("接近技は攻撃側だけを動かして間合い0へ縮める", () => {

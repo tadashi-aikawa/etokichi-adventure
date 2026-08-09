@@ -5,6 +5,7 @@ import {
   applyCharmEvasionPenalty,
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  canActivateBattleSpecialDuringKnockout,
   calculateBaseHitRate,
   calculateRecoverySuccessChance,
   CHARM_EFFECT,
@@ -1732,7 +1733,7 @@ import {
 
   function checkZoneTrigger(side) {
     const special = state.specials[side];
-    if (!hasBattleSpecial(side, "zone") || special.triggered.zone) return;
+    if (state.koPending || !hasBattleSpecial(side, "zone") || special.triggered.zone) return;
     const opponent = side === "hero" ? "enemy" : "hero";
     const ownLife = side === "hero" ? state.heroHp : state.enemyHp;
     const opponentLife = side === "hero" ? state.enemyHp : state.heroHp;
@@ -1748,6 +1749,7 @@ import {
   }
 
   function activateZone(side) {
+    if (!canActivateBattleSpecialDuringKnockout(state.koPending, "zone")) return false;
     const meta = battleSpecialMeta.zone;
     const special = state.specials[side];
     const actor = side === "hero" ? refs.hero : refs.enemy;
@@ -1759,6 +1761,7 @@ import {
     showBattleSpecialBanner(side, "zone", meta);
     popStatus(actor, `ゾーン / G+${ZONE_EFFECT.gutsRecovery}`);
     sound("zone");
+    return true;
   }
 
   function isSpecialPinnedForResolution(side, type) {
@@ -1788,7 +1791,11 @@ import {
   function triggerBattleSpecial(side, type) {
     const special = state.specials[side];
     const meta = battleSpecialMeta[type];
-    if (!meta || special.triggered[type]) return false;
+    if (
+      !meta ||
+      special.triggered[type] ||
+      !canActivateBattleSpecialDuringKnockout(state.koPending, type)
+    ) return false;
     const now = performance.now();
     const element = side === "hero" ? refs.hero : refs.enemy;
     special.triggered[type] = true;
