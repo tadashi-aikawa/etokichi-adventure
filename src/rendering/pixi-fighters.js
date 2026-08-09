@@ -9,6 +9,7 @@ const STATUS_COLORS = {
   "status-serenity": 0xbaf8ff,
   "status-awakening": 0xffe66f,
   "status-etoile": 0xfff2a0,
+  "status-inspiration": 0xffe675,
 };
 
 const ACTION_CLASSES = [
@@ -16,11 +17,14 @@ const ACTION_CLASSES = [
   "attack-light", "casting", "ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence",
   "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence",
   "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence",
+  "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence",
+  "sutekichi-comet-sequence", "sutekichi-nap-sequence",
   "galaxy-ray-recoil", "technique-recoil", "pentagram-nova-combo", "pentagram-nova-finisher",
   "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-peak",
   "special-action", "hurt", "critical-hit", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
+  "status-inspiration", "special-action-inspiration",
 ];
 
 function textureScale(sprite, size, facing = 1) {
@@ -304,6 +308,40 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       offsetX += direction * actor.size * .12 * lunge;
       rotation = direction * -.06 * lunge;
       scale += .07 * lunge;
+    }
+    if (classes.has("sutekichi-star-touch-sequence")) {
+      const hop = Math.sin(Math.min(1, actionSeconds / 1.1) * Math.PI * 2);
+      offsetX += direction * actor.size * (.08 + Math.max(0, hop) * .11);
+      offsetY -= Math.abs(hop) * actor.size * .12;
+      rotation = direction * Math.sin(actionSeconds * 8) * .08;
+      scale += Math.max(0, hop) * .08;
+    }
+    if (classes.has("sutekichi-halo-skip-sequence")) {
+      const skipProgress = Math.min(1, actionSeconds / 1.8);
+      offsetX += direction * actor.size * .2 * Math.sin(skipProgress * Math.PI);
+      offsetY -= actor.size * .28 * Math.sin(skipProgress * Math.PI);
+      rotation = direction * -.24 * Math.sin(skipProgress * Math.PI * 2);
+      scale += .09 * Math.sin(skipProgress * Math.PI);
+    }
+    if (classes.has("sutekichi-stella-search-sequence")) {
+      offsetY -= actor.size * (.035 + Math.sin(elapsed * 5) * .02);
+      rotation = direction * (Math.sin(elapsed * 3.2) * .025 - .035);
+      scale += .035 + Math.sin(elapsed * 7) * .018;
+      tint = 0xdffcff;
+    }
+    if (classes.has("sutekichi-comet-sequence")) {
+      const charge = Math.min(1, actionSeconds / 1.5);
+      offsetY -= actor.size * (.04 + charge * .12);
+      rotation = direction * Math.sin(elapsed * 4.5) * .045;
+      scale += charge * .12 + Math.sin(elapsed * 8) * .025;
+      tint = 0xfff0a4;
+    }
+    if (classes.has("sutekichi-nap-sequence")) {
+      const settle = easeOutCubic(Math.min(1, actionSeconds / .8));
+      offsetY += actor.size * .12 * settle;
+      rotation = direction * (.07 + Math.sin(elapsed * 1.9) * .025);
+      scale *= 1 - settle * .08 + Math.sin(elapsed * 2.1) * .01;
+      tint = 0xe8f6ff;
     }
     if (classes.has("galaxy-ray-recoil") || classes.has("technique-recoil")) offsetX -= direction * actor.size * .08;
     if (classes.has("hurt") || classes.has("critical-hit")) {

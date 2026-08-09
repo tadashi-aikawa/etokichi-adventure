@@ -49,8 +49,8 @@
             <div class="name-row">
               <strong id="enemy-hp-text">625</strong>
               <div>
-                <small>VOID METEOR</small>
-                <h2>クロボシ</h2>
+                <small id="enemy-subtitle">VOID METEOR</small>
+                <h2 id="enemy-name">クロボシ</h2>
               </div>
               <span class="rank-badge enemy-rank">E</span>
             </div>
@@ -94,6 +94,28 @@
           </div>
         </div>
 
+        <div id="opponent-select-screen" class="overlay opponent-select-screen" aria-labelledby="opponent-select-title">
+          <div class="opponent-select-card">
+            <p class="eyebrow">CHOOSE YOUR RIVAL</p>
+            <h2 id="opponent-select-title">対戦相手を選択</h2>
+            <p class="opponent-select-guide">タイプも固有能力も異なるライバルから選ぼう</p>
+            <div class="opponent-grid" role="radiogroup" aria-label="対戦相手">
+              <button class="opponent-option selected" type="button" role="radio" aria-checked="true" data-enemy-id="kuroboshi">
+                <span class="opponent-portrait kuroboshi-portrait"><img src="assets/enemies/kuroboshi/idle.webp" alt="クロボシ" /></span>
+                <span class="opponent-copy"><small>POWER TYPE</small><strong>クロボシ</strong><em>高い攻防で押し切る重量級</em></span>
+                <span class="opponent-ability">本気・余裕・嫉妬</span>
+              </button>
+              <button class="opponent-option sutekichi-option" type="button" role="radio" aria-checked="false" data-enemy-id="sutekichi">
+                <span class="opponent-portrait"><img src="assets/enemies/sutekichi/idle.webp" alt="ステキチ" /></span>
+                <span class="opponent-copy"><small>INTELLIGENCE TYPE</small><strong>ステキチ</strong><em>観測からひらめく星の案内人</em></span>
+                <span class="opponent-ability">ひらめき：3種類の間合いを観測すると知力・命中・G回復アップ</span>
+              </button>
+            </div>
+            <button id="opponent-confirm-button" class="primary-button" type="button">この相手と戦う</button>
+            <small>カードを選んで対戦へ</small>
+          </div>
+        </div>
+
         <div id="start-screen" class="overlay intro-focus intro-hero">
           <div class="overlay-card intro-card status-card">
             <p class="eyebrow">FIRST BATTLE</p>
@@ -113,13 +135,13 @@
               <b class="status-vs">VS</b>
               <article class="monster-status enemy-status">
                 <div class="status-portrait"><img id="prebattle-enemy-sprite" src="assets/enemies/kuroboshi/idle.webp" alt="ファイティングポーズを取るクロボシ" /></div>
-                <h3 class="status-compare-name">クロボシ</h3>
+                <h3 id="prebattle-enemy-name" class="status-compare-name">クロボシ</h3>
                 <dl>
                   <div data-fighter="enemy" data-stat="life"><dt>ライフ</dt><dd>625</dd></div><div data-fighter="enemy" data-stat="power"><dt>ちから</dt><dd>520</dd></div>
                   <div data-fighter="enemy" data-stat="defense"><dt>丈夫さ</dt><dd>500</dd></div><div data-fighter="enemy" data-stat="accuracy"><dt>命中</dt><dd>420</dd></div>
                   <div data-fighter="enemy" data-stat="evasion"><dt>回避</dt><dd>350</dd></div><div data-fighter="enemy" data-stat="intelligence"><dt>かしこさ</dt><dd>420</dd></div>
                 </dl>
-                <p class="status-summary"><span class="ability-note">本気・余裕・嫉妬</span></p>
+                <p class="status-summary"><span id="prebattle-enemy-abilities" class="ability-note">本気・余裕・嫉妬</span></p>
               </article>
             </div>
             <button id="start-button" class="primary-button" disabled>対戦開始</button>
@@ -205,13 +227,13 @@
           </div>
         </div>
 
-        <article class="technique-panel enemy-intel" aria-label="クロボシの距離別技">
+        <article id="enemy-technique-panel" class="technique-panel enemy-intel" aria-label="クロボシの距離別技">
           <div id="enemy-distance-ruler" class="distance-ruler enemy-distance-ruler" aria-label="現在の間合い"><i></i><i></i><i></i><i></i><i class="out-distance-zone" title="技の圏外"></i><b>▼</b></div>
           <div class="enemy-technique-grid">
             <div class="technique-stack enemy-technique-stack" data-range="0"><span class="range-caption">近距離</span><div class="enemy-technique technique-card" data-enemy-tech="0"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M8 11c9 8 18 9 31 8M5 23c11 7 20 7 35 4M8 36c10 4 18 2 30-2" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg></span><strong class="technique-name">メテオクロー</strong><span class="technique-cost"><small>GUTS</small><b>16</b></span></div></div>
             <div class="technique-stack enemy-technique-stack" data-range="1"><span class="range-caption">中距離</span><div class="enemy-technique technique-card" data-enemy-tech="1"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M39 5C20 10 10 24 14 43c4-10 11-16 21-19-6-4-5-11 4-19z"/></svg></span><strong class="technique-name">クレセントホーン</strong><span class="technique-cost"><small>GUTS</small><b>23</b></span></div></div>
             <div class="technique-stack enemy-technique-stack" data-range="2"><span class="range-caption">遠距離</span><div class="enemy-technique technique-card" data-enemy-tech="2"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9"/><ellipse cx="24" cy="24" rx="21" ry="8" fill="none" stroke="currentColor" stroke-width="4" transform="rotate(-18 24 24)"/><circle cx="41" cy="16" r="3"/></svg></span><strong class="technique-name">ダークオービット</strong><span class="technique-cost"><small>GUTS</small><b>30</b></span></div></div>
-            <div class="technique-stack enemy-technique-stack" data-range="3"><span class="range-caption">超遠距離</span><div class="enemy-technique technique-card" data-enemy-tech="3"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 9l18 11-7 7L7 9zm3 18l12 4-5 5-7-9z"/><circle cx="32" cy="31" r="12"/></svg></span><strong class="technique-name">ブラックメテオ</strong><span class="technique-cost"><small>GUTS</small><b>43</b></span></div></div>
+            <div class="technique-stack enemy-technique-stack" data-range="3"><span class="range-caption">超遠距離</span><div class="enemy-technique technique-card" data-enemy-tech="3"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 9l18 11-7 7L7 9zm3 18l12 4-5 5-7-9z"/><circle cx="32" cy="31" r="12"/></svg></span><strong class="technique-name">ブラックメテオ</strong><span class="technique-cost"><small>GUTS</small><b>43</b></span></div><div class="technique-cycle enemy-technique-cycle" aria-label="超遠距離技の切り替え" hidden><button type="button" data-enemy-tech-cycle="-1" data-enemy-cycle-range="3" aria-label="前の超遠距離技">▲</button><span class="enemy-technique-cycle-dots" data-enemy-cycle-range="3" aria-hidden="true"></span><button type="button" data-enemy-tech-cycle="1" data-enemy-cycle-range="3" aria-label="次の超遠距離技">▼</button></div></div>
           </div>
         </article>
       </section>

@@ -1062,6 +1062,183 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
+  function makeSutekichiStarTouch() {
+    const container = new Container();
+    const paw = new Graphics()
+      .circle(0, 7, 24).fill({ color: COLORS.gold, alpha: .86 })
+      .circle(-25, -18, 10).circle(-8, -28, 11).circle(11, -28, 11).circle(28, -15, 10).fill({ color: COLORS.cyan, alpha: .92 });
+    const crest = drawStar(new Graphics(), 17, COLORS.white);
+    const ring = new Graphics().circle(0, 0, 42).stroke({ color: COLORS.gold, alpha: .9, width: 4 });
+    const motes = Array.from({ length: 12 }, (_, index) => {
+      const mote = drawStar(new Graphics(), 4 + index % 3, index % 2 ? COLORS.gold : COLORS.cyan);
+      container.addChild(mote);
+      return { mote, angle: index * Math.PI / 6 };
+    });
+    container.addChildAt(glow(COLORS.gold, 155, .55), 0);
+    container.addChild(paw, crest, ring);
+    return add(container, 950, (progress, elapsed) => {
+      container.position.copyFrom(point("hero", .53, .48));
+      const pulse = Math.sin(progress * Math.PI);
+      container.scale.set(.35 + easeOut(progress) * .95);
+      container.rotation = -.24 + progress * .48;
+      container.alpha = 1 - Math.max(0, progress - .72) / .28;
+      ring.scale.set(.4 + progress * 1.9);
+      ring.alpha = 1 - progress;
+      motes.forEach(({ mote, angle }, index) => {
+        const distance = 38 + easeOut(progress) * (70 + index % 4 * 11);
+        mote.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance);
+        mote.rotation = elapsed * 2 + angle;
+        mote.alpha = pulse;
+      });
+    });
+  }
+
+  function makeSutekichiHaloSkip() {
+    const container = new Container();
+    const rings = [0, 1, 2].map((index) => new Graphics().ellipse(0, 0, 56 + index * 20, 18 + index * 7).stroke({ color: index === 1 ? COLORS.cyan : COLORS.gold, alpha: .88 - index * .16, width: 5 - index }));
+    const star = drawStar(new Graphics(), 21, COLORS.white);
+    const streaks = Array.from({ length: 7 }, (_, index) => new Graphics().roundRect(-120 - index * 20, -2, 80 + index * 13, 4, 2).fill({ color: index % 2 ? COLORS.gold : COLORS.cyan, alpha: .72 }));
+    container.addChild(glow(COLORS.cyan, 165, .38), ...streaks, ...rings, star);
+    const origin = point("enemy", .46, .42);
+    const target = point("hero", .54, .5);
+    return add(container, 1450, (progress, elapsed) => {
+      const travel = easeInOut(clamp01(progress / .78));
+      container.position.set(origin.x + (target.x - origin.x) * travel, origin.y + (target.y - origin.y) * travel - Math.sin(travel * Math.PI) * 120);
+      container.rotation = elapsed * 3.1;
+      container.scale.set(.65 + Math.sin(progress * Math.PI) * .55);
+      container.alpha = 1 - Math.max(0, progress - .8) / .2;
+      rings.forEach((ring, index) => ring.rotation = elapsed * (index % 2 ? -2 : 2.6));
+    });
+  }
+
+  function makeSutekichiStellaSearch() {
+    const container = new Container();
+    const outer = new Graphics().circle(0, 0, 94).stroke({ color: COLORS.cyan, alpha: .85, width: 3 });
+    const inner = new Graphics().circle(0, 0, 48).stroke({ color: COLORS.gold, alpha: .9, width: 4 });
+    const cross = new Graphics().moveTo(-122, 0).lineTo(122, 0).moveTo(0, -122).lineTo(0, 122).stroke({ color: COLORS.white, alpha: .52, width: 2 });
+    const scanner = new Graphics().moveTo(0, 0).lineTo(108, 0).stroke({ color: COLORS.cyan, alpha: .88, width: 5 });
+    const markers = Array.from({ length: 8 }, (_, index) => {
+      const marker = drawStar(new Graphics(), 6, index % 2 ? COLORS.gold : COLORS.white);
+      marker.position.set(Math.cos(index * Math.PI / 4) * 92, Math.sin(index * Math.PI / 4) * 92);
+      return marker;
+    });
+    container.addChild(glow(COLORS.cyan, 250, .25), cross, outer, inner, scanner, ...markers);
+    return add(container, 1900, (progress, elapsed) => {
+      container.position.copyFrom(point("hero", .5, .46));
+      container.scale.set(.72 + easeOut(progress) * .36);
+      container.alpha = Math.sin(progress * Math.PI) * 1.25;
+      outer.rotation = elapsed * .7;
+      inner.rotation = -elapsed * 1.2;
+      scanner.rotation = elapsed * 4.8;
+      markers.forEach((marker, index) => marker.scale.set(.7 + Math.sin(elapsed * 5 + index) * .3));
+    });
+  }
+
+  function makeSutekichiCometCharge() {
+    const container = new Container();
+    const crest = drawStar(new Graphics(), 42, COLORS.white);
+    const rings = [58, 88, 122].map((radius, index) => new Graphics().circle(0, 0, radius).stroke({ color: index % 2 ? COLORS.cyan : COLORS.gold, alpha: .76, width: 3 }));
+    const stars = Array.from({ length: 16 }, (_, index) => drawStar(new Graphics(), 4 + index % 4, index % 3 ? COLORS.gold : COLORS.cyan));
+    container.addChild(glow(COLORS.gold, 300, .38), ...rings, crest, ...stars);
+    return add(container, 1750, (progress, elapsed) => {
+      container.position.copyFrom(point("enemy", .5, .38));
+      container.scale.set(.35 + easeOut(progress) * .85);
+      crest.rotation = elapsed * 1.4;
+      rings.forEach((ring, index) => { ring.rotation = elapsed * (index % 2 ? -1 : 1.3); ring.scale.set(1 - progress * .18 * index); });
+      stars.forEach((star, index) => {
+        const angle = index * Math.PI * 2 / stars.length + elapsed * (index % 2 ? -.5 : .7);
+        const radius = 150 - easeOut(progress) * 105 + index % 3 * 12;
+        star.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        star.alpha = .45 + Math.sin(elapsed * 6 + index) * .35;
+      });
+    });
+  }
+
+  function makeSutekichiComet() {
+    const container = new Container();
+    const tail = new Graphics().poly([-300, -30, -15, -50, 0, 0, -15, 50, -300, 30, -225, 0]).fill({ color: COLORS.cyan, alpha: .38 });
+    const tailCore = new Graphics().poly([-240, -10, -8, -22, 0, 0, -8, 22, -240, 10]).fill({ color: COLORS.gold, alpha: .82 });
+    const head = drawStar(new Graphics(), 50, COLORS.white);
+    container.addChild(glow(COLORS.gold, 210, .72), tail, tailCore, head);
+    const screen = getScreen();
+    const target = point("hero", .5, .5);
+    const start = { x: screen.width * .94, y: screen.height * .03 };
+    return add(container, 1700, (progress) => {
+      const travel = easeInOut(progress);
+      container.position.set(start.x + (target.x - start.x) * travel, start.y + (target.y - start.y) * travel);
+      container.rotation = Math.atan2(target.y - start.y, target.x - start.x);
+      container.scale.set(.65 + progress * .65);
+      container.alpha = 1 - Math.max(0, progress - .9) / .1;
+    });
+  }
+
+  function makeSutekichiCometImpact() {
+    const container = new Container();
+    const crest = drawStar(new Graphics(), 105, COLORS.gold, .86);
+    const rays = Array.from({ length: 18 }, (_, index) => {
+      const ray = new Graphics().roundRect(25, -3, 110 + index % 4 * 24, 6, 3).fill({ color: index % 3 ? COLORS.cyan : COLORS.white, alpha: .82 });
+      ray.rotation = index * Math.PI * 2 / 18;
+      return ray;
+    });
+    const ring = new Graphics().circle(0, 0, 72).stroke({ color: COLORS.white, alpha: .94, width: 7 });
+    container.addChild(glow(COLORS.gold, 390, .68), crest, ring, ...rays);
+    return add(container, 1250, (progress) => {
+      container.position.copyFrom(point("hero", .5, .58));
+      const burst = easeOut(progress);
+      crest.scale.set(.25 + burst * 1.55);
+      crest.rotation = progress * 1.1;
+      ring.scale.set(.2 + burst * 2.6);
+      rays.forEach((ray) => ray.scale.x = .2 + burst * 1.35);
+      container.alpha = 1 - progress;
+    });
+  }
+
+  function makeSutekichiNapDream() {
+    const container = new Container();
+    const moon = new Graphics().circle(0, 0, 34).fill({ color: COLORS.gold, alpha: .92 }).circle(14, -10, 32).cut();
+    const bubbles = Array.from({ length: 9 }, (_, index) => new Graphics().circle(0, 0, 7 + index % 4 * 3).stroke({ color: index % 2 ? COLORS.cyan : COLORS.white, alpha: .7, width: 2 }));
+    const stars = Array.from({ length: 6 }, (_, index) => drawStar(new Graphics(), 5 + index % 3, COLORS.gold));
+    container.addChild(glow(COLORS.cyan, 220, .22), moon, ...bubbles, ...stars);
+    return add(container, 3600, (progress, elapsed) => {
+      container.position.copyFrom(point("enemy", .53, .35));
+      container.alpha = Math.min(1, progress * 5) * (1 - Math.max(0, progress - .88) / .12);
+      moon.position.set(38, -65 - Math.sin(elapsed * 2) * 8);
+      moon.rotation = Math.sin(elapsed * 1.4) * .15;
+      bubbles.forEach((bubble, index) => {
+        const local = (elapsed * .22 + index / bubbles.length) % 1;
+        bubble.position.set(20 + Math.sin(index * 2.2) * 60, 65 - local * 230);
+        bubble.alpha = Math.sin(local * Math.PI) * .7;
+        bubble.scale.set(.5 + local);
+      });
+      stars.forEach((star, index) => {
+        const angle = elapsed * .48 + index * Math.PI / 3;
+        star.position.set(Math.cos(angle) * 95, Math.sin(angle) * 48 - 28);
+        star.rotation = -angle;
+      });
+    });
+  }
+
+  function makeSutekichiNapResult(success) {
+    if (!success) return makeBurst({ side: "enemy", yRatio: .48, color: COLORS.cyan, secondary: 0x55739d, duration: 900, radius: 80, count: 5 });
+    const container = new Container();
+    const rings = [72, 112].map((radius) => new Graphics().circle(0, 0, radius).stroke({ color: COLORS.cyan, alpha: .8, width: 5 }));
+    const stars = Array.from({ length: 22 }, (_, index) => drawStar(new Graphics(), 6 + index % 4, index % 3 ? COLORS.gold : COLORS.white));
+    container.addChild(glow(COLORS.gold, 420, .55), ...rings, ...stars);
+    return add(container, 1500, (progress) => {
+      container.position.copyFrom(point("enemy", .5, .5));
+      const rise = easeOut(progress);
+      rings.forEach((ring, index) => ring.scale.set(.3 + rise * (2 + index * .55)));
+      stars.forEach((star, index) => {
+        const angle = index * Math.PI * 2 / stars.length;
+        const distance = 35 + rise * (125 + index % 5 * 16);
+        star.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance - rise * 90);
+        star.alpha = Math.sin(progress * Math.PI);
+        star.rotation = progress * 4 + angle;
+      });
+      container.alpha = 1 - Math.max(0, progress - .78) / .22;
+    });
+  }
+
   const handlers = {
     criticalScreenBurst: (options) => makeBurst({ side: options.side, yRatio: .48, color: COLORS.ember, secondary: COLORS.white, duration: 900, radius: 210, count: 18, critical: true }),
     impact: (options) => makeBurst({ side: options.heroAttacks ? "enemy" : "hero", yRatio: .55, color: options.heroAttacks ? COLORS.gold : COLORS.violet, secondary: COLORS.white, duration: 480, radius: 120, count: 10 }),
@@ -1096,6 +1273,14 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     blackMeteorSky: () => makeVortex({ side: "hero" }),
     blackMeteor: () => makeMeteor({ side: "hero" }),
     blackMeteorImpact: () => makeBurst({ side: "hero", yRatio: .68, color: COLORS.violet, secondary: COLORS.white, duration: 1200, radius: 230, count: 18 }),
+    sutekichiStarTouch: () => makeSutekichiStarTouch(),
+    sutekichiHaloSkip: () => makeSutekichiHaloSkip(),
+    sutekichiStellaSearch: () => makeSutekichiStellaSearch(),
+    sutekichiCometCharge: () => makeSutekichiCometCharge(),
+    sutekichiComet: () => makeSutekichiComet(),
+    sutekichiCometImpact: () => makeSutekichiCometImpact(),
+    sutekichiNapDream: () => makeSutekichiNapDream(),
+    sutekichiNapResult: (options) => makeSutekichiNapResult(options.success),
     galaxyCharge: () => makeGalaxyCharge(),
     victoryCelebration: (options) => makeVictory(options.side),
     galaxyFlash: () => {
