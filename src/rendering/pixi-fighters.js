@@ -1,5 +1,6 @@
 import { Assets, Container, Graphics, Sprite } from "pixi.js";
 import { resolveActorUrl } from "../actor-assets.ts";
+import { getFighterDepth } from "../game/animation-plan.ts";
 
 const STATUS_COLORS = {
   "status-power": 0xff9d31,
@@ -64,6 +65,7 @@ function sampleMotionKeyframes(keyframes, progress) {
 }
 
 export async function createFighterSystem({ layer, glowTexture, heroElement, enemyElement }) {
+  layer.sortableChildren = true;
   const elements = {
     hero: { root: heroElement, image: heroElement?.querySelector(".sprite") },
     enemy: { root: enemyElement, image: enemyElement?.querySelector(".sprite") },
@@ -112,6 +114,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       source: elements[side].image.getAttribute("src") || elements[side].image.currentSrc,
       classes: new Set(elements[side].root.classList),
       actionStartedAt: performance.now(),
+      knockoutStartedAt: 0,
       classSignature: "",
       baseX: 0,
       baseY: 0,
@@ -197,6 +200,10 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
   function syncClasses(side) {
     const actor = actors[side];
     const nextClasses = new Set(elements[side].root.classList);
+    const wasKnockedOut = actor.classes.has("ko-pending");
+    const isKnockedOut = nextClasses.has("ko-pending");
+    if (!wasKnockedOut && isKnockedOut) actor.knockoutStartedAt = performance.now();
+    if (!isKnockedOut && !nextClasses.has("result-loser")) actor.knockoutStartedAt = 0;
     const signature = ACTION_CLASSES.filter((name) => nextClasses.has(name)).join("|");
     if (signature !== actor.classSignature) {
       if (nextClasses.has("dodging") && !actor.classes.has("dodging")) createDodgeTrails(actor);
@@ -207,6 +214,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       actor.scriptedMotion = null;
     }
     actor.classes = nextClasses;
+    actor.container.zIndex = getFighterDepth(side, nextClasses);
   }
 
   const observer = new MutationObserver((records) => {
@@ -403,7 +411,13 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       offsetY -= actor.size * (classes.has("pentagram-nova-diving") ? .2 : .55);
       rotation -= direction * .12;
     }
-    if (classes.has("ko-pending") || classes.has("result-loser")) {
+    if (classes.has("ko-pending")) {
+      const knockoutSeconds = (now - actor.knockoutStartedAt) / 1000;
+      const progress = easeOutCubic(Math.min(1, knockoutSeconds / .65));
+      rotation += direction * -1.15 * progress;
+      offsetY += actor.size * .18 * progress;
+      alpha = 1 - progress * .22;
+    } else if (classes.has("result-loser")) {
       const progress = easeOutCubic(Math.min(1, actionSeconds / 2.8));
       rotation += direction * -1.15 * progress;
       offsetY += actor.size * .18 * progress;
@@ -501,6 +515,14 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     };
   }
 
+  function getScreenPoint(side, xRatio = .5, yRatio = .5) {
+    const actor = actors[side];
+    return actor.container.toGlobal({
+      x: (xRatio - .5) * actor.size,
+      y: -actor.size * (1 - yRatio),
+    });
+  }
+
   function getBasePoint(side, xRatio = .5, yRatio = .5) {
     const actor = actors[side];
     return {
@@ -516,6 +538,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     startMotion,
     update,
     getPoint,
+    getScreenPoint,
     getBasePoint,
     destroy() { observer.disconnect(); },
   };

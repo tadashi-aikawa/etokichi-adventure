@@ -157,7 +157,7 @@ button { font: inherit; }
 .enemy { width: clamp(165px, 23vw, 335px); }
 .enemy .sprite { animation-delay: -.8s; }
 .fighter-shadow { position: absolute; z-index: 1; width: 62%; height: 13%; left: 19%; bottom: 4%; scale: var(--stage-zoom); border-radius: 50%; background: rgba(0,0,0,.42); filter: blur(6px); animation: shadow-breathe 2.1s ease-in-out infinite; transition: scale .16s ease-out; }
-.combat-status { position: absolute; z-index: 11; left: 50%; top: -21%; width: max-content; padding: 0; opacity: 0; visibility: hidden; translate: -50% 0; text-align: center; border: 0; background: transparent; box-shadow: none; transition: opacity .18s, transform .18s; }
+.combat-status { position: absolute; z-index: 29; left: 50%; top: 0; width: max-content; padding: 0; opacity: 0; visibility: hidden; translate: -50% -100%; text-align: center; border: 0; background: transparent; box-shadow: none; transition: opacity .18s, transform .18s; pointer-events: none; }
 .combat-status.visible { display: flex; flex-direction: column; gap: 7px; opacity: 1; visibility: visible; animation: combat-status-breathe 1.4s ease-in-out infinite alternate; }
 .combat-status-entry { display: grid; place-items: center; gap: 3px; }
 .combat-status-debug-time { color: #9ff5ff; font: 800 10px/1 "Orbitron",sans-serif; letter-spacing: .08em; white-space: nowrap; text-shadow: 0 1px 3px #000,0 0 9px rgba(89,224,255,.85); }
@@ -1324,7 +1324,7 @@ button { font: inherit; }
   .life-track { height: 9px; margin-top: 6px; }
   .combatant { width: clamp(140px,44vw,230px); bottom: 9%; }
   .enemy { width: clamp(145px,46vw,240px); }
-  .combat-status { top: -24%; width: max-content; padding: 0; }
+  .combat-status { width: max-content; padding: 0; }
   .combat-status strong { font-size: 30px; }
   .hero .damage-pop { left: 80%; }
   .enemy .damage-pop { left: 20%; }

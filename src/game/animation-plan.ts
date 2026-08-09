@@ -16,6 +16,37 @@ export const SUTEKICHI_COMET_WAVES = [
   { launchDelay: 1800, impactDelay: 2900 },
 ] as const;
 
+const FOREGROUND_ACTION_CLASSES = new Set([
+  "attack-light",
+  "casting",
+  "ultimate-sequence",
+  "galaxy-ray-sequence",
+  "throw-kiss-sequence",
+  "physical-punch-sequence",
+  "star-ring-sequence",
+  "pentagram-nova-sequence",
+  "etoile-drive-sequence",
+  "dark-orbit-sequence",
+  "black-meteor-sequence",
+  "meteor-claw-sequence",
+  "crescent-horn-sequence",
+  "sutekichi-star-touch-sequence",
+  "sutekichi-halo-skip-sequence",
+  "sutekichi-stella-search-sequence",
+  "sutekichi-comet-sequence",
+  "sutekichi-nap-sequence",
+  "special-action",
+  "result-winner",
+  "result-winner-climax",
+]);
+
+export function getFighterDepth(side: Side, classes: Iterable<string>): number {
+  for (const className of classes) {
+    if (FOREGROUND_ACTION_CLASSES.has(className)) return 2;
+  }
+  return side === "enemy" ? 1 : 0;
+}
+
 export function createTechniqueAnimationPlan(
   actor: BattleActor,
   technique: TechniqueDefinition,

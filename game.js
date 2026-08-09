@@ -2226,6 +2226,8 @@ import {
     renderSpecialBadges("enemy", refs.enemySpecials);
     renderCombatStatus("hero", refs.heroCombatStatus);
     renderCombatStatus("enemy", refs.enemyCombatStatus);
+    positionCombatStatus("hero", refs.heroCombatStatus, refs.heroSprite);
+    positionCombatStatus("enemy", refs.enemyCombatStatus, refs.enemySprite);
   }
 
   function setProjectionStyle(element, cacheKey, property, value) {
@@ -2303,11 +2305,17 @@ import {
       if (remaining !== null) {
         const debugTime = document.createElement("small");
         debugTime.className = "combat-status-debug-time";
-        debugTime.textContent = `DEBUG 残り ${Number.isFinite(remaining) ? `${remaining.toFixed(1)}s` : "∞"}`;
+        debugTime.textContent = `残り ${Number.isFinite(remaining) ? `${remaining.toFixed(1)}s` : "∞"}`;
         entry.append(debugTime);
       }
       container.append(entry);
     }
+  }
+
+  function positionCombatStatus(side, container, sprite) {
+    const point = window.etokichiRenderer?.getActorPoint?.(side, .5, .02) ?? getEffectPoint(sprite, .5, .02);
+    container.style.left = `${point.x}px`;
+    container.style.top = `${point.y}px`;
   }
 
   function announce(text) {

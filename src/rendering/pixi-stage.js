@@ -598,6 +598,9 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     startFighterMotion(side, type, options) {
       return fighterSystem.startMotion(side, type, options);
     },
+    getActorPoint(side, xRatio, yRatio) {
+      return fighterSystem.getScreenPoint(side, xRatio, yRatio);
+    },
     setProjection(nextProjection) {
       for (const key of Object.keys(targetProjection)) {
         const value = nextProjection[key];

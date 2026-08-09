@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTechniqueAnimationPlan, SUTEKICHI_COMET_WAVES } from "../src/game/animation-plan.ts";
+import { createTechniqueAnimationPlan, getFighterDepth, SUTEKICHI_COMET_WAVES } from "../src/game/animation-plan.ts";
 import { createBattleActor, getTechnique, getWalkFrame, opponentOf, shouldMirror } from "../src/game/actors.ts";
 import { createCharacterProfiles } from "../src/game/characters.ts";
 import type { CharacterId, Side } from "../src/game/types.ts";
@@ -75,5 +75,11 @@ describe("敵味方に依存しないキャラクターモデル", () => {
   it("相手陣営を対称に解決する", () => {
     expect(opponentOf("hero")).toBe("enemy");
     expect(opponentOf("enemy")).toBe("hero");
+  });
+
+  it("攻撃中のキャラクターを陣営にかかわらず手前へ描画する", () => {
+    expect(getFighterDepth("hero", ["physical-punch-sequence"])).toBe(2);
+    expect(getFighterDepth("enemy", ["meteor-claw-sequence"])).toBe(2);
+    expect(getFighterDepth("hero", [])).toBeLessThan(getFighterDepth("enemy", []));
   });
 });
