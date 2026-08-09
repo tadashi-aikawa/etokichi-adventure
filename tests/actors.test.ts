@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createTechniqueAnimationPlan, getFighterDepth, SUTEKICHI_COMET_WAVES } from "../src/game/animation-plan.ts";
 import {
   createBattleActor,
+  getFighterRenderSize,
   getImageFacing,
+  getPresentationScaleCompensation,
+  getPresentationYOffsetRatio,
   getTechnique,
   getWalkFrame,
   opponentOf,
@@ -78,6 +81,13 @@ describe("敵味方に依存しないキャラクターモデル", () => {
     expect(getImageFacing(profile, typeof closingTimeDash === "string" ? closingTimeDash : "")).toBe("right");
   });
 
+  it("拡大キャラクターは接写演出で余白を確保する", () => {
+    expect(getPresentationScaleCompensation(profiles.salarymanEtokichi)).toBeCloseTo(0.9 / 1.2);
+    expect(getPresentationYOffsetRatio(profiles.salarymanEtokichi)).toBeCloseTo(0.08);
+    expect(getPresentationScaleCompensation(profiles.etokichi)).toBe(1);
+    expect(getPresentationYOffsetRatio(profiles.etokichi)).toBe(0);
+  });
+
   it("全キャラクターが陣営に関係なく3フレームの移動素材を使う", () => {
     for (const profile of Object.values(profiles)) {
       expect(profile.images.walk).toHaveLength(3);
@@ -95,6 +105,13 @@ describe("敵味方に依存しないキャラクターモデル", () => {
   it("相手陣営を対称に解決する", () => {
     expect(opponentOf("hero")).toBe("enemy");
     expect(opponentOf("enemy")).toBe("hero");
+  });
+
+  it("描画サイズは陣営に依存せず、キャラクター倍率と近距離ズームだけを反映する", () => {
+    expect(getFighterRenderSize(1000, 1, 1.2)).toBe(276);
+    expect(getFighterRenderSize(1000, 1.25, 1.2)).toBe(345);
+    expect(getFighterRenderSize(500, 1, 1)).toBe(165);
+    expect(getFighterRenderSize(2000, 1, 1)).toBe(335);
   });
 
   it("攻撃中のキャラクターを陣営にかかわらず手前へ描画する", () => {

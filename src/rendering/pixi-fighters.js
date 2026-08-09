@@ -32,6 +32,8 @@ const ACTION_CLASSES = [
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
   "status-inspiration", "status-genki", "status-charm", "status-zone", "special-action-inspiration",
+  "special-action-zone",
+  "flash-knockback",
 ];
 
 function textureScale(sprite, size, facing = 1) {
@@ -146,6 +148,8 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       dodgeToken: 0,
       scriptedMotion: null,
       closingMotion: null,
+      presentationScale: 1,
+      presentationYOffset: 0,
     };
   }
 
@@ -387,6 +391,12 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       offsetY -= actor.size * .025;
       tint = actor.side === "hero" ? 0xfff3b0 : 0xd8bbff;
     }
+    if (classes.has("special-action-zone")) {
+      const surge = Math.sin(Math.min(1, actionSeconds / 1.4) * Math.PI);
+      offsetY -= actor.size * .08 * surge;
+      scale += .12 * surge;
+      tint = 0xc9fbff;
+    }
     if (["attack-light", "physical-punch-sequence", "star-ring-sequence", "meteor-claw-sequence", "crescent-horn-sequence"].some((name) => classes.has(name))) {
       const lunge = Math.sin(Math.min(1, actionSeconds / .55) * Math.PI);
       offsetX += direction * actor.size * .12 * lunge;
@@ -434,7 +444,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale += .08 * slash;
     }
     if (classes.has("closing-time-dash-sequence") && !actor.scriptedMotion) {
-      const dash = Math.sin(Math.min(1, actionSeconds / 1.25) * Math.PI);
+      const dash = Math.sin(Math.min(1, actionSeconds / .55) * Math.PI);
       offsetX += direction * actor.size * .3 * dash;
       offsetY -= actor.size * .035 * dash;
       rotation -= direction * .16 * dash;
@@ -536,6 +546,23 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale *= cameraPresentation.otherScale;
       actor.container.alpha = cameraPresentation.otherAlpha;
     }
+    const configuredCompensation = Number.parseFloat(
+      elements[actor.side].root.style.getPropertyValue("--presentation-scale-compensation"),
+    ) || 1;
+    const configuredYOffset = Number.parseFloat(
+      elements[actor.side].root.style.getPropertyValue("--presentation-y-offset-ratio"),
+    ) || 0;
+    const compensatePresentation =
+      (isCameraTarget && classes.has("special-action")) ||
+      classes.has("flash-knockback") ||
+      classes.has("blown-right") ||
+      classes.has("blown-left");
+    const presentationScaleTarget = compensatePresentation ? configuredCompensation : 1;
+    const presentationYOffsetTarget = compensatePresentation ? configuredYOffset : 0;
+    actor.presentationScale += (presentationScaleTarget - actor.presentationScale) * .22;
+    actor.presentationYOffset += (presentationYOffsetTarget - actor.presentationYOffset) * .22;
+    scale *= actor.presentationScale;
+    positionY += actor.size * actor.presentationYOffset;
 
     actor.container.position.set(positionX, positionY);
     actor.container.rotation = rotation;

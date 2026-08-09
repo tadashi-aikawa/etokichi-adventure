@@ -11,6 +11,7 @@ import {
 } from "pixi.js";
 import "pixi.js/browser";
 import BACKGROUND_URL from "../../assets/backgrounds/cosmic-ranch-colosseum.webp?url";
+import { getFighterRenderSize } from "../game/actors.ts";
 import { createEffectSystem } from "./pixi-effects.js";
 import { createFighterSystem } from "./pixi-fighters.js";
 
@@ -476,8 +477,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
 
     const heroVisualScale = Number.parseFloat(arena.querySelector("#hero")?.style.getPropertyValue("--character-scale")) || 1;
     const enemyVisualScale = Number.parseFloat(arena.querySelector("#enemy")?.style.getPropertyValue("--character-scale")) || 1;
-    const heroSize = clamp(width * .22, 155, 320) * projection.zoom * heroVisualScale;
-    const enemySize = clamp(width * .23, 165, 335) * projection.zoom * enemyVisualScale;
+    const heroSize = getFighterRenderSize(width, projection.zoom, heroVisualScale);
+    const enemySize = getFighterRenderSize(width, projection.zoom, enemyVisualScale);
     heroShadow.position.set(width * projection.heroX / 100, height * .89);
     enemyShadow.position.set(width * projection.enemyX / 100, height * .89);
     heroShadow.width = heroSize * .68;

@@ -1,4 +1,4 @@
-import { getImageFacing, getWalkFrame, shouldMirror } from "./src/game/actors.ts";
+import { getImageFacing, getPresentationScaleCompensation, getPresentationYOffsetRatio, getWalkFrame, shouldMirror } from "./src/game/actors.ts";
 import { SUTEKICHI_COMET_WAVES } from "./src/game/animation-plan.ts";
 import { createCharacterProfiles } from "./src/game/characters.ts";
 import {
@@ -116,7 +116,7 @@ import {
     charm: { label: "魅了", message: "見惚れて行動不能！", shortEffect: "移動・攻撃不可 / 回避率×0.5", effectDuration: CHARM_EFFECT.duration, animationDuration: 0, cssClass: "status-charm" },
     zone: { label: "ゾーン", message: "極限の集中状態へ！", shortEffect: "命中・会心・G回復↑ / 消費G↑・回避↓", effectDuration: ZONE_EFFECT.duration, animationDuration: 1400, cssClass: "status-zone" },
   };
-  const SPECIAL_ACTION_CLASSES = ["special-action", "special-action-power", "special-action-grit", "special-action-ease", "special-action-real", "special-action-jealousy", "special-action-serenity", "special-action-awakening", "special-action-etoile", "special-action-inspiration"];
+  const SPECIAL_ACTION_CLASSES = ["special-action", "special-action-power", "special-action-grit", "special-action-ease", "special-action-real", "special-action-jealousy", "special-action-serenity", "special-action-awakening", "special-action-etoile", "special-action-inspiration", "special-action-zone"];
   const SPECIAL_TRIGGER_CHANCES = { awakening: .25, grit: .5, jealousy: .5, easeSecondDodge: .5, easeThirdDodge: .75 };
   const keys = { left: false, right: false };
   let HERO_MAX_HP = fighterStats.hero.life;
@@ -257,6 +257,9 @@ import {
     HERO_MAX_HP = profile.stats.life;
     refs.arena.dataset.heroId = heroId;
     refs.hero.style.setProperty("--character-scale", String(profile.visualScale ?? 1));
+    refs.hero.style.setProperty("--presentation-scale-compensation", String(getPresentationScaleCompensation(profile)));
+    refs.hero.style.setProperty("--presentation-y-offset", `${getPresentationYOffsetRatio(profile) * 100}%`);
+    refs.hero.style.setProperty("--presentation-y-offset-ratio", String(getPresentationYOffsetRatio(profile)));
     refs.heroName.textContent = profile.name;
     refs.heroSubtitle.textContent = profile.subtitle;
     refs.heroHp.textContent = profile.stats.life;
@@ -294,6 +297,9 @@ import {
     ENEMY_MAX_HP = profile.stats.life;
     refs.arena.dataset.enemyId = enemyId;
     refs.enemy.style.setProperty("--character-scale", String(profile.visualScale ?? 1));
+    refs.enemy.style.setProperty("--presentation-scale-compensation", String(getPresentationScaleCompensation(profile)));
+    refs.enemy.style.setProperty("--presentation-y-offset", `${getPresentationYOffsetRatio(profile) * 100}%`);
+    refs.enemy.style.setProperty("--presentation-y-offset-ratio", String(getPresentationYOffsetRatio(profile)));
     refs.enemyName.textContent = profile.name;
     refs.enemySubtitle.textContent = profile.subtitle;
     refs.enemyHp.textContent = profile.stats.life;
@@ -1749,16 +1755,10 @@ import {
   }
 
   function activateZone(side) {
-    if (!canActivateBattleSpecialDuringKnockout(state.koPending, "zone")) return false;
-    const meta = battleSpecialMeta.zone;
-    const special = state.specials[side];
+    if (!triggerBattleSpecial(side, "zone")) return false;
     const actor = side === "hero" ? refs.hero : refs.enemy;
     const gutsKey = side === "hero" ? "heroGuts" : "enemyGuts";
-    special.triggered.zone = true;
-    special.activeUntil.zone = performance.now() + meta.effectDuration;
     state[gutsKey] = Math.min(100, state[gutsKey] + ZONE_EFFECT.gutsRecovery);
-    actor.classList.add(meta.cssClass);
-    showBattleSpecialBanner(side, "zone", meta);
     popStatus(actor, `ゾーン / G+${ZONE_EFFECT.gutsRecovery}`);
     sound("zone");
     return true;
@@ -1918,6 +1918,7 @@ import {
       jealousy: { pose: images.businessCardStrikeCast },
       serenity: { pose: images.angelWinkCast },
       awakening: { opening: images.defeat, pose: images.approvalMeteorCast, poseAt: .34 },
+      zone: { pose: images.approvalMeteorCast },
     } : {
       power: { pose: images.blackMeteorCast },
       grit: { opening: images.idle, pose: images.crescentHornCast, poseAt: .34 },
@@ -2664,7 +2665,7 @@ import {
     actor.classList.add("closing-distance");
     state.heroX = positions.heroX;
     state.enemyX = positions.enemyX;
-    setTimeout(() => actor.classList.remove("closing-distance"), 480);
+    setTimeout(() => actor.classList.remove("closing-distance"), 150);
   }
 
   function createProjectile(actorSide) {
@@ -3447,7 +3448,7 @@ import {
   }
 
   function createClosingTimeDash(side) {
-    window.etokichiRenderer?.startFighterMotion?.(side, "closingTimeDash", { duration: 860 });
+    window.etokichiRenderer?.startFighterMotion?.(side, "closingTimeDash", { duration: 420 });
     if (spawnPixiEffect("closingTimeDash", { side })) return;
     const origin = getEffectPoint(spriteFor(side), .5, .58);
     const target = getEffectPoint(targetSpriteFor(side), .5, .58);
@@ -3464,7 +3465,7 @@ import {
       effect.append(speedLine);
     }
     refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 900);
+    setTimeout(() => effect.remove(), 450);
   }
 
   function createAngelWink(side) {
@@ -3871,8 +3872,8 @@ import {
       sutekichiNapFail: () => { tone(440, .32, "triangle", .018, 0, 220); tone(294, .4, "sine", .014, .16, 147); },
       businessCardDraw: () => { whoosh(1540, 390, .24, 0, -.38, .015); tone(1180, .18, "triangle", .014, .03, 1640, .35); },
       businessCardStrike: () => { [0,.055,.11].forEach((delay, index) => whoosh(2100 - index * 240, 260, .2, delay, index % 2 ? .45 : -.45, .017)); },
-      closingTimeDash: () => { tone(72, .62, "sawtooth", .025, 0, 196, .24); noiseBurst(.34, .013, 860, .03, .32); },
-      closingTimeRush: () => { whoosh(2300, 72, .68, 0, .35, .035); tone(96, .72, "sawtooth", .026, .02, 42, -.3); },
+      closingTimeDash: () => { tone(72, .3, "sawtooth", .025, 0, 196, .24); noiseBurst(.22, .013, 860, .03, .32); },
+      closingTimeRush: () => { whoosh(2300, 72, .4, 0, .35, .035); tone(96, .42, "sawtooth", .026, .02, 42, -.3); },
       angelWink: () => { sparkle([659,880,1175], 0, .014); tone(523, .5, "sine", .014, .05, 1047); },
       angelWinkLaunch: () => { sparkle([988,1319,1760,2093], 0, .017); whoosh(1680, 480, .42, .04, .42, .012); },
       approvalMeteorCharge: () => { tone(147, 1.45, "sine", .027, 0, 784); [392,523,659].forEach((frequency, index) => tone(frequency, .5, "triangle", .011, .24 + index * .18, frequency * 1.5)); },

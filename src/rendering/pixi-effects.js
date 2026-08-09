@@ -1351,7 +1351,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     const impactRingOuter = new Graphics().ellipse(0, 0, 65, 132).stroke({ color: COLORS.gold, alpha: .82, width: 5 });
     container.addChildAt(glow(COLORS.gold, 260, .5), 0);
     container.addChild(outerAura, innerAura, ...lightning, impactRingOuter, impactRing);
-    return add(container, 860, (progress, elapsed) => {
+    return add(container, 420, (progress, elapsed) => {
       const travel = easeInOut(clamp01((progress - .16) / .84));
       const charge = easeOut(clamp01(progress / .2));
       container.position.set(origin.x + (destinationX - origin.x) * travel, origin.y + (target.y - origin.y) * travel);
@@ -1373,7 +1373,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
         particle.position.set(Math.cos(currentAngle) * radius, Math.sin(currentAngle) * radius * .88);
         particle.alpha = .5 + Math.sin(elapsed * 18 + phase) * .42;
       });
-      const impact = clamp01((progress - .82) / .18);
+      const impact = clamp01((progress - .62) / .38);
       impactRing.scale.set(.4 + impact * 2.2, .4 + impact * 1.1);
       impactRingOuter.scale.set(.25 + impact * 2.8, .25 + impact * 1.25);
       impactRing.alpha = impact > 0 ? 1 - impact : 0;

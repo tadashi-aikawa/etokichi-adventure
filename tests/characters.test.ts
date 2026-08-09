@@ -62,8 +62,8 @@ describe("キャラクター定義", () => {
     expect(profile.abilities).toContain("zone");
     const closingTimeDash = profile.techniques.find(({ id }) => id === "closingTimeDash");
     expect(closingTimeDash?.closesDistance).toBe(true);
-    expect(closingTimeDash?.duration).toBe(1250);
-    expect(closingTimeDash?.impactDelay).toBe(980);
+    expect(closingTimeDash?.duration).toBe(550);
+    expect(closingTimeDash?.impactDelay).toBe(400);
   });
 
   it("エンジェルウィンクは80%魅了のかしこさ・ガッツダウン技である", () => {
