@@ -1,4 +1,4 @@
-import { resolveActorUrl } from "./actor-assets.js";
+import { resolveActorUrl } from "./actor-assets.ts";
 
 const rendererMode = new URLSearchParams(window.location.search).get("renderer") ?? "auto";
 let rendererReady = Promise.resolve();

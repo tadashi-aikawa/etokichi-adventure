@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, Sprite } from "pixi.js";
-import { resolveActorUrl } from "../actor-assets.js";
+import { resolveActorUrl } from "../actor-assets.ts";
 
 const STATUS_COLORS = {
   "status-power": 0xff9d31,
@@ -10,10 +10,12 @@ const STATUS_COLORS = {
   "status-awakening": 0xffe66f,
   "status-etoile": 0xfff2a0,
   "status-inspiration": 0xffe675,
+  "status-genki": 0xffe675,
 };
 
 const ACTION_CLASSES = [
-  "moving-forward", "moving-back", "hero-walking", "walk-facing-left",
+  "mirror-character",
+  "moving-forward", "moving-back", "fighter-walking", "walk-reversed",
   "attack-light", "casting", "ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence",
   "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence",
   "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence",
@@ -24,7 +26,7 @@ const ACTION_CLASSES = [
   "special-action", "hurt", "critical-hit", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
-  "status-inspiration", "special-action-inspiration",
+  "status-inspiration", "status-genki", "special-action-inspiration",
 ];
 
 function textureScale(sprite, size, facing = 1) {
@@ -32,6 +34,12 @@ function textureScale(sprite, size, facing = 1) {
   const textureHeight = Math.max(1, sprite.texture.height);
   const scale = size / Math.max(textureWidth, textureHeight);
   sprite.scale.set(scale * facing, scale);
+}
+
+function actorFacing(actor) {
+  const profileFacing = actor.classes.has("mirror-character") ? -1 : 1;
+  const walkFacing = actor.classes.has("walk-reversed") ? -1 : 1;
+  return profileFacing * walkFacing;
 }
 
 function easeOutCubic(value) {
@@ -75,7 +83,15 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     auraGlow.blendMode = "add";
     const auraRingOuter = new Graphics().circle(0, 0, 1).stroke({ color: 0xffffff, alpha: .72, width: .035 });
     const auraRingInner = new Graphics().circle(0, 0, 1).stroke({ color: 0xffffff, alpha: .46, width: .025 });
-    aura.addChild(auraGlow, auraRingOuter, auraRingInner);
+    const genkiStars = Array.from({ length: 6 }, (_, index) => {
+      const color = index % 2 === 0 ? 0x78e9ff : 0xffe36d;
+      const star = new Graphics()
+        .poly([0, -1, .28, -.28, 1, 0, .28, .28, 0, 1, -.28, .28, -1, 0, -.28, -.28])
+        .fill({ color, alpha: .95 });
+      star.visible = false;
+      return star;
+    });
+    aura.addChild(auraGlow, auraRingOuter, auraRingInner, ...genkiStars);
 
     const trails = new Container();
     const sprite = new Sprite(texture);
@@ -90,6 +106,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       auraGlow,
       auraRingOuter,
       auraRingInner,
+      genkiStars,
       trails,
       sprite,
       source: elements[side].image.getAttribute("src") || elements[side].image.currentSrc,
@@ -129,7 +146,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     const source = image.getAttribute("src") || image.currentSrc;
     if (!source || source === actor.source) return;
     actor.source = source;
-    const shouldSwapImmediately = elements[side].root.classList.contains("hero-walking");
+    const shouldSwapImmediately = elements[side].root.classList.contains("fighter-walking");
     const token = ++actor.textureToken;
     try {
       const texture = await Assets.load(resolveActorUrl(source));
@@ -138,7 +155,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
         actor.sprite.texture = texture;
         actor.sprite.alpha = 1;
         actor.transitionStartedAt = 0;
-        textureScale(actor.sprite, actor.size, actor.classes.has("walk-facing-left") ? -1 : 1);
+        textureScale(actor.sprite, actor.size, actorFacing(actor));
         return;
       }
       const ghost = new Sprite(actor.sprite.texture);
@@ -151,7 +168,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       actor.sprite.texture = texture;
       actor.sprite.alpha = .08;
       actor.transitionStartedAt = performance.now();
-      textureScale(actor.sprite, actor.size, actor.classes.has("walk-facing-left") ? -1 : 1);
+      textureScale(actor.sprite, actor.size, actorFacing(actor));
     } catch (error) {
       console.warn(`PixiJSキャラクター画像の読込に失敗しました: ${source}`, error);
     }
@@ -211,7 +228,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     actor.baseX = x;
     actor.baseY = groundY;
     actor.size = size;
-    textureScale(actor.sprite, size, actor.classes.has("walk-facing-left") ? -1 : 1);
+    textureScale(actor.sprite, size, actorFacing(actor));
     actor.aura.position.set(0, -size * .5);
     actor.auraGlow.width = size * 1.55;
     actor.auraGlow.height = size * 1.55;
@@ -294,7 +311,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     let alpha = 1;
     let tint = 0xffffff;
 
-    if (classes.has("moving-forward") || classes.has("moving-back") || classes.has("hero-walking")) {
+    if (classes.has("moving-forward") || classes.has("moving-back") || classes.has("fighter-walking")) {
       offsetY -= Math.abs(Math.sin(elapsed * 12)) * actor.size * .025;
       rotation = Math.sin(elapsed * 12) * .025 * direction;
     }
@@ -420,7 +437,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     actor.container.scale.set(scale);
     actor.sprite.alpha = alpha;
     actor.sprite.tint = tint;
-    textureScale(actor.sprite, actor.size, classes.has("walk-facing-left") ? -1 : 1);
+    textureScale(actor.sprite, actor.size, actorFacing(actor));
 
     const activeStatus = Object.entries(STATUS_COLORS).find(([className]) => classes.has(className));
     actor.aura.visible = Boolean(activeStatus);
@@ -434,6 +451,18 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       actor.auraRingInner.rotation = -elapsed * .68 * direction;
       actor.auraRingOuter.scale.set(actor.size * (.6 + Math.sin(elapsed * 4) * .025));
     }
+    const genkiActive = classes.has("status-genki");
+    actor.genkiStars.forEach((star, index) => {
+      star.visible = genkiActive;
+      if (!genkiActive) return;
+      const angle = elapsed * (index % 2 === 0 ? 1.7 : -1.25) + index * Math.PI * 2 / actor.genkiStars.length;
+      const radius = actor.size * (.5 + index % 3 * .045);
+      star.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * .72);
+      star.rotation = -angle + elapsed * 1.8;
+      const starSize = actor.size * (.055 + index % 2 * .012) * (.9 + Math.sin(elapsed * 5 + index) * .14);
+      star.scale.set(starSize);
+      star.alpha = .72 + Math.sin(elapsed * 6 + index) * .2;
+    });
 
     if (actor.transitionStartedAt) {
       const progress = Math.min(1, (now - actor.transitionStartedAt) / actor.transitionDuration);

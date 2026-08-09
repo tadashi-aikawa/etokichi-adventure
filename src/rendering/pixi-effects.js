@@ -215,9 +215,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeHeartProjectile() {
-    const origin = point("hero", .76, .42);
-    const target = point("enemy", .48, .48);
+  function makeHeartProjectile(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .76, .42);
+    const target = point(targetSide, .48, .48);
     const container = new Container();
     const halo = glow(COLORS.pink, 145, .52);
     const heart = drawHeart(new Graphics(), 74, COLORS.pink);
@@ -255,7 +256,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeKissCharge() {
+  function makeKissCharge(side = "hero") {
     const container = new Container();
     const halo = glow(COLORS.pink, 135, .42);
     const heart = drawHeart(new Graphics(), 48, COLORS.pink);
@@ -272,7 +273,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       sparkles.push({ sprite: sparkle, angle: index * Math.PI / 4, phase: index * .72 });
     }
     return add(container, 1050, (progress, elapsed) => {
-      container.position.copyFrom(point("hero", .73, .42));
+      container.position.copyFrom(point(side, .73, .42));
       const gather = 1 - progress * .66;
       const pulse = .72 + progress * .42 + Math.sin(elapsed * 27) * .09;
       heart.scale.set(pulse);
@@ -289,7 +290,8 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeKissBurst(miss = false) {
+  function makeKissBurst(side = "hero", miss = false) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const color = miss ? 0xff9ac8 : COLORS.pink;
     const halo = glow(color, miss ? 180 : 245, miss ? .36 : .58);
@@ -310,7 +312,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
         distance: (miss ? 75 : 105) + Math.random() * (miss ? 70 : 95),
       });
     }
-    container.position.copyFrom(point("enemy", .48, .48));
+    container.position.copyFrom(point(targetSide, .48, .48));
     return add(container, miss ? 920 : 1100, (progress, elapsed) => {
       const expansion = easeOut(progress);
       centerHeart.scale.set((miss ? .8 : .3) + Math.sin(progress * Math.PI) * (miss ? .55 : 1.2));
@@ -329,9 +331,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeCrescentRush() {
-    const origin = point("enemy", .34, .58);
-    const target = point("hero", .58, .58);
+  function makeCrescentRush(side = "enemy") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .34, .58);
+    const target = point(targetSide, .58, .58);
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const length = Math.max(150, Math.hypot(dx, dy));
@@ -377,7 +380,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeGalaxyCharge() {
+  function makeGalaxyCharge(side = "hero") {
     const container = new Container();
     const violetHalo = glow(0x5120b7, 300, .48);
     const cyanCloud = glow(COLORS.cyan, 190, .3);
@@ -405,7 +408,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       stars.push({ sprite: star, angle: index * Math.PI * 2 / 10 + .24, radius: 72 + index % 4 * 18, speed: 2.2 + index % 3 * .4 });
     }
     return add(container, 1950, (progress, elapsed) => {
-      container.position.copyFrom(point("hero", .72, .53));
+      container.position.copyFrom(point(side, .72, .53));
       const form = Math.min(1, easeOut(progress * 2.2));
       const collapse = progress > .79 ? (1 - progress) / .21 : 1;
       violetHalo.scale.set(.62 + form * .52 + Math.sin(elapsed * 5) * .08);
@@ -440,9 +443,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeGalaxyFlash() {
-    const origin = point("hero", .735, .535);
-    const target = point("enemy", .52, .52);
+  function makeGalaxyFlash(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .735, .535);
+    const target = point(targetSide, .52, .52);
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const length = Math.max(260, Math.hypot(dx, dy));
@@ -636,8 +640,8 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makePunchWind() {
-    const origin = point("hero", .72, .52);
+  function makePunchWind(side = "hero") {
+    const origin = point(side, .72, .52);
     const container = new Container();
     container.position.copyFrom(origin);
     const rings = [];
@@ -672,9 +676,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeGalaxyRayShot() {
-    const origin = point("hero", .88, .48);
-    const target = point("enemy", .48, .5);
+  function makeGalaxyRayShot(side = "hero") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .88, .48);
+    const target = point(targetSide, .48, .5);
     const dx = target.x - origin.x;
     const dy = target.y - origin.y;
     const container = new Container();
@@ -898,9 +903,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeNovaDive(targetPoint) {
-    const origin = point("hero", .5, .42);
-    const target = targetPoint || point("enemy", .5, .62);
+  function makeNovaDive(side = "hero", targetPoint) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .5, .42);
+    const target = targetPoint || point(targetSide, .5, .62);
     const container = new Container();
     const comet = glow(COLORS.gold, 170, .78);
     const core = drawStar(new Graphics(), 52, COLORS.white);
@@ -927,9 +933,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeNovaStrike(index = 0) {
+  function makeNovaStrike(side = "hero", index = 0) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
-    container.position.copyFrom(point("enemy", .5, .5));
+    container.position.copyFrom(point(targetSide, .5, .5));
     container.rotation = [-1.26, 2.51, 0, -2.51, 1.26][index] || 0;
     const lineOuter = new Graphics().roundRect(-180, -14, 360, 28, 14).fill({ color: COLORS.gold, alpha: .52 });
     const lineCore = new Graphics().roundRect(-150, -5, 300, 10, 5).fill({ color: COLORS.white, alpha: .96 });
@@ -949,9 +956,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeNovaImpact(critical = false) {
+  function makeNovaImpact(side = "hero", critical = false) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
-    container.position.copyFrom(point("enemy", .5, .68));
+    container.position.copyFrom(point(targetSide, .5, .68));
     const primary = critical ? 0xff4f82 : COLORS.gold;
     const secondary = critical ? COLORS.violet : COLORS.cyan;
     const halo = glow(primary, critical ? 560 : 460, .76);
@@ -1062,7 +1070,8 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiStarTouch() {
+  function makeSutekichiStarTouch(side = "enemy") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const paw = new Graphics()
       .circle(0, 7, 24).fill({ color: COLORS.gold, alpha: .86 })
@@ -1077,7 +1086,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     container.addChildAt(glow(COLORS.gold, 155, .55), 0);
     container.addChild(paw, crest, ring);
     return add(container, 950, (progress, elapsed) => {
-      container.position.copyFrom(point("hero", .53, .48));
+      container.position.copyFrom(point(targetSide, .53, .48));
       const pulse = Math.sin(progress * Math.PI);
       container.scale.set(.35 + easeOut(progress) * .95);
       container.rotation = -.24 + progress * .48;
@@ -1093,14 +1102,15 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiHaloSkip() {
+  function makeSutekichiHaloSkip(side = "enemy") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const rings = [0, 1, 2].map((index) => new Graphics().ellipse(0, 0, 56 + index * 20, 18 + index * 7).stroke({ color: index === 1 ? COLORS.cyan : COLORS.gold, alpha: .88 - index * .16, width: 5 - index }));
     const star = drawStar(new Graphics(), 21, COLORS.white);
     const streaks = Array.from({ length: 7 }, (_, index) => new Graphics().roundRect(-120 - index * 20, -2, 80 + index * 13, 4, 2).fill({ color: index % 2 ? COLORS.gold : COLORS.cyan, alpha: .72 }));
     container.addChild(glow(COLORS.cyan, 165, .38), ...streaks, ...rings, star);
-    const origin = point("enemy", .46, .42);
-    const target = point("hero", .54, .5);
+    const origin = point(side, .46, .42);
+    const target = point(targetSide, .54, .5);
     return add(container, 1450, (progress, elapsed) => {
       const travel = easeInOut(clamp01(progress / .78));
       container.position.set(origin.x + (target.x - origin.x) * travel, origin.y + (target.y - origin.y) * travel - Math.sin(travel * Math.PI) * 120);
@@ -1111,7 +1121,8 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiStellaSearch() {
+  function makeSutekichiStellaSearch(side = "enemy") {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const outer = new Graphics().circle(0, 0, 94).stroke({ color: COLORS.cyan, alpha: .85, width: 3 });
     const inner = new Graphics().circle(0, 0, 48).stroke({ color: COLORS.gold, alpha: .9, width: 4 });
@@ -1124,7 +1135,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
     container.addChild(glow(COLORS.cyan, 250, .25), cross, outer, inner, scanner, ...markers);
     return add(container, 1900, (progress, elapsed) => {
-      container.position.copyFrom(point("hero", .5, .46));
+      container.position.copyFrom(point(targetSide, .5, .46));
       container.scale.set(.72 + easeOut(progress) * .36);
       container.alpha = Math.sin(progress * Math.PI) * 1.25;
       outer.rotation = elapsed * .7;
@@ -1134,14 +1145,14 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiCometCharge() {
+  function makeSutekichiCometCharge(side = "enemy") {
     const container = new Container();
     const crest = drawStar(new Graphics(), 42, COLORS.white);
     const rings = [58, 88, 122].map((radius, index) => new Graphics().circle(0, 0, radius).stroke({ color: index % 2 ? COLORS.cyan : COLORS.gold, alpha: .76, width: 3 }));
     const stars = Array.from({ length: 16 }, (_, index) => drawStar(new Graphics(), 4 + index % 4, index % 3 ? COLORS.gold : COLORS.cyan));
     container.addChild(glow(COLORS.gold, 300, .38), ...rings, crest, ...stars);
     return add(container, 1750, (progress, elapsed) => {
-      container.position.copyFrom(point("enemy", .5, .38));
+      container.position.copyFrom(point(side, .5, .38));
       container.scale.set(.35 + easeOut(progress) * .85);
       crest.rotation = elapsed * 1.4;
       rings.forEach((ring, index) => { ring.rotation = elapsed * (index % 2 ? -1 : 1.3); ring.scale.set(1 - progress * .18 * index); });
@@ -1154,25 +1165,33 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiComet() {
+  function makeSutekichiComet(side = "enemy", index = 0) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const tail = new Graphics().poly([-300, -30, -15, -50, 0, 0, -15, 50, -300, 30, -225, 0]).fill({ color: COLORS.cyan, alpha: .38 });
     const tailCore = new Graphics().poly([-240, -10, -8, -22, 0, 0, -8, 22, -240, 10]).fill({ color: COLORS.gold, alpha: .82 });
     const head = drawStar(new Graphics(), 50, COLORS.white);
     container.addChild(glow(COLORS.gold, 210, .72), tail, tailCore, head);
     const screen = getScreen();
-    const target = point("hero", .5, .5);
-    const start = { x: screen.width * .94, y: screen.height * .03 };
-    return add(container, 1700, (progress) => {
+    const targetRatios = [[.38, .4], [.62, .5], [.5, .62]];
+    const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
+    const target = point(targetSide, xRatio, yRatio);
+    const start = {
+      x: screen.width * (side === "hero" ? .04 + index * .045 : .96 - index * .045),
+      y: screen.height * ([.08, .015, .06][index] ?? .03),
+    };
+    const scale = [.82, 1, .9][index] ?? 1;
+    return add(container, 1150, (progress) => {
       const travel = easeInOut(progress);
       container.position.set(start.x + (target.x - start.x) * travel, start.y + (target.y - start.y) * travel);
       container.rotation = Math.atan2(target.y - start.y, target.x - start.x);
-      container.scale.set(.65 + progress * .65);
+      container.scale.set((.55 + progress * .65) * scale);
       container.alpha = 1 - Math.max(0, progress - .9) / .1;
     });
   }
 
-  function makeSutekichiCometImpact() {
+  function makeSutekichiCometImpact(side = "enemy", index = 0) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const crest = drawStar(new Graphics(), 105, COLORS.gold, .86);
     const rays = Array.from({ length: 18 }, (_, index) => {
@@ -1182,8 +1201,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
     const ring = new Graphics().circle(0, 0, 72).stroke({ color: COLORS.white, alpha: .94, width: 7 });
     container.addChild(glow(COLORS.gold, 390, .68), crest, ring, ...rays);
+    const targetRatios = [[.38, .48], [.62, .58], [.5, .68]];
+    const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
     return add(container, 1250, (progress) => {
-      container.position.copyFrom(point("hero", .5, .58));
+      container.position.copyFrom(point(targetSide, xRatio, yRatio));
       const burst = easeOut(progress);
       crest.scale.set(.25 + burst * 1.55);
       crest.rotation = progress * 1.1;
@@ -1193,14 +1214,14 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiNapDream() {
+  function makeSutekichiNapDream(side = "enemy") {
     const container = new Container();
     const moon = new Graphics().circle(0, 0, 34).fill({ color: COLORS.gold, alpha: .92 }).circle(14, -10, 32).cut();
     const bubbles = Array.from({ length: 9 }, (_, index) => new Graphics().circle(0, 0, 7 + index % 4 * 3).stroke({ color: index % 2 ? COLORS.cyan : COLORS.white, alpha: .7, width: 2 }));
     const stars = Array.from({ length: 6 }, (_, index) => drawStar(new Graphics(), 5 + index % 3, COLORS.gold));
     container.addChild(glow(COLORS.cyan, 220, .22), moon, ...bubbles, ...stars);
     return add(container, 3600, (progress, elapsed) => {
-      container.position.copyFrom(point("enemy", .53, .35));
+      container.position.copyFrom(point(side, .53, .35));
       container.alpha = Math.min(1, progress * 5) * (1 - Math.max(0, progress - .88) / .12);
       moon.position.set(38, -65 - Math.sin(elapsed * 2) * 8);
       moon.rotation = Math.sin(elapsed * 1.4) * .15;
@@ -1218,14 +1239,14 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiNapResult(success) {
-    if (!success) return makeBurst({ side: "enemy", yRatio: .48, color: COLORS.cyan, secondary: 0x55739d, duration: 900, radius: 80, count: 5 });
+  function makeSutekichiNapResult(success, side = "enemy") {
+    if (!success) return makeBurst({ side, yRatio: .48, color: COLORS.cyan, secondary: 0x55739d, duration: 900, radius: 80, count: 5 });
     const container = new Container();
     const rings = [72, 112].map((radius) => new Graphics().circle(0, 0, radius).stroke({ color: COLORS.cyan, alpha: .8, width: 5 }));
     const stars = Array.from({ length: 22 }, (_, index) => drawStar(new Graphics(), 6 + index % 4, index % 3 ? COLORS.gold : COLORS.white));
     container.addChild(glow(COLORS.gold, 420, .55), ...rings, ...stars);
     return add(container, 1500, (progress) => {
-      container.position.copyFrom(point("enemy", .5, .5));
+      container.position.copyFrom(point(side, .5, .5));
       const rise = easeOut(progress);
       rings.forEach((ring, index) => ring.scale.set(.3 + rise * (2 + index * .55)));
       stars.forEach((star, index) => {
@@ -1241,50 +1262,50 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
 
   const handlers = {
     criticalScreenBurst: (options) => makeBurst({ side: options.side, yRatio: .48, color: COLORS.ember, secondary: COLORS.white, duration: 900, radius: 210, count: 18, critical: true }),
-    impact: (options) => makeBurst({ side: options.heroAttacks ? "enemy" : "hero", yRatio: .55, color: options.heroAttacks ? COLORS.gold : COLORS.violet, secondary: COLORS.white, duration: 480, radius: 120, count: 10 }),
-    etoileDrive: (options) => makeCharge({ side: "hero", xRatio: .5, yRatio: .5, color: COLORS.gold, secondary: COLORS.cyan, duration: options.duration + 180, radius: 125, count: 16 }),
-    projectile: (options) => makeEnergyProjectile({ from: options.enemy ? "enemy" : "hero", to: options.enemy ? "hero" : "enemy", color: options.enemy ? COLORS.violet : COLORS.gold, secondary: options.enemy ? COLORS.cyan : COLORS.white }),
+    impact: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .55, color: options.characterId === "kuroboshi" || (!options.characterId && options.side === "enemy") ? COLORS.violet : COLORS.gold, secondary: COLORS.white, duration: 480, radius: 120, count: 10 }),
+    etoileDrive: (options) => makeCharge({ side: options.side, xRatio: .5, yRatio: .5, color: COLORS.gold, secondary: COLORS.cyan, duration: options.duration + 180, radius: 125, count: 16 }),
+    projectile: (options) => makeEnergyProjectile({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", color: options.side === "enemy" ? COLORS.violet : COLORS.gold, secondary: options.side === "enemy" ? COLORS.cyan : COLORS.white }),
     dust: (options) => makeDust({ side: options.side, color: options.color === "violet" ? COLORS.violet : COLORS.gold }),
-    punchTrail: () => makePunchWind(),
-    starRing: () => makeRingProjectile({}),
-    meteorClaw: () => makeSlashes({ side: "hero", color: COLORS.violet }),
-    crescentRush: () => makeCrescentRush(),
-    physicalContact: (options) => makeBurst({ side: options.heroAttacks ? "enemy" : "hero", color: options.heroAttacks ? COLORS.gold : COLORS.violet, secondary: COLORS.white, duration: 760, radius: 142, count: 12 }),
-    novaCharge: () => makeCharge({ side: "hero", xRatio: .5, yRatio: .54, color: COLORS.gold, secondary: COLORS.cyan, duration: 1750, radius: 125, count: 16 }),
-    novaRush: () => makeBeam({ from: "hero", to: "enemy", fromRatio: [.64, .52], toRatio: [.46, .52], color: COLORS.gold, secondary: COLORS.cyan, width: 56, duration: 900 }),
-    novaCapture: () => makeOrbit({ side: "enemy", color: COLORS.gold, duration: 3650 }),
+    punchTrail: (options) => makePunchWind(options.side),
+    starRing: (options) => makeRingProjectile({ from: options.side, to: options.side === "hero" ? "enemy" : "hero" }),
+    meteorClaw: (options) => makeSlashes({ side: options.side === "hero" ? "enemy" : "hero", color: COLORS.violet }),
+    crescentRush: (options) => makeCrescentRush(options.side),
+    physicalContact: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", color: options.characterId === "kuroboshi" ? COLORS.violet : COLORS.gold, secondary: COLORS.white, duration: 760, radius: 142, count: 12 }),
+    novaCharge: (options) => makeCharge({ side: options.side, xRatio: .5, yRatio: .54, color: COLORS.gold, secondary: COLORS.cyan, duration: 1750, radius: 125, count: 16 }),
+    novaRush: (options) => makeBeam({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", fromRatio: [.64, .52], toRatio: [.46, .52], color: COLORS.gold, secondary: COLORS.cyan, width: 56, duration: 900 }),
+    novaCapture: (options) => makeOrbit({ side: options.side === "hero" ? "enemy" : "hero", color: COLORS.gold, duration: 3650 }),
     novaPath: (options) => makeNovaPath(options.points),
-    novaStrike: (options) => makeNovaStrike(options.index),
+    novaStrike: (options) => makeNovaStrike(options.side, options.index),
     novaUppercut: (options) => makeNovaUppercut(options),
-    novaDive: (options) => makeNovaDive(options.targetPoint),
+    novaDive: (options) => makeNovaDive(options.side, options.targetPoint),
     novaImpact: (options) => {
-      makeNovaImpact(options.critical);
+      makeNovaImpact(options.side, options.critical);
       makeScreenFlash(options.critical ? 0xffd8eb : 0xfff4bd, options.critical ? 760 : 560);
       return true;
     },
-    galaxyRayCharge: () => makeCharge({ side: "hero", xRatio: .79, yRatio: .5, color: COLORS.gold, secondary: COLORS.cyan, duration: 1250, radius: 62, count: 9 }),
-    galaxyRay: () => makeGalaxyRayShot(),
-    kissCharge: () => makeKissCharge(),
-    throwingKiss: () => makeHeartProjectile(),
-    kissBurst: () => makeKissBurst(),
-    kissMiss: () => makeKissBurst(true),
-    darkOrbitField: () => makeOrbit({ side: "enemy", color: COLORS.violet, duration: 2050 }),
-    darkOrbitVolley: () => makeOrbit({ side: "enemy", color: COLORS.violet, duration: 1300, volley: true }),
-    blackMeteorSky: () => makeVortex({ side: "hero" }),
-    blackMeteor: () => makeMeteor({ side: "hero" }),
-    blackMeteorImpact: () => makeBurst({ side: "hero", yRatio: .68, color: COLORS.violet, secondary: COLORS.white, duration: 1200, radius: 230, count: 18 }),
-    sutekichiStarTouch: () => makeSutekichiStarTouch(),
-    sutekichiHaloSkip: () => makeSutekichiHaloSkip(),
-    sutekichiStellaSearch: () => makeSutekichiStellaSearch(),
-    sutekichiCometCharge: () => makeSutekichiCometCharge(),
-    sutekichiComet: () => makeSutekichiComet(),
-    sutekichiCometImpact: () => makeSutekichiCometImpact(),
-    sutekichiNapDream: () => makeSutekichiNapDream(),
-    sutekichiNapResult: (options) => makeSutekichiNapResult(options.success),
-    galaxyCharge: () => makeGalaxyCharge(),
+    galaxyRayCharge: (options) => makeCharge({ side: options.side, xRatio: .79, yRatio: .5, color: COLORS.gold, secondary: COLORS.cyan, duration: 1250, radius: 62, count: 9 }),
+    galaxyRay: (options) => makeGalaxyRayShot(options.side),
+    kissCharge: (options) => makeKissCharge(options.side),
+    throwingKiss: (options) => makeHeartProjectile(options.side),
+    kissBurst: (options) => makeKissBurst(options.side),
+    kissMiss: (options) => makeKissBurst(options.side, true),
+    darkOrbitField: (options) => makeOrbit({ side: options.side, color: COLORS.violet, duration: 2050 }),
+    darkOrbitVolley: (options) => makeOrbit({ side: options.side, color: COLORS.violet, duration: 1300, volley: true }),
+    blackMeteorSky: (options) => makeVortex({ side: options.side === "hero" ? "enemy" : "hero" }),
+    blackMeteor: (options) => makeMeteor({ side: options.side === "hero" ? "enemy" : "hero" }),
+    blackMeteorImpact: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .68, color: COLORS.violet, secondary: COLORS.white, duration: 1200, radius: 230, count: 18 }),
+    sutekichiStarTouch: (options) => makeSutekichiStarTouch(options.side),
+    sutekichiHaloSkip: (options) => makeSutekichiHaloSkip(options.side),
+    sutekichiStellaSearch: (options) => makeSutekichiStellaSearch(options.side),
+    sutekichiCometCharge: (options) => makeSutekichiCometCharge(options.side),
+    sutekichiComet: (options) => makeSutekichiComet(options.side, options.index),
+    sutekichiCometImpact: (options) => makeSutekichiCometImpact(options.side, options.index),
+    sutekichiNapDream: (options) => makeSutekichiNapDream(options.side),
+    sutekichiNapResult: (options) => makeSutekichiNapResult(options.success, options.side),
+    galaxyCharge: (options) => makeGalaxyCharge(options.side),
     victoryCelebration: (options) => makeVictory(options.side),
-    galaxyFlash: () => {
-      makeGalaxyFlash();
+    galaxyFlash: (options) => {
+      makeGalaxyFlash(options.side);
       makeScreenFlash(COLORS.white, 620);
       return true;
     },

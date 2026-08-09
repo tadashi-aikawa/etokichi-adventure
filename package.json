@@ -7,12 +7,21 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4173"
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint game.js src tests vite.config.ts",
+    "format": "biome format --write src/actor-assets.ts src/game tests vite.config.ts",
+    "format:check": "biome format src/actor-assets.ts src/game tests vite.config.ts",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build"
   },
   "dependencies": {
     "pixi.js": "8.19.0"
   },
   "devDependencies": {
-    "vite": "7.1.2"
+    "@biomejs/biome": "2.5.7",
+    "typescript": "7.0.2",
+    "vite": "7.1.2",
+    "vitest": "4.1.10"
   }
 }
