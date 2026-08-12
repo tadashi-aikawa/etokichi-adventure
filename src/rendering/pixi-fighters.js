@@ -418,7 +418,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     let offsetY = -Math.sin(elapsed * Math.PI * 2 / 2.1) * actor.size * .014;
     let rotation = 0;
     let scale = 1;
-    let verticalScale = 1;
+    let horizontalScale = 1;
     let alpha = 1;
     let tint = 0xffffff;
 
@@ -551,10 +551,10 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     }
     if (classes.has("tatsuo-pinned")) {
       const pin = easeOutCubic(Math.min(1, actionSeconds / .18));
-      offsetX += direction * actor.size * .06 * pin;
-      offsetY += actor.size * .22 * pin;
-      rotation += direction * .14 * pin;
-      verticalScale *= 1 - .3 * pin;
+      offsetX += direction * actor.size * .05 * pin;
+      offsetY -= actor.size * .35 * pin;
+      rotation += Math.PI * .5 * pin;
+      horizontalScale *= 1 - .28 * pin;
     }
     if (classes.has("dodging")) {
       const progress = Math.min(1, actionSeconds / .88);
@@ -645,7 +645,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
 
     actor.container.position.set(positionX, positionY);
     actor.container.rotation = rotation;
-    actor.container.scale.set(scale, scale * verticalScale);
+    actor.container.scale.set(scale * horizontalScale, scale);
     actor.sprite.alpha = alpha;
     actor.sprite.tint = tint;
     textureScale(actor.sprite, actor.size, actorFacing(actor));
