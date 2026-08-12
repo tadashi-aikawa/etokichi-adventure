@@ -26,6 +26,27 @@ export const ZONE_EFFECT = {
   criticalMultiplier: 1.5,
 } as const;
 
+export const RESTRAINT_EFFECT = {
+  duration: 8000,
+  movementMultiplier: 1 / 3,
+  gutsRegenMultiplier: 1 / 3,
+} as const;
+
+export const PURSUIT_EFFECT = {
+  duration: 9000,
+  triggerDuration: 1500,
+  movementMultiplier: 1.45,
+  hitRateBonus: 12,
+  gutsDamageMultiplier: 1.35,
+} as const;
+
+export const PLEASURE_EFFECT = {
+  duration: 8000,
+  triggerHits: 3,
+  activationGutsRecovery: 30,
+  hitGutsRecovery: 15,
+} as const;
+
 export function canActivateBattleSpecialDuringKnockout(knockoutPending: boolean, specialType: string): boolean {
   return !knockoutPending || specialType === "grit" || specialType === "awakening";
 }
@@ -96,4 +117,20 @@ export function applyGenkiGutsRegenMultiplier(multiplier: number, active: boolea
 
 export function applyGenkiMovementMultiplier(multiplier: number, active: boolean): number {
   return active ? multiplier * GENKI_EFFECT.movementMultiplier : multiplier;
+}
+
+export function applyRestraintMovementMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * RESTRAINT_EFFECT.movementMultiplier : multiplier;
+}
+
+export function applyRestraintGutsRegenMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * RESTRAINT_EFFECT.gutsRegenMultiplier : multiplier;
+}
+
+export function applyPursuitMovementMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * PURSUIT_EFFECT.movementMultiplier : multiplier;
+}
+
+export function shouldTriggerPleasure(consecutiveHitsReceived: number): boolean {
+  return consecutiveHitsReceived >= PLEASURE_EFFECT.triggerHits;
 }

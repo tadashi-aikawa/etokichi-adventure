@@ -41,6 +41,14 @@ const icon = {
     '<path d="M5 19c5-7 13-8 19-1-6 7-14 7-19 1z" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="15" cy="19" r="3"/><path d="M31 14c-5-7-14-3-14 4 0 7 8 12 14 18 6-6 14-11 14-18 0-7-9-11-14-4z"/><path d="M6 35c5 4 10 4 15 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
   approvalMeteor:
     '<path d="M7 7h24v31H7zM13 14h12M13 20h12M13 26h8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="33" cy="33" r="10"/><path d="M29 33l3 3 6-7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 5l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
+  tatsuoSlap:
+    '<path d="M8 25c8-2 13-7 17-15l7 4-5 9 13-5 3 7-14 8c-8 5-16 3-21-8z"/><path d="M5 39c9-4 17-3 25 3" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+  tatsuoRestraint:
+    '<path d="M6 9h11v13H6zM31 9h11v13H31z"/><path d="M12 22v10c0 7 5 11 12 11s12-4 12-11V22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M16 31h16" fill="none" stroke="currentColor" stroke-width="4"/>',
+  tatsuoRoar:
+    '<path d="M5 17c10 0 16-4 21-11v36c-5-7-11-11-21-11z"/><path d="M31 14c7 3 10 7 12 11M32 25c6 1 9 3 12 7M32 7c7 4 11 9 14 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+  tatsuoPress:
+    '<path d="M7 31l14-18 20 15-14 15z"/><path d="M12 9l8 6M35 8l-6 10M42 34l-8-3" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>',
 } as const;
 
 const etokichiTechniques: TechniqueDefinition[] = [
@@ -400,6 +408,81 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
   },
 ];
 
+const tatsuoTechniques: TechniqueDefinition[] = [
+  {
+    id: "tatsuoSlap",
+    name: "タツヲビンタ",
+    iconSvg: icon.tatsuoSlap,
+    cost: 14,
+    power: 82,
+    accuracy: 90,
+    critical: 8,
+    range: 0,
+    duration: 2300,
+    cameraReleaseDelay: 850,
+    impactDelay: 1370,
+    kind: "strike",
+    animation: "tatsuoSlap",
+    attackStat: "power",
+    gutsDamage: 14,
+  },
+  {
+    id: "tatsuoRestraint",
+    name: "取り押さえ",
+    iconSvg: icon.tatsuoRestraint,
+    cost: 42,
+    power: 105,
+    accuracy: 61,
+    critical: 5,
+    range: 1,
+    duration: 3200,
+    cameraReleaseDelay: 1040,
+    impactDelay: 2150,
+    kind: "strike",
+    animation: "tatsuoRestraint",
+    attackStat: "power",
+    gutsDamage: 18,
+    restraintDuration: 8000,
+  },
+  {
+    id: "tatsuoRoar",
+    name: "腹の底から咆哮",
+    iconSvg: icon.tatsuoRoar,
+    cost: 30,
+    power: 35,
+    accuracy: 86,
+    critical: 4,
+    range: 2,
+    duration: 3200,
+    cameraReleaseDelay: 1080,
+    impactDelay: 2200,
+    kind: "shot",
+    animation: "tatsuoRoar",
+    attackStat: "intelligence",
+    gutsDamage: 46,
+    knockback: 42,
+  },
+  {
+    id: "tatsuoPress",
+    name: "タツヲプレス",
+    iconSvg: icon.tatsuoPress,
+    cost: 50,
+    power: 275,
+    accuracy: 57,
+    critical: 18,
+    range: 3,
+    duration: 4200,
+    cameraReleaseDelay: 1200,
+    impactDelay: 3020,
+    kind: "special",
+    animation: "tatsuoPress",
+    attackStat: "power",
+    gutsDamage: 18,
+    knockback: 28,
+    closesDistance: true,
+  },
+];
+
 export function createCharacterProfiles(resolveAsset: AssetResolver): Record<CharacterId, CharacterProfile> {
   const asset = resolveAsset;
   return {
@@ -511,6 +594,35 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       stats: { life: 540, power: 430, defense: 470, accuracy: 590, evasion: 440, intelligence: 650, gutsRegen: 3.1 },
       abilities: ["inspiration", "ease", "zone"],
       techniques: salarymanEtokichiTechniques,
+    },
+    tatsuo: {
+      id: "tatsuo",
+      baseFacing: "left",
+      visualScale: 1.08,
+      name: "タツヲ",
+      subtitle: "SOFT PURSUER",
+      abilitiesLabel: "本気・追跡・快感",
+      images: {
+        idle: asset("assets/characters/tatsuo/idle.webp"),
+        battleIdle: asset("assets/characters/tatsuo/idle.webp"),
+        slapCast: asset("assets/characters/tatsuo/slap-cast.webp"),
+        restraintCast: asset("assets/characters/tatsuo/restraint-cast.webp"),
+        roarCast: asset("assets/characters/tatsuo/roar-cast.webp"),
+        pressCast: asset("assets/characters/tatsuo/press-cast.webp"),
+        statusPleasure: asset("assets/characters/tatsuo/status-pleasure.webp"),
+        victoryClimax: asset("assets/characters/tatsuo/victory-climax.webp"),
+        defeat: asset("assets/characters/tatsuo/defeat.webp"),
+        walk: [
+          asset("assets/characters/tatsuo/walk-1.webp"),
+          asset("assets/characters/tatsuo/idle.webp"),
+          asset("assets/characters/tatsuo/walk-3.webp"),
+        ],
+      },
+      introPoseKeys: ["idle", "slapCast", "idle", "roarCast"],
+      versusPoseKey: "restraintCast",
+      stats: { life: 680, power: 600, defense: 540, accuracy: 390, evasion: 250, intelligence: 260, gutsRegen: 2.3 },
+      abilities: ["real", "pursuit", "pleasure"],
+      techniques: tatsuoTechniques,
     },
   };
 }

@@ -5,6 +5,9 @@ import {
   applyCharmEvasionPenalty,
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  applyPursuitMovementMultiplier,
+  applyRestraintGutsRegenMultiplier,
+  applyRestraintMovementMultiplier,
   canActivateBattleSpecialDuringKnockout,
   calculateBaseHitRate,
   calculateRecoverySuccessChance,
@@ -12,7 +15,11 @@ import {
   closeToMinimumRange,
   GENKI_EFFECT,
   getRangeForDistance,
+  PLEASURE_EFFECT,
+  PURSUIT_EFFECT,
   reachedZoneLifeThreshold,
+  RESTRAINT_EFFECT,
+  shouldTriggerPleasure,
   shouldGuaranteeZone,
   ZONE_EFFECT,
 } from "./src/game/combat.ts";
@@ -117,8 +124,11 @@ import {
     genki: { label: "元気", message: "ぐっすり眠って元気いっぱい！", shortEffect: "G回復×1.35・移動×1.15", effectDuration: GENKI_EFFECT.duration, animationDuration: 1400, cssClass: "status-genki" },
     charm: { label: "魅了", message: "見惚れて行動不能！", shortEffect: "移動・攻撃不可 / 回避率×0.5", effectDuration: CHARM_EFFECT.duration, animationDuration: 0, cssClass: "status-charm" },
     zone: { label: "ゾーン", message: "極限の集中状態へ！", shortEffect: "命中・会心・G回復↑ / 消費G↑・回避↓", effectDuration: ZONE_EFFECT.duration, animationDuration: 1400, cssClass: "status-zone" },
+    pursuit: { label: "追跡", message: "逃げる相手をじっと追い続ける！", shortEffect: "移動×1.45・命中+12・Gダメ×1.35", effectDuration: PURSUIT_EFFECT.duration, animationDuration: 1500, cssClass: "status-pursuit" },
+    pleasure: { label: "快感", message: "3連続被弾でちょっと嬉しくなった！", shortEffect: "発動時G+30・被弾ごとG+15", effectDuration: PLEASURE_EFFECT.duration, animationDuration: 1500, cssClass: "status-pleasure" },
+    restraint: { label: "拘束", message: "巨体に取り押さえられて動けない！", shortEffect: "移動・G回復 ×1/3", effectDuration: RESTRAINT_EFFECT.duration, animationDuration: 0, cssClass: "status-restraint" },
   };
-  const SPECIAL_ACTION_CLASSES = ["special-action", "special-action-power", "special-action-grit", "special-action-ease", "special-action-real", "special-action-jealousy", "special-action-serenity", "special-action-awakening", "special-action-etoile", "special-action-inspiration", "special-action-zone"];
+  const SPECIAL_ACTION_CLASSES = ["special-action", "special-action-power", "special-action-grit", "special-action-ease", "special-action-real", "special-action-jealousy", "special-action-serenity", "special-action-awakening", "special-action-etoile", "special-action-inspiration", "special-action-zone", "special-action-pursuit", "special-action-pleasure"];
   const SPECIAL_TRIGGER_CHANCES = { awakening: .25, grit: .5, jealousy: .5, easeSecondDodge: .5, easeThirdDodge: .75 };
   const keys = { left: false, right: false };
   let HERO_MAX_HP = fighterStats.hero.life;
@@ -227,10 +237,12 @@ import {
     return {
       activeUntil: {},
       pending: {},
-      triggered: { power: false, grit: false, ease: false, real: false, jealousy: false, serenity: false, awakening: false, inspiration: false, zone: false },
+      triggered: { power: false, grit: false, ease: false, real: false, jealousy: false, serenity: false, awakening: false, inspiration: false, zone: false, pursuit: false, pleasure: false },
       awakeningChecked: false,
       hitStreak: 0,
       dodgeStreak: 0,
+      receivedHitStreak: 0,
+      pursuitDuration: 0,
       observedRanges: new Set(),
       realExhausted: false,
       serenityReadySince: 0,
@@ -663,6 +675,8 @@ import {
     setMovementClass("hero", heroDirection);
 
     updateAI(now, delta);
+    checkPursuitTrigger("hero", heroDirection, state.aiDirection, delta);
+    checkPursuitTrigger("enemy", state.aiDirection, heroDirection, delta);
 
   }
 
@@ -1269,6 +1283,10 @@ import {
       closingTimeDash: "closing-time-dash-sequence",
       angelWink: "angel-wink-sequence",
       approvalMeteor: "approval-meteor-sequence",
+      tatsuoSlap: "tatsuo-slap-sequence",
+      tatsuoRestraint: "tatsuo-restraint-sequence",
+      tatsuoRoar: "tatsuo-roar-sequence",
+      tatsuoPress: "tatsuo-press-sequence",
     };
     actor.classList.add(animationClasses[technique.animation] ?? "attack-light");
     announceTechnique(technique.name, false, !isHero);
@@ -1286,6 +1304,10 @@ import {
       closingTimeDash: "closingTimeDash",
       angelWink: "angelWink",
       approvalMeteor: "approvalMeteorCharge",
+      tatsuoSlap: "physicalWindup",
+      tatsuoRestraint: "physicalWindup",
+      tatsuoRoar: "enemyShot",
+      tatsuoPress: "meteorSummon",
     };
     sound(openingSounds[technique.animation] ?? (technique.kind === "shot" ? "enemyShot" : "enemySwing"));
     if (technique.kind === "shot" && !technique.animation) createProjectile(side);
@@ -1442,6 +1464,30 @@ import {
         createApprovalMeteor(side);
         sound("approvalMeteorFall");
       }, 1320);
+    } else if (technique.animation === "tatsuoSlap") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.slapCast, 180);
+        createTatsuoTechniqueEffect("tatsuoSlap", side);
+      }, 360);
+    } else if (technique.animation === "tatsuoRestraint") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.restraintCast, 220);
+        createTatsuoTechniqueEffect("tatsuoRestraint", side);
+      }, 420);
+    } else if (technique.animation === "tatsuoRoar") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.roarCast, 220);
+        createTatsuoTechniqueEffect("tatsuoRoar", side);
+      }, 420);
+    } else if (technique.animation === "tatsuoPress") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.pressCast, 240);
+        createTatsuoTechniqueEffect("tatsuoPress", side);
+      }, 520);
     }
 
     setTimeout(() => {
@@ -1451,7 +1497,7 @@ import {
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
-      actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "technique-recoil");
+      actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "technique-recoil");
       refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode", "approval-meteor-mode");
       if (state.phase === "battle") transitionTechniqueSprite(actorSprite, images.battleIdle, 240);
     }, technique.duration);
@@ -1469,6 +1515,7 @@ import {
     if (!hit) {
       resetHitStreak(attacker);
       recordDodge(defender);
+      resetReceivedHitStreak(defender);
       playDodge(target, defender);
       if (technique.closesDistance) applyTechniqueClosing(attacker);
       if (technique.animation === "throwKiss") createKissMissBreak(attacker);
@@ -1479,7 +1526,9 @@ import {
     }
 
     recordHit(attacker);
+    recordReceivedHit(defender);
     resetDodgeStreak(defender);
+    const pleasureWasActive = isSpecialActive(defender, "pleasure");
     const charmBrokenByHit = isCharmed(defender);
     if (charmBrokenByHit) {
       deactivateBattleSpecial(defender, "charm");
@@ -1515,6 +1564,7 @@ import {
       gutsDamage = Math.max(0, Math.round(gutsBefore - state.heroGuts));
     }
     if (isSpecialActive(defender, "ease")) deactivateBattleSpecial(defender, "ease");
+    if (pleasureWasActive) recoverPleasureGuts(defender, PLEASURE_EFFECT.hitGutsRecovery);
 
     showDamage(target, damage, heroAttacks, gutsDamage, critical, technique.kind === "super");
     if (technique.animation === "throwKiss") {
@@ -1548,6 +1598,8 @@ import {
       scheduleKnockoutResolution(defender, attacker, target);
     } else {
       if (technique.charmChance && Math.random() < technique.charmChance) activateCharm(defender);
+      if (technique.restraintDuration) activateRestraint(defender, technique.restraintDuration);
+      checkPleasureTrigger(defender);
       checkPostHitSpecials(attacker, defender);
     }
     return { hit: true, critical, damage, gutsDamage };
@@ -1684,6 +1736,57 @@ import {
     return isSpecialActive(side, "charm");
   }
 
+  function activateRestraint(side, duration = RESTRAINT_EFFECT.duration) {
+    const meta = battleSpecialMeta.restraint;
+    const actor = side === "hero" ? refs.hero : refs.enemy;
+    state.specials[side].activeUntil.restraint = performance.now() + duration;
+    actor.classList.add(meta.cssClass);
+    stopWalk(side);
+    if (side === "hero") {
+      keys.left = false;
+      keys.right = false;
+    } else {
+      state.aiDirection = 0;
+    }
+    popStatus(actor, "拘束 8秒");
+    sound("deny");
+  }
+
+  function checkPursuitTrigger(side, ownDirection, opponentDirection, delta) {
+    const special = state.specials[side];
+    if (!hasBattleSpecial(side, "pursuit") || special.triggered.pursuit || special.pending.pursuit) return;
+    const forwardDirection = side === "hero" ? 1 : -1;
+    const opponentRetreatDirection = side === "hero" ? 1 : -1;
+    const isPursuing = ownDirection === forwardDirection
+      && opponentDirection === opponentRetreatDirection
+      && (getRange() ?? 0) >= 1;
+    special.pursuitDuration = isPursuing ? special.pursuitDuration + delta * 1000 : 0;
+    if (special.pursuitDuration >= PURSUIT_EFFECT.triggerDuration) triggerBattleSpecial(side, "pursuit");
+  }
+
+  function recordReceivedHit(side) {
+    state.specials[side].receivedHitStreak += 1;
+  }
+
+  function resetReceivedHitStreak(side) {
+    state.specials[side].receivedHitStreak = 0;
+  }
+
+  function recoverPleasureGuts(side, amount) {
+    const gutsKey = side === "hero" ? "heroGuts" : "enemyGuts";
+    const actor = side === "hero" ? refs.hero : refs.enemy;
+    state[gutsKey] = Math.min(100, state[gutsKey] + amount);
+    popStatus(actor, `快感 / G+${amount}`);
+  }
+
+  function checkPleasureTrigger(side) {
+    const special = state.specials[side];
+    if (!hasBattleSpecial(side, "pleasure") || special.triggered.pleasure || special.pending.pleasure) return;
+    if (!shouldTriggerPleasure(special.receivedHitStreak)) return;
+    special.receivedHitStreak = 0;
+    scheduleBattleSpecial(side, "pleasure", 700);
+  }
+
   function activateCharm(side) {
     const meta = battleSpecialMeta.charm;
     const actor = side === "hero" ? refs.hero : refs.enemy;
@@ -1737,7 +1840,7 @@ import {
     const active = { hero: [], enemy: [] };
     for (const side of ["hero", "enemy"]) {
       for (const [type, activeUntil] of Object.entries(state.specials[side].activeUntil)) {
-        if (!["charm", "zone"].includes(type) && Number.isFinite(activeUntil) && now < activeUntil) active[side].push(type);
+        if (!["charm", "zone", "restraint"].includes(type) && Number.isFinite(activeUntil) && now < activeUntil) active[side].push(type);
       }
     }
     state.actionSpecialSnapshot = { attacker, consumeSerenity, active };
@@ -1771,6 +1874,7 @@ import {
       const gutsKey = side === "hero" ? "heroGuts" : "enemyGuts";
       state[gutsKey] = Math.min(100, state[gutsKey] + 15);
     }
+    if (type === "pleasure") recoverPleasureGuts(side, PLEASURE_EFFECT.activationGutsRecovery);
     if (type === "grit") {
       element.classList.add("grit-rise");
       setTimeout(() => element.classList.remove("grit-rise"), meta.animationDuration);
@@ -1883,6 +1987,10 @@ import {
       serenity: { pose: images.angelWinkCast },
       awakening: { opening: images.defeat, pose: images.approvalMeteorCast, poseAt: .34 },
       zone: { pose: images.approvalMeteorCast },
+    } : profile.id === "tatsuo" ? {
+      real: { pose: images.roarCast },
+      pursuit: { pose: images.restraintCast },
+      pleasure: { pose: images.statusPleasure },
     } : {
       power: { pose: images.blackMeteorCast },
       grit: { opening: images.idle, pose: images.crescentHornCast, poseAt: .34 },
@@ -1954,7 +2062,7 @@ import {
     for (const side of ["hero", "enemy"]) {
       const activeUntil = state.specials[side].activeUntil;
       for (const [type, deadline] of Object.entries(activeUntil)) {
-        if (!["charm", "zone"].includes(type) && Number.isFinite(deadline)) activeUntil[type] = deadline + milliseconds;
+        if (!["charm", "zone", "restraint"].includes(type) && Number.isFinite(deadline)) activeUntil[type] = deadline + milliseconds;
       }
     }
   }
@@ -2089,6 +2197,7 @@ import {
     if (isSpecialActive(attacker, "real")) multiplier *= 1.5;
     if (isSpecialActive(attacker, "jealousy")) multiplier *= 1.35;
     if (isSpecialActive(attacker, "awakening")) multiplier *= 1.5;
+    if (isSpecialActive(attacker, "pursuit")) multiplier *= PURSUIT_EFFECT.gutsDamageMultiplier;
     if (state.specials[attacker].realExhausted) multiplier *= .5;
     if (isSpecialActive(defender, "real")) multiplier *= .65625;
     if (state.specials[defender].realExhausted) multiplier *= 2;
@@ -2109,7 +2218,8 @@ import {
     if (isSpecialActive(side, "awakening")) multiplier *= 2;
     if (isSpecialActive(side, "inspiration")) multiplier *= 1.4;
     if (isSpecialActive(side, "zone")) multiplier *= ZONE_EFFECT.gutsRegenMultiplier;
-    return applyGenkiGutsRegenMultiplier(multiplier, isSpecialActive(side, "genki"));
+    multiplier = applyGenkiGutsRegenMultiplier(multiplier, isSpecialActive(side, "genki"));
+    return applyRestraintGutsRegenMultiplier(multiplier, isSpecialActive(side, "restraint"));
   }
 
   function getMovementMultiplier(side) {
@@ -2117,7 +2227,9 @@ import {
     if (isSpecialActive(side, "real")) multiplier *= 1.35;
     if (state.specials[side].realExhausted) multiplier *= .55;
     if (isSpecialActive(side, "serenity")) multiplier *= 2;
-    return applyGenkiMovementMultiplier(multiplier, isSpecialActive(side, "genki"));
+    multiplier = applyGenkiMovementMultiplier(multiplier, isSpecialActive(side, "genki"));
+    multiplier = applyPursuitMovementMultiplier(multiplier, isSpecialActive(side, "pursuit"));
+    return applyRestraintMovementMultiplier(multiplier, isSpecialActive(side, "restraint"));
   }
 
   function calculateHitChance(technique, guts, heroAttacks = true) {
@@ -2134,6 +2246,7 @@ import {
     if (isSpecialActive(attacker, "etoile")) hitRate += 10;
     if (isSpecialActive(attacker, "inspiration")) hitRate += 15;
     if (isSpecialActive(attacker, "zone")) hitRate *= ZONE_EFFECT.hitRateMultiplier;
+    if (isSpecialActive(attacker, "pursuit")) hitRate += PURSUIT_EFFECT.hitRateBonus;
     hitRate = applyCharmEvasionPenalty(hitRate, isSpecialActive(defender, "zone"));
     hitRate = applyCharmEvasionPenalty(hitRate, isCharmed(defender));
     const minimumHitRate = isSpecialActive(defender, "awakening") ? 1 : 18;
@@ -2180,9 +2293,9 @@ import {
     ++state.enemyActionToken;
     ++state.specialCameraToken;
     state.specials = { hero: freshSpecialState(), enemy: freshSpecialState() };
-    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "status-charm", "status-zone", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "status-charm", "status-zone", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    const sharedTechniqueClasses = ["ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence"];
+    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    const sharedTechniqueClasses = ["ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence"];
     refs.hero.classList.remove(...sharedTechniqueClasses);
     refs.enemy.classList.remove(...sharedTechniqueClasses);
     refs.arena.classList.remove("sutekichi-comet-mode");
@@ -2808,6 +2921,10 @@ import {
 
   function createApprovalMeteor(side) {
     spawnEffect("approvalMeteor", { side });
+  }
+
+  function createTatsuoTechniqueEffect(type, side) {
+    spawnEffect(type, { side });
   }
 
   function createCharmStatus(side) {

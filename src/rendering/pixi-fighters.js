@@ -14,6 +14,9 @@ const STATUS_COLORS = {
   "status-genki": 0xffe675,
   "status-charm": 0xff74b9,
   "status-zone": 0x68efff,
+  "status-pursuit": 0xffa94d,
+  "status-pleasure": 0xff8fb7,
+  "status-restraint": 0x91a4b7,
 };
 
 const ACTION_CLASSES = [
@@ -26,12 +29,13 @@ const ACTION_CLASSES = [
   "sutekichi-comet-sequence", "sutekichi-nap-sequence",
   "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence",
   "approval-meteor-sequence",
+  "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence",
   "galaxy-ray-recoil", "technique-recoil", "pentagram-nova-combo", "pentagram-nova-finisher",
   "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-peak",
   "special-action", "hurt", "critical-hit", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
-  "status-inspiration", "status-genki", "status-charm", "status-zone", "special-action-inspiration",
+  "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "special-action-inspiration",
   "special-action-zone",
   "flash-knockback",
 ];
@@ -463,6 +467,31 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       rotation = direction * Math.sin(elapsed * 4.2) * .025;
       scale += charge * .13 + Math.sin(elapsed * 8) * .018;
       tint = 0xffeb9b;
+    }
+    if (classes.has("tatsuo-slap-sequence")) {
+      const swing = Math.sin(Math.min(1, actionSeconds / .7) * Math.PI);
+      offsetX += direction * actor.size * .2 * swing;
+      rotation -= direction * .13 * swing;
+      scale += .09 * swing;
+    }
+    if (classes.has("tatsuo-restraint-sequence")) {
+      const drop = Math.sin(Math.min(1, actionSeconds / 1.15) * Math.PI);
+      offsetX += direction * actor.size * .15 * drop;
+      offsetY += actor.size * .08 * drop;
+      scale += .08 * drop;
+    }
+    if (classes.has("tatsuo-roar-sequence")) {
+      const roar = Math.sin(Math.min(1, actionSeconds / 1.45) * Math.PI);
+      offsetX -= direction * actor.size * .04 * roar;
+      scale += .13 * roar;
+      tint = 0xffd39d;
+    }
+    if (classes.has("tatsuo-press-sequence")) {
+      const leap = Math.sin(Math.min(1, actionSeconds / 2.25) * Math.PI);
+      offsetX += direction * actor.size * .28 * leap;
+      offsetY -= actor.size * .34 * leap;
+      rotation -= direction * .22 * leap;
+      scale += .12 * leap;
     }
     if (classes.has("status-charm")) {
       rotation += Math.sin(elapsed * 3.4) * .045;

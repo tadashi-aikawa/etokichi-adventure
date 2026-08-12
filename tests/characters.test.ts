@@ -5,7 +5,7 @@ const profiles = createCharacterProfiles((source) => source);
 
 describe("キャラクター定義", () => {
   it("キャラクターIDと技IDが一意である", () => {
-    expect(Object.keys(profiles)).toEqual(["etokichi", "kuroboshi", "sutekichi", "salarymanEtokichi"]);
+    expect(Object.keys(profiles)).toEqual(["etokichi", "kuroboshi", "sutekichi", "salarymanEtokichi", "tatsuo"]);
     for (const profile of Object.values(profiles)) {
       const techniqueIds = profile.techniques.map((technique) => technique.id);
       expect(new Set(techniqueIds).size).toBe(techniqueIds.length);
@@ -71,5 +71,28 @@ describe("キャラクター定義", () => {
     expect(wink?.attackStat).toBe("intelligence");
     expect(wink?.gutsDamage).toBeGreaterThan(0);
     expect(wink?.charmChance).toBe(0.8);
+  });
+
+  it("タツヲは高耐久の重量級で、本気・追跡・快感を持つ", () => {
+    const profile = profiles.tatsuo;
+    expect(profile.stats.life).toBe(680);
+    expect(profile.stats.power).toBe(600);
+    expect(profile.stats.defense).toBe(540);
+    expect(profile.stats.accuracy).toBe(390);
+    expect(profile.stats.evasion).toBe(250);
+    expect(profile.stats.gutsRegen).toBe(2.3);
+    expect(profile.abilities).toEqual(["real", "pursuit", "pleasure"]);
+    expect(profile.images.walk).toHaveLength(3);
+    expect(profile.images.statusPleasure).toBe("assets/characters/tatsuo/status-pleasure.webp");
+  });
+
+  it("取り押さえは重い消費と低命中の8秒拘束技である", () => {
+    const restraint = profiles.tatsuo.techniques.find(({ id }) => id === "tatsuoRestraint");
+    expect(restraint).toMatchObject({
+      cost: 42,
+      accuracy: 61,
+      restraintDuration: 8000,
+      range: 1,
+    });
   });
 });

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  applyPursuitMovementMultiplier,
+  applyRestraintGutsRegenMultiplier,
+  applyRestraintMovementMultiplier,
   applyCharmEvasionPenalty,
   canActivateBattleSpecialDuringKnockout,
   calculateBaseHitRate,
@@ -11,6 +14,10 @@ import {
   GENKI_EFFECT,
   getRangeForDistance,
   reachedZoneLifeThreshold,
+  PLEASURE_EFFECT,
+  PURSUIT_EFFECT,
+  RESTRAINT_EFFECT,
+  shouldTriggerPleasure,
   shouldGuaranteeZone,
   ZONE_EFFECT,
 } from "../src/game/combat.ts";
@@ -57,6 +64,33 @@ describe("純粋な戦闘計算", () => {
     expect(CHARM_EFFECT.triggerChance).toBe(0.8);
     expect(applyCharmEvasionPenalty(70, true)).toBe(85);
     expect(applyCharmEvasionPenalty(70, false)).toBe(70);
+  });
+
+  it("拘束は8秒間、移動とガッツ回復を3分の1にする", () => {
+    expect(RESTRAINT_EFFECT.duration).toBe(8000);
+    expect(applyRestraintMovementMultiplier(1.5, true)).toBeCloseTo(0.5);
+    expect(applyRestraintGutsRegenMultiplier(1.5, true)).toBeCloseTo(0.5);
+    expect(applyRestraintMovementMultiplier(1.5, false)).toBe(1.5);
+  });
+
+  it("追跡は9秒間、移動・命中・ガッツダメージを強化する", () => {
+    expect(PURSUIT_EFFECT).toMatchObject({
+      duration: 9000,
+      triggerDuration: 1500,
+      hitRateBonus: 12,
+      gutsDamageMultiplier: 1.35,
+    });
+    expect(applyPursuitMovementMultiplier(1, true)).toBeCloseTo(1.45);
+  });
+
+  it("快感は3連続被弾で発動し、ガッツ回復量を定義する", () => {
+    expect(shouldTriggerPleasure(2)).toBe(false);
+    expect(shouldTriggerPleasure(3)).toBe(true);
+    expect(PLEASURE_EFFECT).toMatchObject({
+      duration: 8000,
+      activationGutsRecovery: 30,
+      hitGutsRecovery: 15,
+    });
   });
 
   it("ゾーンの2つの発動条件と効果倍率を定義する", () => {
