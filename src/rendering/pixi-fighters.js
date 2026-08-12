@@ -32,7 +32,7 @@ const ACTION_CLASSES = [
   "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence",
   "galaxy-ray-recoil", "technique-recoil", "pentagram-nova-combo", "pentagram-nova-finisher",
   "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-peak",
-  "special-action", "hurt", "critical-hit", "dodging", "push-focus", "push-threatened", "push-travel",
+  "special-action", "hurt", "critical-hit", "tatsuo-pinned", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
   "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "special-action-inspiration",
@@ -382,7 +382,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       const direction = opponent.baseX >= actor.baseX ? 1 : -1;
       const aboveHead = {
         x: opponent.baseX - direction * actor.size * .04,
-        y: opponent.baseY - opponent.size * 1.2,
+        y: Math.max(actor.size * .4, opponent.baseY - opponent.size * 2.05),
       };
       const impact = {
         x: opponent.baseX - direction * actor.size * .03,
@@ -418,6 +418,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     let offsetY = -Math.sin(elapsed * Math.PI * 2 / 2.1) * actor.size * .014;
     let rotation = 0;
     let scale = 1;
+    let verticalScale = 1;
     let alpha = 1;
     let tint = 0xffffff;
 
@@ -548,6 +549,13 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       tint = 0xffffff;
       scale += classes.has("critical-hit") ? .1 * decay : .045 * decay;
     }
+    if (classes.has("tatsuo-pinned")) {
+      const pin = easeOutCubic(Math.min(1, actionSeconds / .18));
+      offsetX += direction * actor.size * .06 * pin;
+      offsetY += actor.size * .22 * pin;
+      rotation += direction * .14 * pin;
+      verticalScale *= 1 - .3 * pin;
+    }
     if (classes.has("dodging")) {
       const progress = Math.min(1, actionSeconds / .88);
       alpha = .25 + Math.abs(progress - .5) * 1.5;
@@ -637,7 +645,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
 
     actor.container.position.set(positionX, positionY);
     actor.container.rotation = rotation;
-    actor.container.scale.set(scale);
+    actor.container.scale.set(scale, scale * verticalScale);
     actor.sprite.alpha = alpha;
     actor.sprite.tint = tint;
     textureScale(actor.sprite, actor.size, actorFacing(actor));

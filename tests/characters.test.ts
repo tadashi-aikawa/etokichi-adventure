@@ -84,6 +84,8 @@ describe("キャラクター定義", () => {
     expect(profile.abilities).toEqual(["real", "pursuit", "pleasure"]);
     expect(profile.images.walk).toHaveLength(3);
     expect(profile.images.statusPleasure).toBe("assets/characters/tatsuo/status-pleasure.webp");
+    expect(profile.images.restraintRush).toBe("assets/characters/tatsuo/restraint-rush.webp");
+    expect(profile.images.restraintPin).toBe("assets/characters/tatsuo/restraint-pin.webp");
   });
 
   it("取り押さえは重い消費と低命中の8秒拘束技である", () => {
@@ -94,7 +96,15 @@ describe("キャラクター定義", () => {
       restraintDuration: 8000,
       range: 1,
       closesDistance: true,
+      impactDelay: 1250,
     });
+  });
+
+  it("咆哮は演出開始後すぐ着弾し、タツヲプレスは高威力である", () => {
+    const roar = profiles.tatsuo.techniques.find(({ id }) => id === "tatsuoRoar");
+    const press = profiles.tatsuo.techniques.find(({ id }) => id === "tatsuoPress");
+    expect(roar?.impactDelay).toBe(1450);
+    expect(press?.power).toBe(415);
   });
 
   it("タツヲビンタは短い発生と硬直の高速技である", () => {

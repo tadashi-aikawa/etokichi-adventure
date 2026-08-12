@@ -1233,6 +1233,7 @@ import {
   function performProfileTechnique(side, technique, now) {
     const isHero = side === "hero";
     const actor = isHero ? refs.hero : refs.enemy;
+    const target = isHero ? refs.enemy : refs.hero;
     const actorSprite = isHero ? refs.heroSprite : refs.enemySprite;
     const images = isHero ? HERO_IMAGES : ENEMY_IMAGES;
     const gutsKey = isHero ? "heroGuts" : "enemyGuts";
@@ -1474,15 +1475,11 @@ import {
     } else if (technique.animation === "tatsuoRestraint") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        startFighterMotion(side, "tatsuoRestraint", { duration: 1320 });
+        transitionTechniqueSprite(actorSprite, images.restraintRush);
+        startFighterMotion(side, "tatsuoRestraint", { duration: 900 });
+        createTatsuoTechniqueEffect("tatsuoRestraintRush", side);
         sound("tatsuoRestraintRush");
-      }, 180);
-      setTimeout(() => {
-        if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        transitionTechniqueSprite(actorSprite, images.restraintCast, 220);
-        createTatsuoTechniqueEffect("tatsuoRestraint", side);
-        sound("physicalContact");
-      }, 1480);
+      }, 140);
     } else if (technique.animation === "tatsuoRoar") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
@@ -1512,12 +1509,21 @@ import {
 
     setTimeout(() => {
       if (state.phase !== "battle" || token !== state[tokenKey]) return;
-      if (technique.animation === "sutekichiNap") resolveRecoveryTechnique(side, technique, actionGuts);
-      else resolveHit(side, technique, actionGuts, serenityAttack);
+      const outcome = technique.animation === "sutekichiNap"
+        ? resolveRecoveryTechnique(side, technique, actionGuts)
+        : resolveHit(side, technique, actionGuts, serenityAttack);
+      if (technique.animation === "tatsuoRestraint" && outcome?.hit) {
+        transitionTechniqueSprite(actorSprite, images.restraintPin);
+        target.classList.add("tatsuo-pinned");
+        createTatsuoTechniqueEffect("tatsuoRestraint", side);
+        sound("physicalContact");
+        setTimeout(() => target.classList.remove("tatsuo-pinned"), 900);
+      }
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
       actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "technique-recoil");
+      target.classList.remove("tatsuo-pinned");
       refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode", "approval-meteor-mode");
       if (state.phase === "battle") transitionTechniqueSprite(actorSprite, images.battleIdle, 240);
     }, technique.duration);
@@ -2313,8 +2319,8 @@ import {
     ++state.enemyActionToken;
     ++state.specialCameraToken;
     state.specials = { hero: freshSpecialState(), enemy: freshSpecialState() };
-    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
-    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    refs.hero.classList.remove("moving-forward", "moving-back", "fighter-walking", "walk-reversed", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-sequence", "etoile-drive-peak", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "tatsuo-pinned", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-etoile", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
+    refs.enemy.classList.remove("moving-forward", "moving-back", "attack-light", "casting", "dodging", "dodge-left", "dodge-right", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "tatsuo-pinned", "technique-recoil", "nova-captured", "push-focus", "push-threatened", "push-travel", "push-recoil-right", "push-recoil-left", "blown-right", "blown-left", "status-power", "status-ease", "status-real", "status-jealousy", "status-serenity", "status-awakening", "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "grit-rise", "awakening-rise", ...SPECIAL_ACTION_CLASSES);
     const sharedTechniqueClasses = ["ultimate-sequence", "galaxy-ray-sequence", "throw-kiss-sequence", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "etoile-drive-sequence", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence"];
     refs.hero.classList.remove(...sharedTechniqueClasses);
     refs.enemy.classList.remove(...sharedTechniqueClasses);

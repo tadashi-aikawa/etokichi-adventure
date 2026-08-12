@@ -1623,6 +1623,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     approvalMeteorCharge: (options) => makeApprovalMeteorCharge(options.side),
     approvalMeteor: (options) => makeApprovalMeteor(options.side),
     tatsuoSlap: (options) => makePunchWind(options.side),
+    tatsuoRestraintRush: (options) => makeBurst({ side: options.side, yRatio: .78, color: 0x9a6c42, secondary: 0xffcf7b, duration: 620, radius: 105, count: 9 }),
     tatsuoRestraint: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .68, color: 0x9a6c42, secondary: COLORS.white, duration: 980, radius: 175, count: 14 }),
     tatsuoRoar: (options) => makeTatsuoRoar(options.side),
     tatsuoPressRise: (options) => makeBurst({ side: options.side, yRatio: .82, color: 0x9a6c42, secondary: 0xffcf7b, duration: 760, radius: 130, count: 12 }),
