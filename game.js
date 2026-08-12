@@ -1452,12 +1452,12 @@ import {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.angelWinkCast, 110);
-      }, 470);
+      }, 180);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAngelWink(side);
         sound("angelWinkLaunch");
-      }, 700);
+      }, 420);
     } else if (technique.animation === "approvalMeteor") {
       refs.arena.classList.add("approval-meteor-mode");
       setTimeout(() => {

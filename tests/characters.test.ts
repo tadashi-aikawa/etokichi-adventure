@@ -71,7 +71,7 @@ describe("キャラクター定義", () => {
     expect(wink?.attackStat).toBe("intelligence");
     expect(wink?.gutsDamage).toBeGreaterThan(0);
     expect(wink?.charmChance).toBe(0.8);
-    expect(wink?.cameraReleaseDelay).toBe(700);
+    expect(wink?.cameraReleaseDelay).toBe(420);
     expect(wink?.impactDelay).toBeGreaterThan(wink?.cameraReleaseDelay ?? 0);
   });
 

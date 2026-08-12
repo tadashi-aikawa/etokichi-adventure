@@ -360,14 +360,14 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
         targetYOffset = -.07;
       } else {
         if (camera.faceCloseup) {
-          const entryEnd = clamp(380 / camera.duration, .08, .18);
+          const entryEnd = clamp(160 / camera.duration, .035, .1);
           const releaseProgress = clamp(camera.releaseAt / camera.duration, entryEnd + .035, .42);
           const returnEnd = Math.min(.88, releaseProgress + clamp(1500 / camera.duration, .32, .58));
           const closeupAmount = interpolateKeyframes(progress, [
             [0, 0], [entryEnd, 1], [releaseProgress, 1], [returnEnd, 0], [1, 0],
           ]);
           const closeupZoom = interpolateKeyframes(progress, [
-            [0, 1], [entryEnd, 2.55], [releaseProgress, 2.55], [returnEnd, 1], [1, 1],
+            [0, 1], [entryEnd, 5], [releaseProgress, 5], [returnEnd, 1], [1, 1],
           ]);
           zoom = closeupZoom;
           // 通常はステージのzoomを相殺するが、顔アップだけはカメラと同率でキャラも拡大する。
@@ -378,7 +378,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
           otherAlpha = interpolateKeyframes(progress, [
             [0, 1], [entryEnd, 0], [releaseProgress, 0], [returnEnd, 1], [1, 1],
           ]);
-          const face = fighterSystem.getBasePoint(camera.side, .5, .18);
+          const face = fighterSystem.getBasePoint(camera.side, .5, .13);
           pivotX += (face.x - pivotX) * closeupAmount;
           pivotY += (face.y - pivotY) * closeupAmount;
         } else if (camera.tracksRelease) {

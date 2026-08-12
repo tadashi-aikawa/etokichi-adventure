@@ -502,11 +502,11 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale += .11 * dash;
     }
     if (classes.has("angel-wink-sequence")) {
-      const winkProgress = Math.max(0, Math.min(1, (actionSeconds - .34) / .54));
+      const winkProgress = Math.max(0, Math.min(1, (actionSeconds - .12) / .36));
       const wink = Math.sin(winkProgress * Math.PI);
-      offsetY -= actor.size * .055 * wink;
-      rotation = direction * .045 * wink;
-      scale += .07 * wink;
+      offsetY -= actor.size * .01 * wink;
+      rotation = direction * .012 * wink;
+      scale += .015 * wink;
       tint = 0xffe7f4;
     }
     if (classes.has("approval-meteor-sequence")) {
