@@ -54,6 +54,7 @@ import {
     titleScreen: $("#title-screen"),
     opponentSelectScreen: $("#opponent-select-screen"),
     characterOptions: $$(".character-option"),
+    battleMusicOptions: $$(".battle-music-option"),
     opponentConfirmButton: $("#opponent-confirm-button"),
     startScreen: $("#start-screen"),
     resultScreen: $("#result-screen"),
@@ -87,6 +88,7 @@ import {
   const CHARACTER_PROFILES = createCharacterProfiles(actorImage);
   let selectedHeroId = "etokichi";
   let selectedEnemyId = "kuroboshi";
+  let selectedBattleMusicId = "ceremonial-colosseum";
   let activeHero = CHARACTER_PROFILES[selectedHeroId];
   let activeEnemy = CHARACTER_PROFILES[selectedEnemyId];
   let HERO_IMAGES = activeHero.images;
@@ -155,11 +157,16 @@ import {
   const BATTLE_MUSIC_VOLUME = .22;
   const VICTORY_MUSIC_VOLUME = .18;
   const SOUND_EFFECT_VOLUME = 1.15;
+  const BATTLE_MUSIC_TRACKS = {
+    "ceremonial-colosseum": "assets/audio/ceremonial-colosseum.mp3",
+    "ceremonial-colosseum-2": "assets/audio/ceremonial-colosseum-2.mp3",
+    "the-unyielding-titan": "assets/audio/the-unyielding-titan.mp3",
+  };
   const entranceMusic = new Audio(assetUrl("assets/audio/arena-overture-intro.mp3"));
   entranceMusic.loop = false;
   entranceMusic.preload = "auto";
   entranceMusic.volume = 0;
-  const battleMusic = new Audio(assetUrl("assets/audio/ceremonial-colosseum.mp3"));
+  const battleMusic = new Audio(assetUrl(BATTLE_MUSIC_TRACKS[selectedBattleMusicId]));
   battleMusic.loop = true;
   battleMusic.preload = "auto";
   battleMusic.volume = 0;
@@ -324,6 +331,19 @@ import {
     renderPrebattleStats(1);
   }
 
+  function applyBattleMusic(battleMusicId) {
+    const source = BATTLE_MUSIC_TRACKS[battleMusicId];
+    if (!source) return;
+    selectedBattleMusicId = battleMusicId;
+    battleMusic.src = assetUrl(source);
+    battleMusic.load();
+    refs.battleMusicOptions.forEach((option) => {
+      const selected = option.dataset.battleMusicId === battleMusicId;
+      option.classList.toggle("selected", selected);
+      option.setAttribute("aria-checked", String(selected));
+    });
+  }
+
   function configureTechniquePanel(side, profile) {
     const items = side === "hero" ? refs.techniques : refs.enemyTechniques;
     items.forEach((item) => {
@@ -447,6 +467,9 @@ import {
     refs.characterOptions.forEach((option) => option.addEventListener("click", () => {
       if (option.dataset.selectSide === "hero") applyHeroProfile(option.dataset.characterId);
       else applyEnemyProfile(option.dataset.characterId);
+    }));
+    refs.battleMusicOptions.forEach((option) => option.addEventListener("click", () => {
+      applyBattleMusic(option.dataset.battleMusicId);
     }));
     refs.opponentConfirmButton.addEventListener("click", confirmOpponentSelection);
     refs.startButton.addEventListener("click", startBattle);
