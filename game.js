@@ -208,7 +208,6 @@ import {
       walkFrameAt: { hero: 0, enemy: 0 },
       heroTechniqueSelection: [0, 0, 0, 0],
       enemyTechniqueSelection: [0, 0, 0, 0],
-      galaxyBeamY: null,
       specials: {
         hero: freshSpecialState(),
         enemy: freshSpecialState(),
@@ -783,44 +782,14 @@ import {
     state.walkFrameAt[side] = 0;
   }
 
-  function transitionTechniqueSprite(sprite, nextSource, duration = 210) {
+  function transitionTechniqueSprite(sprite, nextSource) {
     if (!sprite) return;
     const side = sprite === refs.heroSprite ? "hero" : "enemy";
     if (sprite.getAttribute("src") === nextSource) {
       syncSpriteAssetFacing(side, sprite, nextSource);
       return;
     }
-    if (window.etokichiRenderer?.handlesFighters) {
-      setSpriteSource(side, sprite, nextSource);
-      return;
-    }
-    const combatant = sprite.closest(".combatant");
-    if (!combatant || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setSpriteSource(side, sprite, nextSource);
-      return;
-    }
-
-    combatant.querySelectorAll(".sprite-transition-ghost").forEach((ghost) => ghost.remove());
-    const computed = getComputedStyle(sprite);
-    const ghost = document.createElement("img");
-    ghost.src = sprite.currentSrc || sprite.src;
-    ghost.alt = "";
-    ghost.className = "sprite-transition-ghost";
-    ghost.style.transform = computed.transform === "none" ? "" : computed.transform;
-    ghost.style.filter = computed.filter === "none" ? "drop-shadow(0 12px 12px rgba(0,0,0,.38))" : computed.filter;
-    combatant.append(ghost);
-
     setSpriteSource(side, sprite, nextSource);
-    sprite.animate([
-      { opacity: .08, filter: "brightness(2.15) blur(5px) drop-shadow(0 0 18px rgba(255,255,255,.72))" },
-      { opacity: 1, filter: "brightness(1) blur(0) drop-shadow(0 12px 12px rgba(0,0,0,.38))" },
-    ], { duration, easing: "cubic-bezier(.16,.82,.22,1)" });
-
-    const outgoing = ghost.animate([
-      { opacity: .82, filter: `${ghost.style.filter} brightness(1.25)` },
-      { opacity: 0, filter: "brightness(1.9) blur(7px) drop-shadow(0 0 20px rgba(255,255,255,.58))" },
-    ], { duration: duration + 90, easing: "ease-out", fill: "forwards" });
-    outgoing.finished.catch(() => {}).finally(() => ghost.remove());
   }
 
   function getTechniquesAtRange(range) { return techniques.filter((technique) => technique.range === range); }
@@ -971,7 +940,6 @@ import {
     const actionStartedAt = now;
     const isPentagramNova = technique.animation === "pentagramNova";
     let pentagramWillHit = null;
-    let pentagramComboAnimation = null;
     let pentagramFinisherMotion = null;
     actor.classList.remove("moving-forward", "moving-back");
     if (isPentagramNova) actor.classList.add("pentagram-nova-sequence", "pentagram-nova-charge");
@@ -1017,15 +985,9 @@ import {
         actor.classList.add("pentagram-nova-combo");
         target.classList.add("nova-captured");
         createPentagramNovaCapture(side);
-        pentagramComboAnimation = startPentagramNovaCombo(side);
+        startPentagramNovaCombo(side);
         sound("novaCapture");
       }, 1600);
-      [1700, 2050, 2440, 2830, 3220].forEach((delay, index) => {
-        setTimeout(() => {
-          if (state.phase !== "battle" || token !== state[tokenKey] || pentagramWillHit !== true) return;
-          drawPentagramNovaTrailSegment(index);
-        }, delay);
-      });
       [2050, 2440, 2830, 3220, 3610].forEach((delay, index) => {
         setTimeout(() => {
           if (state.phase !== "battle" || token !== state[tokenKey] || pentagramWillHit !== true) return;
@@ -1035,12 +997,10 @@ import {
       });
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey] || pentagramWillHit !== true) return;
-        const comboEndPoint = getEffectPoint(actorSprite, .5, .5);
-        pentagramComboAnimation?.cancel();
         actor.classList.remove("pentagram-nova-rush", "pentagram-nova-combo");
         actor.classList.add("pentagram-nova-finisher");
         transitionTechniqueSprite(actorSprite, images.pentagramNovaDive, 260);
-        pentagramFinisherMotion = startPentagramNovaFinisherRise(side, comboEndPoint);
+        pentagramFinisherMotion = startPentagramNovaFinisherRise(side);
         createPentagramNovaUppercut(side, pentagramFinisherMotion);
         sound("novaRise");
       }, 4080);
@@ -1180,8 +1140,6 @@ import {
 
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
-      pentagramComboAnimation?.cancel();
-      pentagramFinisherMotion?.animation?.cancel();
       actor.classList.remove("attack-light", "casting", "ultimate-sequence", "galaxy-ray-sequence", "galaxy-ray-aiming", "galaxy-ray-recoil", "throw-kiss-sequence", "throw-kiss-release", "throw-kiss-recovery", "physical-punch-sequence", "star-ring-sequence", "pentagram-nova-sequence", "pentagram-nova-charge", "pentagram-nova-rush", "pentagram-nova-combo", "pentagram-nova-finisher", "pentagram-nova-diving", "pentagram-nova-miss");
       target.classList.remove("nova-captured");
       refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "impact-freeze");
@@ -1540,7 +1498,7 @@ import {
       createKissBurst(attacker);
       sound("kissHit");
     }
-    createImpact(attacker, technique.kind === "special" ? state.galaxyBeamY : null, profileFor(attacker).id);
+    createImpact(attacker, profileFor(attacker).id);
     if (technique.knockback) applyTechniqueKnockback(heroAttacks, technique.knockback, target);
     if (technique.closesDistance) applyTechniqueClosing(attacker);
     if (technique.kind === "special") {
@@ -1618,29 +1576,12 @@ import {
     if (defender === "hero") state.heroX = Math.max(STAGE_MIN_X, state.heroX - DODGE_RETREAT_DISTANCE);
     else state.enemyX = Math.min(STAGE_MAX_X, state.enemyX + DODGE_RETREAT_DISTANCE);
     target.classList.remove("dodging", "dodge-left", "dodge-right");
-    target.querySelectorAll(".dodge-afterimage").forEach((afterimage) => afterimage.remove());
     void target.offsetWidth;
     const direction = defender === "hero" ? "dodge-left" : "dodge-right";
     target.classList.add("dodging", direction);
-    createDodgeAfterimages(target, direction);
     setTimeout(() => {
       target.classList.remove("dodging", "dodge-left", "dodge-right");
-      target.querySelectorAll(".dodge-afterimage").forEach((afterimage) => afterimage.remove());
     }, DODGE_DURATION);
-  }
-
-  function createDodgeAfterimages(target, direction) {
-    if (window.etokichiRenderer?.handlesFighters) return;
-    const sprite = target.querySelector(".sprite");
-    for (let index = 0; index < 3; index += 1) {
-      const afterimage = document.createElement("img");
-      afterimage.className = `dodge-afterimage ${direction}`;
-      afterimage.src = sprite.currentSrc || sprite.src;
-      afterimage.alt = "";
-      afterimage.style.setProperty("--afterimage-delay", `${index * 46}ms`);
-      afterimage.style.setProperty("--afterimage-opacity", `${.52 - index * .11}`);
-      target.append(afterimage);
-    }
   }
 
   function enemyPush(now) {
@@ -2266,7 +2207,7 @@ import {
   function createVictoryCelebration(winner) {
     const projection = getStageProjection();
     const winnerX = winner === "hero" ? projection.heroX : projection.enemyX;
-    const usesPixiParticles = spawnPixiEffect("victoryCelebration", { side: winner });
+    spawnEffect("victoryCelebration", { side: winner });
     const celebration = document.createElement("div");
     celebration.className = `victory-celebration victory-${winner}`;
     celebration.style.setProperty("--winner-x", `${winnerX}%`);
@@ -2279,26 +2220,13 @@ import {
     name.textContent = winner === "hero" ? activeHero.name : activeEnemy.name;
     title.append(label, name);
     celebration.append(title);
-    if (!usesPixiParticles) {
-      for (let index = 0; index < 26; index += 1) {
-        const angle = index * (360 / 26);
-        const particle = document.createElement("i");
-        particle.textContent = index % 3 === 0 ? "✦" : "◆";
-        particle.style.setProperty("--victory-angle", `${angle}deg`);
-        particle.style.setProperty("--victory-counter-angle", `${-angle}deg`);
-        particle.style.setProperty("--victory-distance", `${random(140, 410)}px`);
-        particle.style.setProperty("--victory-delay", `${1.7 + (index % 7) * .09}s`);
-        particle.style.setProperty("--victory-size", `${random(10, 25)}px`);
-        celebration.append(particle);
-      }
-    }
     refs.effects.append(celebration);
     setTimeout(() => celebration.remove(), RESULT_EFFECT_CLEANUP_DELAY);
   }
 
   function updateUI() {
     const projection = getStageProjection();
-    window.etokichiRenderer?.setProjection({
+    window.etokichiRenderer.setProjection({
       heroX: projection.heroX,
       enemyX: projection.enemyX,
       pan: projection.pan,
@@ -2407,8 +2335,8 @@ import {
     renderSpecialBadges("enemy", refs.enemySpecials);
     renderCombatStatus("hero", refs.heroCombatStatus);
     renderCombatStatus("enemy", refs.enemyCombatStatus);
-    positionCombatStatus("hero", refs.heroCombatStatus, refs.heroSprite);
-    positionCombatStatus("enemy", refs.enemyCombatStatus, refs.enemySprite);
+    positionCombatStatus("hero", refs.heroCombatStatus);
+    positionCombatStatus("enemy", refs.enemyCombatStatus);
   }
 
   function setProjectionStyle(element, cacheKey, property, value) {
@@ -2493,8 +2421,8 @@ import {
     }
   }
 
-  function positionCombatStatus(side, container, sprite) {
-    const point = window.etokichiRenderer?.getActorPoint?.(side, .5, .02) ?? getEffectPoint(sprite, .5, .02);
+  function positionCombatStatus(side, container) {
+    const point = window.etokichiRenderer.getActorPoint(side, .5, .02);
     container.style.left = `${point.x}px`;
     container.style.top = `${point.y}px`;
   }
@@ -2581,12 +2509,16 @@ import {
     if (!heroAttacks) navigator.vibrate?.(35);
   }
 
-  function spawnPixiEffect(type, options = {}) {
-    return window.etokichiRenderer?.spawnEffect?.(type, options) === true;
+  function spawnEffect(type, options = {}) {
+    if (!window.etokichiRenderer.spawnEffect(type, options)) {
+      throw new Error(`GPUエフェクトが実装されていません: ${type}`);
+    }
   }
 
-  function spriteFor(side) {
-    return side === "hero" ? refs.heroSprite : refs.enemySprite;
+  function startFighterMotion(side, type, options) {
+    if (!window.etokichiRenderer.startFighterMotion(side, type, options)) {
+      throw new Error(`GPUキャラクターアニメーションが実装されていません: ${type}`);
+    }
   }
 
   function targetSpriteFor(side) {
@@ -2598,49 +2530,16 @@ import {
   }
 
   function createCriticalScreenBurst(target) {
-    if (spawnPixiEffect("criticalScreenBurst", { side: target === refs.hero ? "hero" : "enemy" })) return;
-    const projection = getStageProjection();
-    const burst = document.createElement("i");
-    burst.className = "critical-screen-burst";
-    burst.style.left = target === refs.hero ? `${projection.heroX}%` : `${projection.enemyX}%`;
-    refs.effects.append(burst);
-    setTimeout(() => burst.remove(), 900);
+    spawnEffect("criticalScreenBurst", { side: target === refs.hero ? "hero" : "enemy" });
   }
 
-  function createImpact(actorSide, y = null, characterId = null) {
+  function createImpact(actorSide, characterId = null) {
     const side = typeof actorSide === "boolean" ? (actorSide ? "hero" : "enemy") : actorSide;
-    const usesDarkImpact = characterId === "kuroboshi" || (!characterId && side === "enemy");
-    if (spawnPixiEffect("impact", { side, y, characterId })) return;
-    const projection = getStageProjection();
-    const impact = document.createElement("i");
-    impact.className = `impact ${usesDarkImpact ? "purple" : ""}`;
-    impact.style.left = side === "hero" ? `${projection.enemyX}%` : `${projection.heroX}%`;
-    impact.style.top = y === null ? "55%" : `${y}px`;
-    refs.effects.append(impact);
-    setTimeout(() => impact.remove(), 460);
+    spawnEffect("impact", { side, characterId });
   }
 
   function createEtoileDriveEffect(side, duration) {
-    if (spawnPixiEffect("etoileDrive", { side, duration })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .5);
-    const effect = document.createElement("div");
-    effect.className = "etoile-drive-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    const crest = document.createElement("b");
-    crest.textContent = "✦";
-    const pillar = document.createElement("span");
-    effect.append(pillar, crest);
-    for (let index = 0; index < 14; index += 1) {
-      const sparkle = document.createElement("i");
-      sparkle.textContent = index % 3 ? "✦" : "◆";
-      sparkle.style.setProperty("--etoile-angle", `${index * 25.7}deg`);
-      sparkle.style.setProperty("--etoile-distance", `${random(105, 210)}px`);
-      sparkle.style.setProperty("--etoile-delay", `${index * -95}ms`);
-      effect.append(sparkle);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), duration + 180);
+    spawnEffect("etoileDrive", { side, duration });
   }
 
   function applyTechniqueKnockback(heroAttacks, distance, target) {
@@ -2670,11 +2569,7 @@ import {
 
   function createProjectile(actorSide) {
     const side = typeof actorSide === "boolean" ? (actorSide ? "enemy" : "hero") : actorSide;
-    if (spawnPixiEffect("projectile", { side })) return;
-    const projectile = document.createElement("i");
-    projectile.className = `projectile ${side === "enemy" ? "enemy-shot" : ""}`;
-    refs.effects.append(projectile);
-    setTimeout(() => projectile.remove(), 520);
+    spawnEffect("projectile", { side });
   }
 
   function getEffectPoint(sprite, xRatio, yRatio) {
@@ -2686,185 +2581,46 @@ import {
     };
   }
 
-  function getRenderedScale(element) {
-    const rect = element.getBoundingClientRect();
-    return {
-      x: element.offsetWidth ? rect.width / element.offsetWidth : 1,
-      y: element.offsetHeight ? rect.height / element.offsetHeight : 1,
-    };
-  }
-
   function createPhysicalDust(side, color) {
-    if (spawnPixiEffect("dust", { side, color })) return;
-    const sprite = side === "hero" ? refs.heroSprite : refs.enemySprite;
-    const origin = getEffectPoint(sprite, .5, .86);
-    const dust = document.createElement("div");
-    dust.className = `physical-dust ${color}`;
-    dust.style.left = `${origin.x}px`;
-    dust.style.top = `${origin.y}px`;
-    for (let index = 0; index < 7; index += 1) {
-      const mote = document.createElement("i");
-      mote.style.setProperty("--dust-x", `${random(-78, 78)}px`);
-      mote.style.setProperty("--dust-y", `${random(-48, -14)}px`);
-      mote.style.setProperty("--dust-delay", `${index * 38}ms`);
-      dust.append(mote);
-    }
-    refs.effects.append(dust);
-    setTimeout(() => dust.remove(), 900);
+    spawnEffect("dust", { side, color });
   }
 
   function createPunchTrail(side) {
-    if (spawnPixiEffect("punchTrail", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .68, .5);
-    const target = getEffectPoint(targetSpriteFor(side), .45, .52);
-    const trail = document.createElement("div");
-    const dx = target.x - origin.x;
-    const dy = target.y - origin.y;
-    trail.className = "punch-trail";
-    trail.style.left = `${origin.x}px`;
-    trail.style.top = `${origin.y}px`;
-    trail.style.width = `${Math.max(120, Math.hypot(dx, dy))}px`;
-    trail.style.rotate = `${Math.atan2(dy, dx)}rad`;
-    refs.effects.append(trail);
-    setTimeout(() => trail.remove(), 720);
+    spawnEffect("punchTrail", { side });
   }
 
   function createStarRingSweep(side) {
-    if (spawnPixiEffect("starRing", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .53, .56);
-    const target = getEffectPoint(targetSpriteFor(side), .43, .54);
-    const sweep = document.createElement("div");
-    sweep.className = "star-ring-sweep";
-    sweep.style.left = `${origin.x}px`;
-    sweep.style.top = `${origin.y}px`;
-    sweep.style.setProperty("--ring-travel-x", `${target.x - origin.x}px`);
-    sweep.style.setProperty("--ring-travel-y", `${target.y - origin.y}px`);
-    for (let index = 0; index < 5; index += 1) {
-      const spark = document.createElement("i");
-      spark.style.setProperty("--ring-spark-angle", `${index * 72}deg`);
-      sweep.append(spark);
-    }
-    refs.effects.append(sweep);
-    setTimeout(() => sweep.remove(), 1050);
+    spawnEffect("starRing", { side });
   }
 
   function createMeteorClawTrail(side) {
-    if (spawnPixiEffect("meteorClaw", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .52, .52);
-    const slashes = document.createElement("div");
-    slashes.className = "meteor-claw-trail";
-    slashes.style.left = `${target.x}px`;
-    slashes.style.top = `${target.y}px`;
-    for (let index = 0; index < 3; index += 1) {
-      const slash = document.createElement("i");
-      slash.style.setProperty("--claw-offset", `${(index - 1) * 32}px`);
-      slash.style.setProperty("--claw-delay", `${index * 65}ms`);
-      slashes.append(slash);
-    }
-    refs.effects.append(slashes);
-    setTimeout(() => slashes.remove(), 820);
+    spawnEffect("meteorClaw", { side });
   }
 
   function createCrescentHornRush(side) {
-    if (spawnPixiEffect("crescentRush", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .34, .58);
-    const target = getEffectPoint(targetSpriteFor(side), .58, .58);
-    const rush = document.createElement("div");
-    const dx = target.x - origin.x;
-    const dy = target.y - origin.y;
-    rush.className = "crescent-horn-rush";
-    rush.style.left = `${origin.x}px`;
-    rush.style.top = `${origin.y}px`;
-    rush.style.width = `${Math.max(150, Math.hypot(dx, dy))}px`;
-    rush.style.rotate = `${Math.atan2(dy, dx)}rad`;
-    for (let index = 0; index < 5; index += 1) rush.append(document.createElement("i"));
-    refs.effects.append(rush);
-    setTimeout(() => rush.remove(), 1050);
+    spawnEffect("crescentRush", { side });
   }
 
   function createPhysicalContact(actorSide, variant) {
     const side = typeof actorSide === "boolean" ? (actorSide ? "hero" : "enemy") : actorSide;
-    if (spawnPixiEffect("physicalContact", { side, variant, characterId: profileFor(side).id })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .5, .54);
-    const contact = document.createElement("div");
-    contact.className = `physical-contact ${variant}`;
-    contact.style.left = `${target.x}px`;
-    contact.style.top = `${target.y}px`;
-    for (let index = 0; index < 8; index += 1) {
-      const ray = document.createElement("i");
-      ray.style.setProperty("--contact-angle", `${index * 45}deg`);
-      contact.append(ray);
-    }
-    refs.effects.append(contact);
-    setTimeout(() => contact.remove(), 760);
+    spawnEffect("physicalContact", { side, variant, characterId: profileFor(side).id });
   }
 
   function createPentagramNovaCharge(side) {
-    if (spawnPixiEffect("novaCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .54);
-    const charge = document.createElement("div");
-    charge.className = "pentagram-nova-charge-effect";
-    charge.style.left = `${origin.x}px`;
-    charge.style.top = `${origin.y}px`;
-    const crest = document.createElement("b");
-    const orbit = document.createElement("span");
-    charge.append(orbit, crest);
-    for (let index = 0; index < 12; index += 1) {
-      const mote = document.createElement("i");
-      mote.style.setProperty("--nova-angle", `${index * 30}deg`);
-      mote.style.setProperty("--nova-delay", `${index * -75}ms`);
-      charge.append(mote);
-    }
-    refs.effects.append(charge);
-    setTimeout(() => charge.remove(), 1750);
+    spawnEffect("novaCharge", { side });
   }
 
   function createPentagramNovaRush(side) {
-    if (spawnPixiEffect("novaRush", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .64, .52);
-    const target = getEffectPoint(targetSpriteFor(side), .46, .52);
-    const rush = document.createElement("div");
-    rush.className = "pentagram-nova-rush-effect";
-    rush.style.left = `${origin.x}px`;
-    rush.style.top = `${origin.y}px`;
-    rush.style.width = `${Math.max(180, Math.hypot(target.x - origin.x, target.y - origin.y))}px`;
-    rush.style.rotate = `${Math.atan2(target.y - origin.y, target.x - origin.x)}rad`;
-    rush.append(document.createElement("b"));
-    for (let index = 0; index < 7; index += 1) rush.append(document.createElement("i"));
-    refs.effects.append(rush);
-    setTimeout(() => rush.remove(), 900);
+    spawnEffect("novaRush", { side });
   }
 
   function createPentagramNovaCapture(side) {
-    const targetSprite = targetSpriteFor(side);
-    const targetElement = side === "hero" ? refs.enemy : refs.hero;
-    const target = getEffectPoint(targetSprite, .5, .52);
-    const captureLift = -clamp(refs.arena.getBoundingClientRect().height * .38, 180, 300);
-    targetElement.style.setProperty("--nova-capture-lift-mid", `${captureLift * .7}px`);
-    targetElement.style.setProperty("--nova-capture-lift", `${captureLift}px`);
-    if (spawnPixiEffect("novaCapture", { side })) return;
-    const capture = document.createElement("div");
-    capture.className = "pentagram-nova-capture";
-    capture.style.left = `${target.x}px`;
-    capture.style.top = `${target.y}px`;
-    capture.style.setProperty("--capture-lift-mid", `${captureLift * .7}px`);
-    capture.style.setProperty("--capture-lift", `${captureLift}px`);
-    capture.append(document.createElement("b"), document.createElement("span"));
-    for (let index = 0; index < 10; index += 1) {
-      const ray = document.createElement("i");
-      ray.style.setProperty("--capture-angle", `${index * 36}deg`);
-      capture.append(ray);
-    }
-    refs.effects.append(capture);
-    setTimeout(() => capture.remove(), 3650);
+    spawnEffect("novaCapture", { side });
   }
 
   function startPentagramNovaCombo(side) {
-    const actorSprite = spriteFor(side);
     const targetSprite = targetSpriteFor(side);
-    refs.effects.querySelector(".pentagram-nova-path")?.remove();
     const arenaRect = refs.arena.getBoundingClientRect();
-    const origin = getEffectPoint(actorSprite, .5, .5);
     const target = getEffectPoint(targetSprite, .5, .5);
     const radiusX = clamp(arenaRect.width * .14, 105, 185);
     const radiusY = clamp(arenaRect.height * .23, 90, 165);
@@ -2876,738 +2632,176 @@ import {
       { x: target.x - radiusX * .62, y: target.y + radiusY * .82 },
       { x: target.x, y: target.y - radiusY },
     ];
-    const usesPixiPath = spawnPixiEffect("novaPath", { side, points });
-    window.etokichiRenderer?.startFighterMotion?.(side, "novaCombo", { points, duration: 2480 });
-    if (!usesPixiPath) {
-      const svgNamespace = "http://www.w3.org/2000/svg";
-      const path = document.createElementNS(svgNamespace, "svg");
-      path.classList.add("pentagram-nova-path");
-      path.setAttribute("viewBox", `0 0 ${arenaRect.width} ${arenaRect.height}`);
-      path.setAttribute("preserveAspectRatio", "none");
-      points.slice(0, -1).forEach((point, index) => {
-        const line = document.createElementNS(svgNamespace, "line");
-        line.setAttribute("x1", point.x);
-        line.setAttribute("y1", point.y);
-        line.setAttribute("x2", points[index + 1].x);
-        line.setAttribute("y2", points[index + 1].y);
-        line.setAttribute("pathLength", "1");
-        path.append(line);
-      });
-      refs.effects.append(path);
-      setTimeout(() => path.remove(), 4000);
-    }
-
-    const transformAt = (point, rotation, scale = 1) =>
-      `translate(${point.x - origin.x}px, ${point.y - origin.y}px) rotate(${rotation}deg) scale(${scale})`;
-    return actorSprite.animate([
-      { transform: "translate(0,0) rotate(0) scale(1)", offset: 0 },
-      { transform: transformAt(points[0], -18, .9), offset: .04 },
-      { transform: transformAt(points[1], 16, 1.08), offset: .181 },
-      { transform: transformAt(points[2], -20, 1.08), offset: .339 },
-      { transform: transformAt(points[3], 15, 1.1), offset: .496 },
-      { transform: transformAt(points[4], -16, 1.08), offset: .653 },
-      { transform: transformAt(points[5], 12, 1.1), offset: .81 },
-      { transform: transformAt(points[5], 0, 1), offset: 1 },
-    ], { duration: 2480, easing: "linear" });
+    spawnEffect("novaPath", { side, points });
+    startFighterMotion(side, "novaCombo", { points, duration: 2480 });
   }
 
-  function drawPentagramNovaTrailSegment(index) {
-    const segment = refs.effects.querySelectorAll(".pentagram-nova-path line")[index];
-    if (segment) segment.classList.add("drawn");
-  }
-
-  function startPentagramNovaFinisherRise(side, comboEndPoint) {
-    const actorSprite = spriteFor(side);
+  function startPentagramNovaFinisherRise(side) {
     const targetSprite = targetSpriteFor(side);
     const arenaRect = refs.arena.getBoundingClientRect();
-    const heroCenter = getEffectPoint(actorSprite, .5, .5);
-    const heroAttackPoint = getEffectPoint(actorSprite, .77, .78);
-    const heroScale = getRenderedScale(actorSprite);
     const enemyGroundTarget = getEffectPoint(targetSprite, .5, .56);
     const lift = clamp(arenaRect.height * .38, 180, 300);
     const airTarget = { x: enemyGroundTarget.x, y: enemyGroundTarget.y - lift };
-    const start = {
-      x: (comboEndPoint.x - heroCenter.x) / heroScale.x,
-      y: (comboEndPoint.y - heroCenter.y) / heroScale.y,
-    };
-    const launchContact = {
-      x: (enemyGroundTarget.x - heroAttackPoint.x) / heroScale.x,
-      y: (enemyGroundTarget.y - heroAttackPoint.y) / heroScale.y,
-    };
-    const airContact = {
-      x: (airTarget.x - heroAttackPoint.x) / heroScale.x,
-      y: (airTarget.y - heroAttackPoint.y) / heroScale.y,
-    };
-    const animation = actorSprite.animate([
-      { transform: `translate(${start.x}px,${start.y}px) rotate(10deg) scale(1.08)`, offset: 0 },
-      { transform: `translate(${launchContact.x}px,${launchContact.y + 24}px) rotate(-16deg) scale(.96,1.12)`, offset: .3 },
-      { transform: `translate(${launchContact.x}px,${launchContact.y - 18}px) rotate(-24deg) scale(1.12,.92)`, offset: .48 },
-      { transform: `translate(${airContact.x}px,${airContact.y + 12}px) rotate(-8deg) scale(1.04)`, offset: .88 },
-      { transform: `translate(${airContact.x}px,${airContact.y}px) rotate(0) scale(1)`, offset: 1 },
-    ], { duration: 570, easing: "cubic-bezier(.16,.78,.18,1)", fill: "forwards" });
-    window.etokichiRenderer?.startFighterMotion?.(side, "novaRise", {
+    startFighterMotion(side, "novaRise", {
       enemyGroundTarget,
       airTarget,
       duration: 570,
     });
-    return { animation, enemyGroundTarget, airTarget };
+    return { enemyGroundTarget, airTarget };
   }
 
   function startPentagramNovaFinisherDive(side, motion) {
     if (!motion) return null;
-    const actorSprite = spriteFor(side);
-    const currentCenter = getEffectPoint(actorSprite, .5, .5);
-    motion.animation?.cancel();
-    const heroCenter = getEffectPoint(actorSprite, .5, .5);
-    const heroAttackPoint = getEffectPoint(actorSprite, .77, .78);
-    const heroScale = getRenderedScale(actorSprite);
-    const start = {
-      x: (currentCenter.x - heroCenter.x) / heroScale.x,
-      y: (currentCenter.y - heroCenter.y) / heroScale.y,
-    };
-    const impact = {
-      x: (motion.enemyGroundTarget.x - heroAttackPoint.x) / heroScale.x,
-      y: (motion.enemyGroundTarget.y - heroAttackPoint.y) / heroScale.y,
-    };
-    const animation = actorSprite.animate([
-      { transform: `translate(${start.x}px,${start.y}px) rotate(0) scale(1)`, offset: 0 },
-      { transform: `translate(${start.x + 10}px,${start.y - 20}px) rotate(7deg) scale(.96)`, offset: .18 },
-      { transform: `translate(${impact.x - 14}px,${impact.y - 35}px) rotate(-14deg) scale(1.18,.84)`, offset: .76 },
-      { transform: `translate(${impact.x}px,${impact.y}px) rotate(-5deg) scale(1.08,.9)`, offset: 1 },
-    ], { duration: 550, easing: "cubic-bezier(.12,.82,.16,1)", fill: "forwards" });
-    window.etokichiRenderer?.startFighterMotion?.(side, "novaDive", {
+    startFighterMotion(side, "novaDive", {
       enemyGroundTarget: motion.enemyGroundTarget,
       duration: 550,
     });
-    return { ...motion, animation };
+    return motion;
   }
 
   function createPentagramNovaStrike(side, index) {
-    const usesPixiEffect = spawnPixiEffect("novaStrike", { side, index });
-    const target = getEffectPoint(targetSpriteFor(side), .5, .5);
-    let strike;
-    if (!usesPixiEffect) {
-      const angles = [-72, 144, 0, -144, 72];
-      strike = document.createElement("div");
-      strike.className = "pentagram-nova-strike";
-      strike.style.left = `${target.x}px`;
-      strike.style.top = `${target.y}px`;
-      strike.style.setProperty("--strike-angle", `${angles[index]}deg`);
-      strike.append(document.createElement("b"), document.createElement("span"));
-      for (let rayIndex = 0; rayIndex < 6; rayIndex += 1) {
-        const ray = document.createElement("i");
-        ray.style.setProperty("--ray-angle", `${rayIndex * 60}deg`);
-        strike.append(ray);
-      }
-      refs.effects.append(strike);
-    }
+    spawnEffect("novaStrike", { side, index });
     refs.arena.classList.remove("nova-hit-pulse");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("nova-hit-pulse");
-    if (strike) setTimeout(() => strike.remove(), 620);
   }
 
   function createPentagramNovaUppercut(side, motion) {
     if (!motion) return;
-    if (spawnPixiEffect("novaUppercut", {
+    spawnEffect("novaUppercut", {
       side,
       enemyGroundTarget: motion.enemyGroundTarget,
       airTarget: motion.airTarget,
-    })) return;
+    });
   }
 
   function createPentagramNovaDive(side, targetPoint) {
-    if (spawnPixiEffect("novaDive", { side, targetPoint })) return;
-    const target = targetPoint || getEffectPoint(targetSpriteFor(side), .5, .62);
-    const dive = document.createElement("div");
-    dive.className = "pentagram-nova-dive-effect";
-    dive.style.left = `${target.x}px`;
-    dive.style.top = `${target.y}px`;
-    dive.append(document.createElement("b"), document.createElement("span"));
-    for (let index = 0; index < 9; index += 1) {
-      const line = document.createElement("i");
-      line.style.setProperty("--dive-offset", `${(index - 4) * 14}px`);
-      dive.append(line);
-    }
-    refs.effects.append(dive);
-    setTimeout(() => dive.remove(), 1500);
+    spawnEffect("novaDive", { side, targetPoint });
   }
 
   function createPentagramNovaImpact(side, critical) {
-    const usesPixiEffect = spawnPixiEffect("novaImpact", { side, critical });
-    let impactEffect;
-    if (!usesPixiEffect) {
-      const target = getEffectPoint(targetSpriteFor(side), .5, .68);
-      impactEffect = document.createElement("div");
-      impactEffect.className = `pentagram-nova-impact${critical ? " critical" : ""}`;
-      impactEffect.style.left = `${target.x}px`;
-      impactEffect.style.top = `${target.y}px`;
-      impactEffect.append(document.createElement("b"), document.createElement("span"));
-      for (let index = 0; index < 14; index += 1) {
-        const shard = document.createElement("i");
-        shard.style.setProperty("--nova-impact-angle", `${index * 25.7}deg`);
-        shard.style.setProperty("--nova-impact-distance", `${random(110, 245)}px`);
-        impactEffect.append(shard);
-      }
-      refs.effects.append(impactEffect);
-    }
+    spawnEffect("novaImpact", { side, critical });
     refs.arena.classList.remove("shake");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("shake");
-    if (impactEffect) setTimeout(() => impactEffect.remove(), critical ? 1750 : 1450);
   }
 
   function createGalaxyRayCharge(side) {
-    if (spawnPixiEffect("galaxyRayCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .79, .5);
-    const charge = document.createElement("div");
-    charge.className = "galaxy-ray-charge";
-    charge.style.left = `${origin.x}px`;
-    charge.style.top = `${origin.y}px`;
-    for (let index = 0; index < 7; index += 1) {
-      const spark = document.createElement("i");
-      spark.style.setProperty("--spark-angle", `${index * 51}deg`);
-      spark.style.setProperty("--spark-delay", `${index * -70}ms`);
-      charge.append(spark);
-    }
-    refs.effects.append(charge);
-    setTimeout(() => charge.remove(), 1250);
+    spawnEffect("galaxyRayCharge", { side });
   }
 
   function createGalaxyRay(side) {
-    if (spawnPixiEffect("galaxyRay", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .88, .48);
-    const target = getEffectPoint(targetSpriteFor(side), .48, .5);
-    const shot = document.createElement("div");
-    shot.className = "galaxy-ray-shot";
-    shot.style.left = `${origin.x}px`;
-    shot.style.top = `${origin.y}px`;
-    shot.style.setProperty("--travel-x", `${target.x - origin.x}px`);
-    shot.style.setProperty("--travel-y", `${target.y - origin.y}px`);
-    const core = document.createElement("i");
-    core.className = "galaxy-ray-core";
-    const trail = document.createElement("i");
-    trail.className = "galaxy-ray-trail";
-    const particles = document.createElement("span");
-    for (let index = 0; index < 8; index += 1) {
-      const particle = document.createElement("i");
-      particle.style.setProperty("--ray-particle-y", `${random(-25, 25)}px`);
-      particle.style.setProperty("--ray-particle-delay", `${index * 48}ms`);
-      particles.append(particle);
-    }
-    shot.append(trail, core, particles);
-    refs.effects.append(shot);
-    setTimeout(() => shot.remove(), 900);
+    spawnEffect("galaxyRay", { side });
   }
 
   function createKissCharge(side) {
-    if (spawnPixiEffect("kissCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .73, .42);
-    const charge = document.createElement("div");
-    charge.className = "kiss-charge";
-    charge.style.left = `${origin.x}px`;
-    charge.style.top = `${origin.y}px`;
-    const heart = document.createElement("b");
-    heart.textContent = "♥";
-    charge.append(heart);
-    for (let index = 0; index < 7; index += 1) {
-      const sparkle = document.createElement("i");
-      sparkle.textContent = index % 2 ? "✦" : "♥";
-      sparkle.style.setProperty("--kiss-spark-angle", `${index * 51}deg`);
-      sparkle.style.setProperty("--kiss-spark-delay", `${index * -75}ms`);
-      charge.append(sparkle);
-    }
-    refs.effects.append(charge);
-    setTimeout(() => charge.remove(), 1050);
+    spawnEffect("kissCharge", { side });
   }
 
   function createThrowingKiss(side) {
-    if (spawnPixiEffect("throwingKiss", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .76, .42);
-    const target = getEffectPoint(targetSpriteFor(side), .48, .48);
-    const projectile = document.createElement("div");
-    projectile.className = "throwing-kiss";
-    projectile.style.left = `${origin.x}px`;
-    projectile.style.top = `${origin.y}px`;
-    projectile.style.setProperty("--kiss-travel-x", `${target.x - origin.x}px`);
-    projectile.style.setProperty("--kiss-travel-y", `${target.y - origin.y}px`);
-    const heart = document.createElement("b");
-    heart.textContent = "♥";
-    const trail = document.createElement("span");
-    for (let index = 0; index < 8; index += 1) {
-      const mote = document.createElement("i");
-      mote.textContent = index % 3 ? "♥" : "✦";
-      mote.style.setProperty("--kiss-trail-delay", `${index * 72}ms`);
-      mote.style.setProperty("--kiss-trail-y", `${random(-24, 24)}px`);
-      trail.append(mote);
-    }
-    projectile.append(trail, heart);
-    refs.effects.append(projectile);
-    setTimeout(() => projectile.remove(), 980);
+    spawnEffect("throwingKiss", { side });
   }
 
   function createKissBurst(side) {
-    if (spawnPixiEffect("kissBurst", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .48, .48);
-    const burst = document.createElement("div");
-    burst.className = "kiss-burst";
-    burst.style.left = `${target.x}px`;
-    burst.style.top = `${target.y}px`;
-    const heart = document.createElement("b");
-    heart.textContent = "♥";
-    burst.append(heart);
-    for (let index = 0; index < 12; index += 1) {
-      const shard = document.createElement("i");
-      shard.textContent = index % 3 ? "♥" : "✦";
-      shard.style.setProperty("--kiss-burst-angle", `${index * 30}deg`);
-      shard.style.setProperty("--kiss-burst-distance", `${random(70, 145)}px`);
-      burst.append(shard);
-    }
-    refs.effects.append(burst);
-    setTimeout(() => burst.remove(), 1100);
+    spawnEffect("kissBurst", { side });
   }
 
   function createKissMissBreak(side) {
-    if (spawnPixiEffect("kissMiss", { side })) {
-      sound("kissBreak");
-      return;
-    }
-    const target = getEffectPoint(targetSpriteFor(side), .48, .48);
-    const broken = document.createElement("div");
-    broken.className = "kiss-miss-break";
-    broken.style.left = `${target.x}px`;
-    broken.style.top = `${target.y}px`;
-    const outline = document.createElement("b");
-    outline.textContent = "♡";
-    broken.append(outline);
-    for (let index = 0; index < 8; index += 1) {
-      const fragment = document.createElement("i");
-      fragment.textContent = index % 2 ? "·" : "♥";
-      fragment.style.setProperty("--kiss-break-x", `${random(-105, 105)}px`);
-      fragment.style.setProperty("--kiss-break-y", `${random(-85, 55)}px`);
-      broken.append(fragment);
-    }
-    refs.effects.append(broken);
+    spawnEffect("kissMiss", { side });
     sound("kissBreak");
-    setTimeout(() => broken.remove(), 920);
   }
 
   function createDarkOrbitField(side) {
-    if (spawnPixiEffect("darkOrbitField", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .52);
-    const field = document.createElement("div");
-    field.className = "dark-orbit-field";
-    field.style.left = `${origin.x}px`;
-    field.style.top = `${origin.y}px`;
-    for (let index = 0; index < 3; index += 1) {
-      const orb = document.createElement("i");
-      orb.style.setProperty("--orbit-index", index);
-      orb.style.setProperty("--orbit-delay", `${index * -430}ms`);
-      field.append(orb);
-    }
-    refs.effects.append(field);
-    setTimeout(() => field.remove(), 2050);
+    spawnEffect("darkOrbitField", { side });
   }
 
   function createDarkOrbitVolley(side) {
-    if (spawnPixiEffect("darkOrbitVolley", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .38, .48);
-    const target = getEffectPoint(targetSpriteFor(side), .5, .5);
-    const volley = document.createElement("div");
-    volley.className = "dark-orbit-volley";
-    for (let index = 0; index < 3; index += 1) {
-      const orb = document.createElement("i");
-      const offsetY = (index - 1) * 34;
-      orb.style.left = `${origin.x}px`;
-      orb.style.top = `${origin.y + offsetY}px`;
-      orb.style.setProperty("--orbit-travel-x", `${target.x - origin.x}px`);
-      orb.style.setProperty("--orbit-travel-y", `${target.y - origin.y - offsetY + (index - 1) * 12}px`);
-      orb.style.setProperty("--volley-delay", `${index * 120}ms`);
-      volley.append(orb);
-    }
-    refs.effects.append(volley);
-    setTimeout(() => volley.remove(), 1300);
+    spawnEffect("darkOrbitVolley", { side });
   }
 
   function createBlackMeteorSky(side) {
-    if (spawnPixiEffect("blackMeteorSky", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .5, .45);
-    const sky = document.createElement("div");
-    sky.className = "black-meteor-sky";
-    sky.style.left = `${target.x}px`;
-    for (let index = 0; index < 9; index += 1) {
-      const mote = document.createElement("i");
-      mote.style.setProperty("--mote-angle", `${index * 40}deg`);
-      mote.style.setProperty("--mote-delay", `${index * -90}ms`);
-      sky.append(mote);
-    }
-    refs.effects.append(sky);
-    setTimeout(() => sky.remove(), 3100);
+    spawnEffect("blackMeteorSky", { side });
   }
 
   function createBlackMeteor(side) {
-    if (spawnPixiEffect("blackMeteor", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .5, .58);
-    const meteor = document.createElement("div");
-    meteor.className = "black-meteor";
-    meteor.style.left = `${target.x}px`;
-    meteor.style.setProperty("--meteor-fall", `${target.y + 210}px`);
-    const tail = document.createElement("i");
-    tail.className = "black-meteor-tail";
-    const rock = document.createElement("i");
-    rock.className = "black-meteor-rock";
-    for (let index = 0; index < 5; index += 1) {
-      const crater = document.createElement("b");
-      crater.style.setProperty("--crater-angle", `${index * 72}deg`);
-      rock.append(crater);
-    }
-    meteor.append(tail, rock);
-    refs.effects.append(meteor);
-    setTimeout(() => meteor.remove(), 1950);
+    spawnEffect("blackMeteor", { side });
   }
 
   function createBlackMeteorImpact(side) {
-    const usesPixiEffect = spawnPixiEffect("blackMeteorImpact", { side });
-    let impact;
-    if (!usesPixiEffect) {
-      const target = getEffectPoint(targetSpriteFor(side), .5, .68);
-      impact = document.createElement("div");
-      impact.className = "black-meteor-impact";
-      impact.style.left = `${target.x}px`;
-      impact.style.top = `${target.y}px`;
-      for (let index = 0; index < 10; index += 1) {
-        const debris = document.createElement("i");
-        debris.style.setProperty("--debris-angle", `${index * 36}deg`);
-        debris.style.setProperty("--debris-distance", `${random(85, 175)}px`);
-        impact.append(debris);
-      }
-      refs.effects.append(impact);
-    }
+    spawnEffect("blackMeteorImpact", { side });
     refs.arena.classList.remove("shake");
     void refs.arena.offsetWidth;
     refs.arena.classList.add("shake");
-    if (impact) setTimeout(() => impact.remove(), 1200);
   }
 
   function createSutekichiStarTouchEffect(side) {
-    if (spawnPixiEffect("sutekichiStarTouch", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .55, .48);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-star-touch-effect";
-    effect.style.left = `${target.x}px`;
-    effect.style.top = `${target.y}px`;
-    const mark = document.createElement("b");
-    mark.textContent = "✦";
-    effect.append(mark);
-    for (let index = 0; index < 9; index += 1) {
-      const mote = document.createElement("i");
-      mote.textContent = index % 3 ? "✦" : "●";
-      mote.style.setProperty("--sutekichi-angle", `${index * 40}deg`);
-      effect.append(mote);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 950);
+    spawnEffect("sutekichiStarTouch", { side });
   }
 
   function createSutekichiHaloSkipEffect(side) {
-    if (spawnPixiEffect("sutekichiHaloSkip", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .45, .42);
-    const target = getEffectPoint(targetSpriteFor(side), .55, .5);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-halo-skip-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.style.setProperty("--sutekichi-travel-x", `${target.x - origin.x}px`);
-    effect.style.setProperty("--sutekichi-travel-y", `${target.y - origin.y}px`);
-    effect.append(document.createElement("b"));
-    for (let index = 0; index < 6; index += 1) effect.append(document.createElement("i"));
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1450);
+    spawnEffect("sutekichiHaloSkip", { side });
   }
 
   function createSutekichiStellaSearchEffect(side) {
-    if (spawnPixiEffect("sutekichiStellaSearch", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .5, .46);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-stella-search-effect";
-    effect.style.left = `${target.x}px`;
-    effect.style.top = `${target.y}px`;
-    effect.append(document.createElement("b"), document.createElement("span"));
-    for (let index = 0; index < 8; index += 1) {
-      const marker = document.createElement("i");
-      marker.style.setProperty("--search-angle", `${index * 45}deg`);
-      effect.append(marker);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1900);
+    spawnEffect("sutekichiStellaSearch", { side });
   }
 
   function createSutekichiCometCharge(side) {
-    if (spawnPixiEffect("sutekichiCometCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .38);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-comet-charge-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.innerHTML = "<b>✦</b><i></i><i></i><i></i>";
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1750);
+    spawnEffect("sutekichiCometCharge", { side });
   }
 
   function createSutekichiComet(side, index = 0) {
-    if (spawnPixiEffect("sutekichiComet", { side, index })) return;
-    const targetRatios = [[.38, .4], [.62, .5], [.5, .62]];
-    const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
-    const target = getEffectPoint(targetSpriteFor(side), xRatio, yRatio);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-comet-effect";
-    effect.style.left = `${target.x}px`;
-    effect.style.top = `${target.y}px`;
-    effect.style.setProperty("--comet-entry-x", `${side === "hero" ? -420 : 420}px`);
-    effect.style.setProperty("--comet-entry-y", `${[-340, -410, -355][index] ?? -380}px`);
-    effect.style.setProperty("--comet-rotation", `${side === "hero" ? 35 : 145}deg`);
-    const scale = [.82, 1, .9][index] ?? 1;
-    effect.style.setProperty("--comet-start-scale", `${.45 * scale}`);
-    effect.style.setProperty("--comet-end-scale", `${1.2 * scale}`);
-    effect.innerHTML = "<span></span><b>✦</b>";
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1150);
+    spawnEffect("sutekichiComet", { side, index });
   }
 
   function createSutekichiCometImpact(side, index = 0) {
-    if (spawnPixiEffect("sutekichiCometImpact", { side, index })) return;
-    const targetRatios = [[.38, .48], [.62, .58], [.5, .68]];
-    const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
-    const target = getEffectPoint(targetSpriteFor(side), xRatio, yRatio);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-comet-impact-effect";
-    effect.style.left = `${target.x}px`;
-    effect.style.top = `${target.y}px`;
-    for (let index = 0; index < 14; index += 1) {
-      const ray = document.createElement("i");
-      ray.style.setProperty("--comet-ray", `${index * 25.7}deg`);
-      effect.append(ray);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1250);
+    spawnEffect("sutekichiCometImpact", { side, index });
   }
 
   function createSutekichiNapDream(side) {
-    if (spawnPixiEffect("sutekichiNapDream", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .52, .38);
-    const effect = document.createElement("div");
-    effect.className = "sutekichi-nap-dream-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    ["z", "Z", "✦", "○", "Z"].forEach((text, index) => {
-      const dream = document.createElement("i");
-      dream.textContent = text;
-      dream.style.setProperty("--dream-index", index);
-      dream.style.setProperty("--dream-delay", `${index * 230}ms`);
-      effect.append(dream);
-    });
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 3600);
+    spawnEffect("sutekichiNapDream", { side });
   }
 
   function createSutekichiNapResult(success, side = "enemy") {
-    if (spawnPixiEffect("sutekichiNapResult", { success, side })) return;
-    const origin = getEffectPoint(side === "hero" ? refs.heroSprite : refs.enemySprite, .5, .5);
-    const effect = document.createElement("div");
-    effect.className = `sutekichi-nap-result ${success ? "success" : "failure"}`;
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    for (let index = 0; index < (success ? 16 : 5); index += 1) {
-      const mote = document.createElement("i");
-      mote.textContent = success ? "✦" : "·";
-      mote.style.setProperty("--nap-result-angle", `${index * (360 / (success ? 16 : 5))}deg`);
-      effect.append(mote);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1500);
+    spawnEffect("sutekichiNapResult", { success, side });
   }
 
   function createBusinessCardStrike(side) {
-    if (spawnPixiEffect("businessCardStrike", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), side === "hero" ? .7 : .3, .46);
-    const target = getEffectPoint(targetSpriteFor(side), .5, .5);
-    const effect = document.createElement("div");
-    effect.className = "business-card-strike-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
-    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
-    for (let index = 0; index < 5; index += 1) {
-      const card = document.createElement("i");
-      card.style.setProperty("--card-index", index);
-      card.style.setProperty("--card-delay", `${index * 55}ms`);
-      effect.append(card);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1100);
+    spawnEffect("businessCardStrike", { side });
   }
 
   function createClosingTimeDash(side) {
-    window.etokichiRenderer?.startFighterMotion?.(side, "closingTimeDash", { duration: 420 });
-    if (spawnPixiEffect("closingTimeDash", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .58);
-    const target = getEffectPoint(targetSpriteFor(side), .5, .58);
-    const effect = document.createElement("div");
-    effect.className = "closing-time-dash-effect";
-    effect.classList.toggle("enemy-dash", side === "enemy");
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
-    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
-    for (let index = 0; index < 12; index += 1) {
-      const speedLine = document.createElement("i");
-      speedLine.style.setProperty("--card-index", index);
-      effect.append(speedLine);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 450);
+    startFighterMotion(side, "closingTimeDash", { duration: 420 });
+    spawnEffect("closingTimeDash", { side });
   }
 
   function createAngelWink(side) {
-    if (spawnPixiEffect("angelWink", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), side === "hero" ? .66 : .34, .3);
-    const target = getEffectPoint(targetSpriteFor(side), .5, .42);
-    const effect = document.createElement("div");
-    effect.className = "angel-wink-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.style.setProperty("--salaryman-travel-x", `${target.x - origin.x}px`);
-    effect.style.setProperty("--salaryman-travel-y", `${target.y - origin.y}px`);
-    const heart = document.createElement("b");
-    heart.textContent = "♥";
-    effect.append(heart, document.createElement("i"), document.createElement("i"));
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1550);
+    spawnEffect("angelWink", { side });
   }
 
   function createApprovalMeteorCharge(side) {
-    if (spawnPixiEffect("approvalMeteorCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .38);
-    const effect = document.createElement("div");
-    effect.className = "approval-meteor-charge-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    for (let index = 0; index < 8; index += 1) {
-      const documentSheet = document.createElement("i");
-      documentSheet.style.setProperty("--document-angle", `${index * 45}deg`);
-      effect.append(documentSheet);
-    }
-    effect.append(document.createElement("b"));
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 2100);
+    spawnEffect("approvalMeteorCharge", { side });
   }
 
   function createApprovalMeteor(side) {
-    if (spawnPixiEffect("approvalMeteor", { side })) return;
-    const target = getEffectPoint(targetSpriteFor(side), .5, .58);
-    const effect = document.createElement("div");
-    effect.className = "approval-meteor-effect";
-    effect.style.left = `${target.x}px`;
-    effect.style.top = `${target.y}px`;
-    for (let index = 0; index < 11; index += 1) {
-      const documentSheet = document.createElement("i");
-      documentSheet.style.setProperty("--document-index", index);
-      documentSheet.style.setProperty("--document-offset", `${(index - 5) * 24}px`);
-      effect.append(documentSheet);
-    }
-    const stamp = document.createElement("b");
-    stamp.textContent = "承認";
-    effect.append(stamp);
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1900);
+    spawnEffect("approvalMeteor", { side });
   }
 
   function createCharmStatus(side) {
-    if (spawnPixiEffect("charmStatus", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .2);
-    const effect = document.createElement("div");
-    effect.className = "charm-status-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    for (let index = 0; index < 8; index += 1) {
-      const heart = document.createElement("i");
-      heart.textContent = "♥";
-      heart.style.setProperty("--heart-angle", `${index * 45}deg`);
-      effect.append(heart);
-    }
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 1200);
+    spawnEffect("charmStatus", { side });
   }
 
   function createCharmBreak(side) {
-    if (spawnPixiEffect("charmBreak", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .5, .25);
-    const effect = document.createElement("div");
-    effect.className = "charm-break-effect";
-    effect.style.left = `${origin.x}px`;
-    effect.style.top = `${origin.y}px`;
-    effect.textContent = "♡";
-    refs.effects.append(effect);
-    setTimeout(() => effect.remove(), 700);
+    spawnEffect("charmBreak", { side });
   }
 
   function createGalaxyCharge(side) {
-    if (spawnPixiEffect("galaxyCharge", { side })) return;
-    const origin = getEffectPoint(spriteFor(side), .72, .53);
-    const field = document.createElement("div");
-    field.className = "galaxy-charge-field";
-    field.style.left = `${origin.x}px`;
-    field.style.top = `${origin.y}px`;
-    const core = document.createElement("b");
-    for (let index = 0; index < 12; index += 1) {
-      const particle = document.createElement("i");
-      particle.style.setProperty("--charge-particle-angle", `${index * 30}deg`);
-      particle.style.setProperty("--charge-particle-delay", `${index * -90}ms`);
-      field.append(particle);
-    }
-    field.append(core);
-    refs.effects.append(field);
-    setTimeout(() => field.remove(), 1950);
+    spawnEffect("galaxyCharge", { side });
   }
 
   function createGalaxyFlash(side) {
     if (state.phase !== "battle") return;
-    const arenaRect = refs.arena.getBoundingClientRect();
-    const actorRect = spriteFor(side).getBoundingClientRect();
-    const targetRect = targetSpriteFor(side).getBoundingClientRect();
-    const originX = actorRect.left - arenaRect.left + actorRect.width * .735;
-    const originY = actorRect.top - arenaRect.top + actorRect.height * .535;
-    const targetX = targetRect.left - arenaRect.left + targetRect.width * .52;
-    const beamLength = clamp(Math.abs(targetX - originX), 260, arenaRect.width + 70);
-    state.galaxyBeamY = originY;
-    if (spawnPixiEffect("galaxyFlash", { side })) return;
-
-    const beam = document.createElement("div");
-    beam.className = "galaxy-flash";
-    beam.classList.toggle("reverse", side === "enemy");
-    beam.style.left = `${originX}px`;
-    beam.style.top = `${originY}px`;
-    beam.style.setProperty("--beam-length", `${beamLength}px`);
-    const source = document.createElement("i");
-    source.className = "galaxy-beam-source";
-    const stream = document.createElement("i");
-    stream.className = "galaxy-beam-stream";
-    const head = document.createElement("i");
-    head.className = "galaxy-beam-head";
-    const particles = document.createElement("span");
-    particles.className = "galaxy-beam-particles";
-    for (let index = 0; index < 10; index += 1) {
-      const particle = document.createElement("i");
-      particle.style.setProperty("--particle-y", `${random(-46, 46)}px`);
-      particle.style.setProperty("--particle-delay", `${-index * 73}ms`);
-      particle.style.setProperty("--particle-scale", random(.55, 1.35).toFixed(2));
-      particles.append(particle);
-    }
-    beam.append(source, stream, head, particles);
-    const flash = document.createElement("i");
-    flash.className = "screen-flash";
-    refs.effects.append(beam, flash);
-    setTimeout(() => { beam.remove(); flash.remove(); }, 1250);
+    spawnEffect("galaxyFlash", { side });
   }
 
   function armBattleMusic() {

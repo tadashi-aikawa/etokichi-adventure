@@ -16,16 +16,6 @@
   <body>
     <main class="game-shell prebattle">
       <section id="arena" class="arena" aria-label="バトルアリーナ">
-        <div class="battle-backdrop" aria-hidden="true"></div>
-        <div class="space-haze"></div>
-        <div class="planet planet-one"></div>
-        <div class="planet planet-two"></div>
-        <div class="stars stars-a"></div>
-        <div class="stars stars-b"></div>
-        <div class="farm-silhouette" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-
         <div class="hud">
           <article class="fighter-hud hero-hud">
             <div class="name-row">
@@ -65,21 +55,13 @@
         <div id="enemy-combat-status" class="combat-status enemy-combat-status" aria-live="polite"></div>
 
         <div id="hero" class="combatant hero" style="--x: 23">
-          <div class="etoile-status-aura" aria-hidden="true"></div>
-          <div class="fighter-shadow"></div>
           <img id="hero-sprite" class="sprite" src="assets/etokichi/idle.webp" alt="エトキチ" />
           <span class="status-pop" aria-live="polite"></span>
         </div>
 
         <div id="enemy" class="combatant enemy" style="--x: 77">
-          <div class="etoile-status-aura" aria-hidden="true"></div>
-          <div class="fighter-shadow"></div>
           <img id="enemy-sprite" class="sprite" src="assets/enemies/kuroboshi/idle.webp" alt="クロボシ" />
           <span class="status-pop" aria-live="polite"></span>
-        </div>
-
-        <div class="arena-floor">
-          <div class="floor-rings"></div>
         </div>
 
         <div id="title-screen" class="overlay title-screen visible">

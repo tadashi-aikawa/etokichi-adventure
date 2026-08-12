@@ -1,27 +1,27 @@
 import { resolveActorUrl } from "./actor-assets.ts";
+import { createPixiStage } from "./rendering/pixi-stage.js";
 
-const rendererMode = new URLSearchParams(window.location.search).get("renderer") ?? "auto";
-let rendererReady = Promise.resolve();
+const requestedRenderer = new URLSearchParams(window.location.search).get("renderer");
+const preference = requestedRenderer === "webgl" || requestedRenderer === "webgpu"
+  ? requestedRenderer
+  : "auto";
 window.etokichiAssetUrl = resolveActorUrl;
+document.documentElement.dataset.renderer = "initializing";
 
-if (rendererMode !== "dom") {
-  document.documentElement.dataset.renderer = "initializing";
-  rendererReady = import("./rendering/pixi-stage.js")
-    .then(({ createPixiStage }) => createPixiStage({
-      arena: document.querySelector("#arena"),
-      gameShell: document.querySelector(".game-shell"),
-      preference: rendererMode === "webgl" || rendererMode === "webgpu" ? rendererMode : "auto",
-    }))
-    .then((renderer) => {
-      window.etokichiRenderer = renderer;
-    })
-    .catch((error) => {
-      console.error("PixiJSの初期化に失敗したため、DOM描画へフォールバックします。", error);
-      document.documentElement.dataset.renderer = "dom";
-    });
-} else {
-  document.documentElement.dataset.renderer = "dom";
+try {
+  window.etokichiRenderer = await createPixiStage({
+    arena: document.querySelector("#arena"),
+    gameShell: document.querySelector(".game-shell"),
+    preference,
+  });
+} catch (error) {
+  console.error("GPUレンダラーを初期化できないため、ゲームを開始できません。", error);
+  document.documentElement.dataset.renderer = "error";
+  const message = document.createElement("p");
+  message.className = "renderer-error";
+  message.textContent = "この環境ではWebGPU/WebGLを初期化できませんでした。";
+  document.querySelector(".title-card")?.append(message);
+  throw error;
 }
 
 await import("../game.js");
-await rendererReady;

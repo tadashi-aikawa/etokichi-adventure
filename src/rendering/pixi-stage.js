@@ -589,12 +589,10 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
 
   const backend = rendererName(app.renderer.type);
   document.documentElement.dataset.renderer = backend;
-  gameShell.classList.add("renderer-pixi");
   console.info(`PixiJS stage renderer: ${backend.toUpperCase()}`);
 
   return {
     backend,
-    handlesFighters: true,
     spawnEffect(type, options) {
       return effectSystem.spawn(type, options);
     },
@@ -618,7 +616,6 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       effectSystem.clear();
       fighterSystem.destroy();
       app.destroy();
-      gameShell.classList.remove("renderer-pixi");
     },
   };
 }
