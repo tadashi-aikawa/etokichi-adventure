@@ -66,11 +66,11 @@ describe("キャラクター定義", () => {
     expect(closingTimeDash?.impactDelay).toBe(400);
   });
 
-  it("エンジェルウィンクは80%魅了のかしこさ・ガッツダウン技である", () => {
+  it("エンジェルウィンクは50%魅了のかしこさ・ガッツダウン技である", () => {
     const wink = profiles.salarymanEtokichi.techniques.find(({ id }) => id === "angelWink");
     expect(wink?.attackStat).toBe("intelligence");
     expect(wink?.gutsDamage).toBeGreaterThan(0);
-    expect(wink?.charmChance).toBe(0.8);
+    expect(wink?.charmChance).toBe(0.5);
     expect(wink?.cameraReleaseDelay).toBe(420);
     expect(wink?.impactDelay).toBeGreaterThan(wink?.cameraReleaseDelay ?? 0);
   });

@@ -62,7 +62,7 @@ describe("純粋な戦闘計算", () => {
 
   it("魅了は10秒続き、回避率を半分にする", () => {
     expect(CHARM_EFFECT.duration).toBe(10000);
-    expect(CHARM_EFFECT.triggerChance).toBe(0.8);
+    expect(CHARM_EFFECT.triggerChance).toBe(0.5);
     expect(applyCharmEvasionPenalty(70, true)).toBe(85);
     expect(applyCharmEvasionPenalty(70, false)).toBe(70);
   });

@@ -9,7 +9,7 @@ export const GENKI_EFFECT = {
 
 export const CHARM_EFFECT = {
   duration: 10000,
-  triggerChance: 0.8,
+  triggerChance: 0.5,
   evasionMultiplier: 0.5,
 } as const;
 
