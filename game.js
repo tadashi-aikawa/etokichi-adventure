@@ -5,6 +5,7 @@ import {
   applyCharmEvasionPenalty,
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  applyPursuitGutsRegenMultiplier,
   applyPursuitMovementMultiplier,
   applyRestraintGutsRegenMultiplier,
   applyRestraintMovementMultiplier,
@@ -124,7 +125,7 @@ import {
     genki: { label: "元気", message: "ぐっすり眠って元気いっぱい！", shortEffect: "G回復×1.35・移動×1.15", effectDuration: GENKI_EFFECT.duration, animationDuration: 1400, cssClass: "status-genki" },
     charm: { label: "魅了", message: "見惚れて行動不能！", shortEffect: "移動・攻撃不可 / 回避率×0.5", effectDuration: CHARM_EFFECT.duration, animationDuration: 0, cssClass: "status-charm" },
     zone: { label: "ゾーン", message: "極限の集中状態へ！", shortEffect: "命中・会心・G回復↑ / 消費G↑・回避↓", effectDuration: ZONE_EFFECT.duration, animationDuration: 1400, cssClass: "status-zone" },
-    pursuit: { label: "追跡", message: "逃げる相手をじっと追い続ける！", shortEffect: "移動×1.45・命中+12・Gダメ×1.35", effectDuration: PURSUIT_EFFECT.duration, animationDuration: 1500, cssClass: "status-pursuit" },
+    pursuit: { label: "追跡", message: "逃げる相手をじっと追い続ける！", shortEffect: "移動×1.45・命中+12・G回復×2.5", effectDuration: PURSUIT_EFFECT.duration, animationDuration: 1500, cssClass: "status-pursuit" },
     pleasure: { label: "快感", message: "3連続被弾でちょっと嬉しくなった！", shortEffect: "発動時G+30・被弾ごとG+15", effectDuration: PLEASURE_EFFECT.duration, animationDuration: 1500, cssClass: "status-pleasure" },
     restraint: { label: "拘束", message: "巨体に取り押さえられて動けない！", shortEffect: "移動・G回復 ×1/3", effectDuration: RESTRAINT_EFFECT.duration, animationDuration: 0, cssClass: "status-restraint" },
   };
@@ -1304,10 +1305,10 @@ import {
       closingTimeDash: "closingTimeDash",
       angelWink: "angelWink",
       approvalMeteor: "approvalMeteorCharge",
-      tatsuoSlap: "physicalWindup",
+      tatsuoSlap: "tatsuoSlap",
       tatsuoRestraint: "physicalWindup",
-      tatsuoRoar: "enemyShot",
-      tatsuoPress: "meteorSummon",
+      tatsuoRoar: "tatsuoRoarWindup",
+      tatsuoPress: "tatsuoPressWindup",
     };
     sound(openingSounds[technique.animation] ?? (technique.kind === "shot" ? "enemyShot" : "enemySwing"));
     if (technique.kind === "shot" && !technique.animation) createProjectile(side);
@@ -1467,27 +1468,46 @@ import {
     } else if (technique.animation === "tatsuoSlap") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        transitionTechniqueSprite(actorSprite, images.slapCast, 180);
+        transitionTechniqueSprite(actorSprite, images.slapCast, 70);
         createTatsuoTechniqueEffect("tatsuoSlap", side);
-      }, 360);
+      }, 100);
     } else if (technique.animation === "tatsuoRestraint") {
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        startFighterMotion(side, "tatsuoRestraint", { duration: 1320 });
+        sound("tatsuoRestraintRush");
+      }, 180);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.restraintCast, 220);
         createTatsuoTechniqueEffect("tatsuoRestraint", side);
-      }, 420);
+        sound("physicalContact");
+      }, 1480);
     } else if (technique.animation === "tatsuoRoar") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.roarCast, 220);
         createTatsuoTechniqueEffect("tatsuoRoar", side);
+        sound("tatsuoRoar");
       }, 420);
     } else if (technique.animation === "tatsuoPress") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.pressCast, 240);
-        createTatsuoTechniqueEffect("tatsuoPress", side);
-      }, 520);
+        startFighterMotion(side, "tatsuoPress", { duration: 1880 });
+        createTatsuoTechniqueEffect("tatsuoPressRise", side);
+        sound("tatsuoPressRise");
+      }, 360);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        createTatsuoTechniqueEffect("tatsuoPressDive", side);
+        sound("tatsuoPressDive");
+      }, 1420);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        createTatsuoTechniqueEffect("tatsuoPressImpact", side);
+        sound("tatsuoPressCrash");
+      }, 2380);
     }
 
     setTimeout(() => {
@@ -2197,7 +2217,6 @@ import {
     if (isSpecialActive(attacker, "real")) multiplier *= 1.5;
     if (isSpecialActive(attacker, "jealousy")) multiplier *= 1.35;
     if (isSpecialActive(attacker, "awakening")) multiplier *= 1.5;
-    if (isSpecialActive(attacker, "pursuit")) multiplier *= PURSUIT_EFFECT.gutsDamageMultiplier;
     if (state.specials[attacker].realExhausted) multiplier *= .5;
     if (isSpecialActive(defender, "real")) multiplier *= .65625;
     if (state.specials[defender].realExhausted) multiplier *= 2;
@@ -2219,6 +2238,7 @@ import {
     if (isSpecialActive(side, "inspiration")) multiplier *= 1.4;
     if (isSpecialActive(side, "zone")) multiplier *= ZONE_EFFECT.gutsRegenMultiplier;
     multiplier = applyGenkiGutsRegenMultiplier(multiplier, isSpecialActive(side, "genki"));
+    multiplier = applyPursuitGutsRegenMultiplier(multiplier, isSpecialActive(side, "pursuit"));
     return applyRestraintGutsRegenMultiplier(multiplier, isSpecialActive(side, "restraint"));
   }
 
@@ -3182,6 +3202,14 @@ import {
       swing: () => whoosh(960, 125, .28, 0, -.28, .021),
       enemySwing: () => whoosh(620, 72, .34, 0, .3, .024),
       physicalWindup: () => { tone(105, .55, "sawtooth", .018, 0, 390, -.18); tone(58, .48, "triangle", .017, .06, 190, .18); noiseBurst(.28, .008, 1350, .18); },
+      tatsuoSlap: () => { whoosh(2200, 74, .18, 0, -.5, .034); tone(132, .18, "square", .021, .03, 48, .38); },
+      tatsuoRestraintRush: () => { whoosh(1100, 52, .72, 0, .42, .032); tone(68, .8, "sawtooth", .026, 0, 38, -.28); noiseBurst(.46, .017, 720, .04, .34); },
+      tatsuoRoarWindup: () => { tone(92, .48, "triangle", .02, 0, 61); noiseBurst(.34, .012, 240, .08, 0); },
+      tatsuoRoar: () => { crowdVoice(82, 1.05, .052, 0, 0, .72); crowdVoice(109, .92, .038, .035, -.18, .63); tone(54, 1.2, "sawtooth", .045, 0, 36); tone(164, .82, "square", .025, .04, 71, .2); noiseBurst(.92, .035, 310, 0, 0); },
+      tatsuoPressWindup: () => { tone(58, .42, "triangle", .026, 0, 126); noiseBurst(.28, .011, 480, .04, 0); },
+      tatsuoPressRise: () => { whoosh(240, 1900, .72, 0, 0, .032); tone(61, .78, "sine", .039, 0, 220); },
+      tatsuoPressDive: () => { whoosh(2600, 42, .88, 0, .18, .048); tone(460, .86, "sawtooth", .032, 0, 38, -.18); noiseBurst(.62, .03, 1550, .08, .24); },
+      tatsuoPressCrash: () => { impact(true); impact(true, .11, -.42); noiseBurst(.74, .058, 360, 0, .38); tone(32, 1.05, "sine", .072, .02, 26); crowdReaction(1.42); },
       punchRush: () => { whoosh(1550, 92, .27, 0, -.66, .027); whoosh(980, 68, .22, .075, .48, .016); },
       ringWhip: () => { whoosh(1850, 150, .58, 0, -.72, .024); tone(340, .48, "triangle", .018, .045, 1120, .5); sparkle([1175,1568], .16, .009); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },

@@ -189,6 +189,83 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
+  function makeTatsuoRoar(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(side, .62, .3);
+    const target = point(targetSide, .5, .42);
+    const dx = target.x - origin.x;
+    const dy = target.y - origin.y;
+    const length = Math.max(160, Math.hypot(dx, dy));
+    const container = new Container();
+    container.position.copyFrom(origin);
+    container.rotation = Math.atan2(dy, dx);
+    const pressureRings = [0, 1, 2].map((index) => {
+      const ring = new Graphics().ellipse(0, 0, 24, 52).stroke({ color: index === 1 ? 0xffad58 : COLORS.white, alpha: .84, width: 5 - index });
+      container.addChild(ring);
+      return ring;
+    });
+    const speedLines = Array.from({ length: 24 }, (_, index) => {
+      const y = (index / 23 - .5) * 250 + (Math.random() - .5) * 28;
+      const start = 28 + Math.random() * length * .36;
+      const lineLength = 90 + Math.random() * 190;
+      const line = new Graphics()
+        .moveTo(start, y)
+        .lineTo(Math.min(length, start + lineLength), y * .35)
+        .stroke({ color: index % 4 ? 0xffc477 : COLORS.white, alpha: .88, width: index % 5 === 0 ? 5 : 2.5 });
+      container.addChild(line);
+      return { line, phase: Math.random(), y };
+    });
+    return add(container, 1180, (progress, elapsed) => {
+      const surge = Math.min(1, progress * 3.4);
+      pressureRings.forEach((ring, index) => {
+        const ringProgress = clamp01(progress * 1.55 - index * .12);
+        ring.position.x = length * ringProgress;
+        ring.scale.set(.45 + ringProgress * 2.7, .38 + ringProgress * 1.35);
+        ring.alpha = (1 - ringProgress) * .88;
+      });
+      speedLines.forEach(({ line, phase, y }, index) => {
+        line.x = ((elapsed * length * (1.2 + phase) + phase * length) % length) * .32;
+        line.y = Math.sin(elapsed * 9 + index) * 5 - y * (1 - surge) * .08;
+        line.scale.x = .35 + surge * 1.18;
+        line.alpha = (1 - Math.max(0, progress - .72) / .28) * (.45 + phase * .5);
+      });
+      container.alpha = progress > .9 ? (1 - progress) / .1 : 1;
+    });
+  }
+
+  function makeTatsuoPressDive(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const target = point(targetSide, .5, .4);
+    const container = new Container();
+    container.position.copyFrom(target);
+    const lines = Array.from({ length: 22 }, (_, index) => {
+      const x = (index / 21 - .5) * 330 + (Math.random() - .5) * 26;
+      const line = new Graphics()
+        .moveTo(x, -270 - Math.random() * 90)
+        .lineTo(x * .28, -50 - Math.random() * 60)
+        .stroke({ color: index % 4 ? 0xffbd67 : COLORS.white, alpha: .9, width: index % 5 === 0 ? 6 : 3 });
+      container.addChild(line);
+      return { line, phase: Math.random() };
+    });
+    return add(container, 980, (progress, elapsed) => {
+      const dive = easeInOut(progress);
+      lines.forEach(({ line, phase }, index) => {
+        line.y = (elapsed * 420 * (1 + phase)) % 150;
+        line.scale.y = .5 + dive * 1.5;
+        line.alpha = (1 - progress) * (.55 + (index % 3) * .18);
+      });
+      container.scale.set(.75 + dive * .45);
+    });
+  }
+
+  function makeTatsuoPressImpact(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    makeBurst({ side: targetSide, yRatio: .68, color: 0x7b4a2c, secondary: 0xffd58a, duration: 1450, radius: 285, count: 26, critical: true });
+    makeBurst({ side: targetSide, yRatio: .72, color: 0xff7a32, secondary: COLORS.white, duration: 900, radius: 190, count: 18, critical: true });
+    makeScreenFlash(0xffc56e, 620);
+    return true;
+  }
+
   function makeEnergyProjectile({ from = "hero", to = "enemy", color = COLORS.gold, secondary = COLORS.white, duration = 520 }) {
     const origin = point(from, from === "hero" ? .72 : .28, .5);
     const target = point(to, .5, .52);
@@ -1547,8 +1624,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     approvalMeteor: (options) => makeApprovalMeteor(options.side),
     tatsuoSlap: (options) => makePunchWind(options.side),
     tatsuoRestraint: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .68, color: 0x9a6c42, secondary: COLORS.white, duration: 980, radius: 175, count: 14 }),
-    tatsuoRoar: (options) => makeBeam({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", fromRatio: [.62, .3], toRatio: [.5, .42], color: 0xffad58, secondary: COLORS.white, width: 54, duration: 1100 }),
-    tatsuoPress: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .68, color: 0x77523b, secondary: 0xffcf7b, duration: 1320, radius: 250, count: 20, critical: true }),
+    tatsuoRoar: (options) => makeTatsuoRoar(options.side),
+    tatsuoPressRise: (options) => makeBurst({ side: options.side, yRatio: .82, color: 0x9a6c42, secondary: 0xffcf7b, duration: 760, radius: 130, count: 12 }),
+    tatsuoPressDive: (options) => makeTatsuoPressDive(options.side),
+    tatsuoPressImpact: (options) => makeTatsuoPressImpact(options.side),
     charmStatus: (options) => makeCharmStatus(options.side),
     charmBreak: (options) => makeCharmStatus(options.side, true),
     galaxyCharge: (options) => makeGalaxyCharge(options.side),

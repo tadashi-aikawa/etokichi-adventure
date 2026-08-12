@@ -37,7 +37,7 @@ export const PURSUIT_EFFECT = {
   triggerDuration: 1500,
   movementMultiplier: 1.45,
   hitRateBonus: 12,
-  gutsDamageMultiplier: 1.35,
+  gutsRegenMultiplier: 2.5,
 } as const;
 
 export const PLEASURE_EFFECT = {
@@ -129,6 +129,10 @@ export function applyRestraintGutsRegenMultiplier(multiplier: number, active: bo
 
 export function applyPursuitMovementMultiplier(multiplier: number, active: boolean): number {
   return active ? multiplier * PURSUIT_EFFECT.movementMultiplier : multiplier;
+}
+
+export function applyPursuitGutsRegenMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * PURSUIT_EFFECT.gutsRegenMultiplier : multiplier;
 }
 
 export function shouldTriggerPleasure(consecutiveHitsReceived: number): boolean {

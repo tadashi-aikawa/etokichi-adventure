@@ -244,6 +244,12 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     if (actor.classes.has("closing-time-dash-sequence") && !nextClasses.has("closing-time-dash-sequence")) {
       actor.scriptedMotion = null;
     }
+    if (actor.classes.has("tatsuo-restraint-sequence") && !nextClasses.has("tatsuo-restraint-sequence")) {
+      actor.scriptedMotion = null;
+    }
+    if (actor.classes.has("tatsuo-press-sequence") && !nextClasses.has("tatsuo-press-sequence")) {
+      actor.scriptedMotion = null;
+    }
     actor.classes = nextClasses;
     actor.container.zIndex = getFighterDepth(side, nextClasses);
   }
@@ -355,6 +361,41 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
         { x: currentCenter.x, y: currentCenter.y - actor.size * .025, rotation: direction * -.08, scale: 1.04, offset: .27 },
         { x: contact.x - direction * actor.size * .12, y: contact.y - actor.size * .025, rotation: direction * -.15, scale: 1.12, offset: .78 },
         { ...contact, rotation: direction * -.08, scale: 1.16, offset: 1 },
+      ];
+    } else if (type === "tatsuoRestraint") {
+      const opponent = actors[side === "hero" ? "enemy" : "hero"];
+      const direction = opponent.baseX >= actor.baseX ? 1 : -1;
+      const contactGap = Math.max(actor.size, opponent.size) * .42;
+      const contact = {
+        x: opponent.baseX - direction * contactGap,
+        y: actor.baseY - actor.size * .5,
+      };
+      keyframes = [
+        { ...currentCenter, rotation: 0, scale: 1, offset: 0 },
+        { x: currentCenter.x - direction * actor.size * .05, y: currentCenter.y + actor.size * .04, rotation: direction * .08, scale: .96, offset: .12 },
+        { x: currentCenter.x + direction * actor.size * .12, y: currentCenter.y - actor.size * .04, rotation: direction * -.06, scale: 1.04, offset: .24 },
+        { x: contact.x - direction * actor.size * .16, y: contact.y - actor.size * .04, rotation: direction * -.12, scale: 1.1, offset: .72 },
+        { ...contact, rotation: direction * -.04, scale: 1.13, offset: 1 },
+      ];
+    } else if (type === "tatsuoPress") {
+      const opponent = actors[side === "hero" ? "enemy" : "hero"];
+      const direction = opponent.baseX >= actor.baseX ? 1 : -1;
+      const aboveHead = {
+        x: opponent.baseX - direction * actor.size * .04,
+        y: opponent.baseY - opponent.size * 1.2,
+      };
+      const impact = {
+        x: opponent.baseX - direction * actor.size * .03,
+        y: opponent.baseY - opponent.size * .5,
+      };
+      keyframes = [
+        { ...currentCenter, rotation: 0, scale: 1, offset: 0 },
+        { x: currentCenter.x - direction * actor.size * .08, y: currentCenter.y + actor.size * .05, rotation: direction * .08, scale: .94, offset: .1 },
+        { x: currentCenter.x + direction * actor.size * .18, y: currentCenter.y - actor.size * .52, rotation: direction * -.12, scale: 1.02, offset: .34 },
+        { ...aboveHead, rotation: direction * -.2, scale: 1.08, offset: .58 },
+        { ...aboveHead, rotation: direction * -.2, scale: 1.1, offset: .68 },
+        { x: impact.x, y: impact.y - actor.size * .22, rotation: direction * .04, scale: 1.18, offset: .9 },
+        { ...impact, rotation: 0, scale: 1.28, offset: 1 },
       ];
     } else {
       return false;
@@ -469,12 +510,13 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       tint = 0xffeb9b;
     }
     if (classes.has("tatsuo-slap-sequence")) {
-      const swing = Math.sin(Math.min(1, actionSeconds / .7) * Math.PI);
-      offsetX += direction * actor.size * .2 * swing;
-      rotation -= direction * .13 * swing;
-      scale += .09 * swing;
+      const progress = Math.min(1, actionSeconds / .42);
+      const snap = Math.sin(progress * Math.PI);
+      offsetX += direction * actor.size * .28 * snap;
+      rotation -= direction * .2 * snap;
+      scale += .12 * snap;
     }
-    if (classes.has("tatsuo-restraint-sequence")) {
+    if (classes.has("tatsuo-restraint-sequence") && !actor.scriptedMotion) {
       const drop = Math.sin(Math.min(1, actionSeconds / 1.15) * Math.PI);
       offsetX += direction * actor.size * .15 * drop;
       offsetY += actor.size * .08 * drop;
@@ -486,7 +528,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale += .13 * roar;
       tint = 0xffd39d;
     }
-    if (classes.has("tatsuo-press-sequence")) {
+    if (classes.has("tatsuo-press-sequence") && !actor.scriptedMotion) {
       const leap = Math.sin(Math.min(1, actionSeconds / 2.25) * Math.PI);
       offsetX += direction * actor.size * .28 * leap;
       offsetY -= actor.size * .34 * leap;

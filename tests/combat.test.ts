@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyGenkiGutsRegenMultiplier,
   applyGenkiMovementMultiplier,
+  applyPursuitGutsRegenMultiplier,
   applyPursuitMovementMultiplier,
   applyRestraintGutsRegenMultiplier,
   applyRestraintMovementMultiplier,
@@ -73,14 +74,16 @@ describe("純粋な戦闘計算", () => {
     expect(applyRestraintMovementMultiplier(1.5, false)).toBe(1.5);
   });
 
-  it("追跡は9秒間、移動・命中・ガッツダメージを強化する", () => {
+  it("追跡は9秒間、移動・命中・ガッツ回復を強化する", () => {
     expect(PURSUIT_EFFECT).toMatchObject({
       duration: 9000,
       triggerDuration: 1500,
       hitRateBonus: 12,
-      gutsDamageMultiplier: 1.35,
+      gutsRegenMultiplier: 2.5,
     });
     expect(applyPursuitMovementMultiplier(1, true)).toBeCloseTo(1.45);
+    expect(applyPursuitGutsRegenMultiplier(1, true)).toBeCloseTo(2.5);
+    expect(applyPursuitGutsRegenMultiplier(1, false)).toBe(1);
   });
 
   it("快感は3連続被弾で発動し、ガッツ回復量を定義する", () => {

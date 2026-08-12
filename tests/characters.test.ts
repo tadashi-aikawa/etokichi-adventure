@@ -75,7 +75,7 @@ describe("キャラクター定義", () => {
 
   it("タツヲは高耐久の重量級で、本気・追跡・快感を持つ", () => {
     const profile = profiles.tatsuo;
-    expect(profile.stats.life).toBe(680);
+    expect(profile.stats.life).toBe(820);
     expect(profile.stats.power).toBe(600);
     expect(profile.stats.defense).toBe(540);
     expect(profile.stats.accuracy).toBe(390);
@@ -93,6 +93,16 @@ describe("キャラクター定義", () => {
       accuracy: 61,
       restraintDuration: 8000,
       range: 1,
+      closesDistance: true,
+    });
+  });
+
+  it("タツヲビンタは短い発生と硬直の高速技である", () => {
+    const slap = profiles.tatsuo.techniques.find(({ id }) => id === "tatsuoSlap");
+    expect(slap).toMatchObject({
+      duration: 1050,
+      impactDelay: 430,
+      range: 0,
     });
   });
 });
