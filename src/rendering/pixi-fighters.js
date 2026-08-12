@@ -141,6 +141,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       classes: new Set(elements[side].root.classList),
       actionStartedAt: performance.now(),
       knockoutStartedAt: 0,
+      pinnedStartedAt: 0,
       classSignature: "",
       baseX: 0,
       baseY: 0,
@@ -233,6 +234,10 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     const isKnockedOut = nextClasses.has("ko-pending");
     if (!wasKnockedOut && isKnockedOut) actor.knockoutStartedAt = performance.now();
     if (!isKnockedOut && !nextClasses.has("result-loser")) actor.knockoutStartedAt = 0;
+    if (!actor.classes.has("tatsuo-pinned") && nextClasses.has("tatsuo-pinned")) {
+      actor.pinnedStartedAt = performance.now();
+    }
+    if (!nextClasses.has("tatsuo-pinned")) actor.pinnedStartedAt = 0;
     const signature = ACTION_CLASSES.filter((name) => nextClasses.has(name)).join("|");
     if (signature !== actor.classSignature) {
       if (nextClasses.has("dodging") && !actor.classes.has("dodging")) createDodgeTrails(actor);
@@ -550,8 +555,9 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale += classes.has("critical-hit") ? .1 * decay : .045 * decay;
     }
     if (classes.has("tatsuo-pinned")) {
-      const pin = easeOutCubic(Math.min(1, actionSeconds / .18));
-      offsetX += direction * actor.size * .05 * pin;
+      const pinnedSeconds = (now - actor.pinnedStartedAt) / 1000;
+      const pin = easeOutCubic(Math.min(1, pinnedSeconds / .18));
+      offsetX += direction * actor.size * .8 * pin;
       offsetY -= actor.size * .35 * pin;
       rotation += Math.PI * .5 * pin;
       horizontalScale *= 1 - .28 * pin;

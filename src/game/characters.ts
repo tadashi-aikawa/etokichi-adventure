@@ -437,7 +437,7 @@ const tatsuoTechniques: TechniqueDefinition[] = [
     range: 1,
     duration: 1900,
     cameraReleaseDelay: 580,
-    impactDelay: 820,
+    impactDelay: 940,
     kind: "strike",
     animation: "tatsuoRestraint",
     attackStat: "power",

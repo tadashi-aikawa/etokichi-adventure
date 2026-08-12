@@ -1497,7 +1497,7 @@ import {
         if (state.phase !== "battle" || token !== state[tokenKey] || !restraintHit) return;
         createTatsuoTechniqueEffect("tatsuoRestraint", side);
         sound("physicalContact");
-      }, 700);
+      }, 820);
     } else if (technique.animation === "tatsuoRoar") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
