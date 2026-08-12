@@ -97,7 +97,7 @@ describe("キャラクター定義", () => {
       restraintDuration: 8000,
       range: 1,
       closesDistance: true,
-      impactDelay: 1250,
+      impactDelay: 820,
     });
   });
 

@@ -1262,6 +1262,7 @@ import {
     if (selectedIndex >= 0) state[selectionKey][technique.range] = selectedIndex;
     const serenityAttack = technique.kind !== "support" && isSpecialActive(side, "serenity");
     const impactDelay = technique.impactDelay ?? (technique.kind === "shot" ? 420 : 270);
+    let restraintHit;
     beginTechniqueResolution(side, serenityAttack);
     stopWalk(side);
     state[gutsKey] -= actionCost;
@@ -1476,10 +1477,27 @@ import {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.restraintRush);
-        startFighterMotion(side, "tatsuoRestraint", { duration: 900 });
+        startFighterMotion(side, "tatsuoRestraint", { duration: 460 });
         createTatsuoTechniqueEffect("tatsuoRestraintRush", side);
         sound("tatsuoRestraintRush");
-      }, 140);
+      }, 60);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, isHero);
+        restraintHit = Math.random() * 100 < hitChance;
+        if (!restraintHit) {
+          resolveHit(side, technique, actionGuts, serenityAttack, false);
+          return;
+        }
+        transitionTechniqueSprite(actorSprite, images.restraintPin);
+        target.classList.add("tatsuo-pinned");
+        setTimeout(() => target.classList.remove("tatsuo-pinned"), 980);
+      }, 520);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey] || !restraintHit) return;
+        createTatsuoTechniqueEffect("tatsuoRestraint", side);
+        sound("physicalContact");
+      }, 700);
     } else if (technique.animation === "tatsuoRoar") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
@@ -1499,7 +1517,7 @@ import {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createTatsuoTechniqueEffect("tatsuoPressDive", side);
         sound("tatsuoPressDive");
-      }, 1420);
+      }, 1660);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createTatsuoTechniqueEffect("tatsuoPressImpact", side);
@@ -1509,16 +1527,12 @@ import {
 
     setTimeout(() => {
       if (state.phase !== "battle" || token !== state[tokenKey]) return;
-      const outcome = technique.animation === "sutekichiNap"
-        ? resolveRecoveryTechnique(side, technique, actionGuts)
-        : resolveHit(side, technique, actionGuts, serenityAttack);
-      if (technique.animation === "tatsuoRestraint" && outcome?.hit) {
-        transitionTechniqueSprite(actorSprite, images.restraintPin);
-        target.classList.add("tatsuo-pinned");
-        createTatsuoTechniqueEffect("tatsuoRestraint", side);
-        sound("physicalContact");
-        setTimeout(() => target.classList.remove("tatsuo-pinned"), 900);
+      if (technique.animation === "tatsuoRestraint") {
+        if (restraintHit) resolveHit(side, technique, actionGuts, serenityAttack, true);
+        return;
       }
+      if (technique.animation === "sutekichiNap") resolveRecoveryTechnique(side, technique, actionGuts);
+      else resolveHit(side, technique, actionGuts, serenityAttack);
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;

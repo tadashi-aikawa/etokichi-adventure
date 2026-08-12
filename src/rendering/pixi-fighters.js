@@ -73,9 +73,10 @@ function sampleMotionKeyframes(keyframes, progress) {
     const previous = keyframes[index - 1];
     if (progress > next.offset) continue;
     const local = (progress - previous.offset) / Math.max(.0001, next.offset - previous.offset);
+    const verticalLocal = next.verticalEasing === "gravity" ? local ** 2 : local;
     return {
       x: previous.x + (next.x - previous.x) * local,
-      y: previous.y + (next.y - previous.y) * local,
+      y: previous.y + (next.y - previous.y) * verticalLocal,
       rotation: previous.rotation + (next.rotation - previous.rotation) * local,
       scale: previous.scale + (next.scale - previous.scale) * local,
     };
@@ -372,9 +373,9 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       };
       keyframes = [
         { ...currentCenter, rotation: 0, scale: 1, offset: 0 },
-        { x: currentCenter.x - direction * actor.size * .05, y: currentCenter.y + actor.size * .04, rotation: direction * .08, scale: .96, offset: .12 },
-        { x: currentCenter.x + direction * actor.size * .12, y: currentCenter.y - actor.size * .04, rotation: direction * -.06, scale: 1.04, offset: .24 },
-        { x: contact.x - direction * actor.size * .16, y: contact.y - actor.size * .04, rotation: direction * -.12, scale: 1.1, offset: .72 },
+        { x: currentCenter.x - direction * actor.size * .03, y: currentCenter.y + actor.size * .035, rotation: direction * .07, scale: .97, offset: .08 },
+        { x: currentCenter.x + direction * actor.size * .14, y: currentCenter.y - actor.size * .035, rotation: direction * -.07, scale: 1.05, offset: .2 },
+        { x: contact.x - direction * actor.size * .12, y: contact.y - actor.size * .035, rotation: direction * -.13, scale: 1.11, offset: .68 },
         { ...contact, rotation: direction * -.04, scale: 1.13, offset: 1 },
       ];
     } else if (type === "tatsuoPress") {
@@ -392,10 +393,9 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
         { ...currentCenter, rotation: 0, scale: 1, offset: 0 },
         { x: currentCenter.x - direction * actor.size * .08, y: currentCenter.y + actor.size * .05, rotation: direction * .08, scale: .94, offset: .1 },
         { x: currentCenter.x + direction * actor.size * .18, y: currentCenter.y - actor.size * .52, rotation: direction * -.12, scale: 1.02, offset: .34 },
-        { ...aboveHead, rotation: direction * -.2, scale: 1.08, offset: .58 },
-        { ...aboveHead, rotation: direction * -.2, scale: 1.1, offset: .68 },
-        { x: impact.x, y: impact.y - actor.size * .22, rotation: direction * .04, scale: 1.18, offset: .9 },
-        { ...impact, rotation: 0, scale: 1.28, offset: 1 },
+        { ...aboveHead, rotation: direction * -.2, scale: 1.08, offset: .56 },
+        { ...aboveHead, rotation: direction * -.2, scale: 1.1, offset: .64 },
+        { ...impact, rotation: 0, scale: 1.28, verticalEasing: "gravity", offset: 1 },
       ];
     } else {
       return false;
