@@ -502,7 +502,8 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       scale += .11 * dash;
     }
     if (classes.has("angel-wink-sequence")) {
-      const wink = Math.sin(Math.min(1, actionSeconds / 1.35) * Math.PI);
+      const winkProgress = Math.max(0, Math.min(1, (actionSeconds - .34) / .54));
+      const wink = Math.sin(winkProgress * Math.PI);
       offsetY -= actor.size * .055 * wink;
       rotation = direction * .045 * wink;
       scale += .07 * wink;

@@ -580,7 +580,7 @@ import {
     refs.gameShell.classList.remove("prebattle");
     refs.startScreen.classList.remove("visible");
     refs.resultScreen.classList.remove("visible");
-    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.removeProperty("--victory-focus-x");
     refs.hero.className = "combatant hero";
     refs.enemy.className = "combatant enemy";
@@ -973,7 +973,7 @@ import {
     state[busyKey] = now + technique.duration;
     state.actionLockUntil = now + technique.duration;
     state.actionActor = side;
-    startCamera(side, technique.duration, technique.cameraReleaseDelay);
+    startCamera(side, technique.duration, technique.cameraReleaseDelay, technique.animation === "angelWink");
     const token = ++state[tokenKey];
     const actionStartedAt = now;
     const isPentagramNova = technique.animation === "pentagramNova";
@@ -1269,7 +1269,7 @@ import {
     state[busyKey] = now + technique.duration;
     state.actionLockUntil = now + technique.duration;
     state.actionActor = side;
-    startCamera(side, technique.duration, technique.cameraReleaseDelay);
+    startCamera(side, technique.duration, technique.cameraReleaseDelay, technique.animation === "angelWink");
     const token = ++state[tokenKey];
     actor.classList.remove("moving-forward", "moving-back");
     const animationClasses = {
@@ -1451,10 +1451,13 @@ import {
     } else if (technique.animation === "angelWink") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        transitionTechniqueSprite(actorSprite, images.angelWinkCast, 220);
+        transitionTechniqueSprite(actorSprite, images.angelWinkCast, 110);
+      }, 470);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAngelWink(side);
         sound("angelWinkLaunch");
-      }, 520);
+      }, 700);
     } else if (technique.animation === "approvalMeteor") {
       refs.arena.classList.add("approval-meteor-mode");
       setTimeout(() => {
@@ -1729,7 +1732,7 @@ import {
   }
 
   function startPushCamera(side, duration) {
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.setProperty("--push-camera-duration", `${duration}ms`);
     refs.arena.style.setProperty("--push-travel-duration", `${PUSH_TRAVEL_DURATION}ms`);
     void refs.arena.offsetWidth;
@@ -1737,16 +1740,17 @@ import {
     setTimeout(() => refs.arena.classList.remove("push-camera", "push-camera-hero", "push-camera-enemy"), duration);
   }
 
-  function startCamera(side, duration, releaseDelay = null) {
+  function startCamera(side, duration, releaseDelay = null, faceCloseup = false) {
     const cameraClass = side === "hero" ? "camera-hero" : "camera-enemy";
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup");
     refs.arena.style.setProperty("--camera-duration", `${duration}ms`);
     if (Number.isFinite(releaseDelay)) refs.arena.style.setProperty("--camera-release-delay", `${releaseDelay}ms`);
     else refs.arena.style.removeProperty("--camera-release-delay");
     void refs.arena.offsetWidth;
     refs.arena.classList.add(cameraClass);
     if (Number.isFinite(releaseDelay)) refs.arena.classList.add("camera-track-release");
-    setTimeout(() => refs.arena.classList.remove(cameraClass, "camera-track-release"), duration);
+    if (faceCloseup) refs.arena.classList.add("camera-face-closeup");
+    setTimeout(() => refs.arena.classList.remove(cameraClass, "camera-track-release", "camera-face-closeup"), duration);
   }
 
   function hasBattleSpecial(side, type) {
@@ -1976,7 +1980,7 @@ import {
     const token = ++state.specialCameraToken;
     const element = side === "hero" ? refs.hero : refs.enemy;
     const totalDuration = duration + SPECIAL_POST_PAUSE;
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.hero.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.enemy.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.arena.style.setProperty("--special-action-duration", `${duration}ms`);
@@ -2339,7 +2343,7 @@ import {
     refs.hero.classList.remove(...sharedTechniqueClasses);
     refs.enemy.classList.remove(...sharedTechniqueClasses);
     refs.arena.classList.remove("sutekichi-comet-mode");
-    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.arena.classList.add("battle-ending");
     updateUI();
 

@@ -363,7 +363,7 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
     critical: 6,
     range: 2,
     duration: 3200,
-    cameraReleaseDelay: 1080,
+    cameraReleaseDelay: 700,
     impactDelay: 2150,
     kind: "shot",
     animation: "angelWink",

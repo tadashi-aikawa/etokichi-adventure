@@ -71,6 +71,8 @@ describe("キャラクター定義", () => {
     expect(wink?.attackStat).toBe("intelligence");
     expect(wink?.gutsDamage).toBeGreaterThan(0);
     expect(wink?.charmChance).toBe(0.8);
+    expect(wink?.cameraReleaseDelay).toBe(700);
+    expect(wink?.impactDelay).toBeGreaterThan(wink?.cameraReleaseDelay ?? 0);
   });
 
   it("タツヲは高耐久の重量級で、本気・追跡・快感を持つ", () => {
