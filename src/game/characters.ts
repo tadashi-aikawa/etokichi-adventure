@@ -599,6 +599,9 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
     tatsuo: {
       id: "tatsuo",
       baseFacing: "left",
+      imageFacings: {
+        restraintRush: "right",
+      },
       visualScale: 1.08,
       name: "タツヲ",
       subtitle: "SOFT PURSUER",

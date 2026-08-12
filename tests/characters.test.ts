@@ -86,6 +86,7 @@ describe("キャラクター定義", () => {
     expect(profile.images.statusPleasure).toBe("assets/characters/tatsuo/status-pleasure.webp");
     expect(profile.images.restraintRush).toBe("assets/characters/tatsuo/restraint-rush.webp");
     expect(profile.images.restraintPin).toBe("assets/characters/tatsuo/restraint-pin.webp");
+    expect(profile.imageFacings?.restraintRush).toBe("right");
   });
 
   it("取り押さえは重い消費と低命中の8秒拘束技である", () => {
