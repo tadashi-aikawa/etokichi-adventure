@@ -251,6 +251,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     tracksRelease: false,
     shakeStartedAt: -Infinity,
     wasShaking: false,
+    closeupMode: null,
   };
 
   function readDuration(property, fallback) {
@@ -265,7 +266,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     let duration = 0;
     let releaseAt = 0;
     let tracksRelease = false;
-    let faceCloseup = false;
+    let closeupMode = null;
     if (arena.classList.contains("victory-climax")) {
       mode = "victory";
       side = arena.classList.contains("victory-enemy") ? "enemy" : "hero";
@@ -283,7 +284,11 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       side = arena.classList.contains("camera-enemy") ? "enemy" : "hero";
       duration = readDuration("--camera-duration", 1000);
       tracksRelease = arena.classList.contains("camera-track-release");
-      faceCloseup = arena.classList.contains("camera-face-closeup");
+      closeupMode = arena.classList.contains("camera-aster-evil-eye-closeup")
+        ? "aster-evil-eye"
+        : arena.classList.contains("camera-aster-death-energy-closeup")
+          ? "aster-death-energy"
+          : arena.classList.contains("camera-face-closeup") ? "face" : null;
       releaseAt = readDuration("--camera-release-delay", duration * .4);
     }
     const activeCameraClasses = mode === "victory"
@@ -299,14 +304,14 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       const previous = new Set((record.oldValue || "").split(/\s+/));
       return activeCameraClasses.some((className) => !previous.has(className));
     });
-    if (mode && (mode !== camera.mode || side !== camera.side || faceCloseup !== camera.faceCloseup || cameraRestarted)) {
+    if (mode && (mode !== camera.mode || side !== camera.side || closeupMode !== camera.closeupMode || cameraRestarted)) {
       camera.startedAt = now;
       camera.duration = duration;
       camera.releaseAt = releaseAt;
       camera.tracksRelease = tracksRelease;
     }
     camera.mode = mode;
-    camera.faceCloseup = faceCloseup;
+    camera.closeupMode = closeupMode;
     camera.side = side;
     const shaking = arena.classList.contains("shake");
     const shakeRestarted = records.some((record) => !(record.oldValue || "").split(/\s+/).includes("shake"));
@@ -359,15 +364,16 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
         otherAlpha = interpolateKeyframes(progress, [[0, 1], [.05, .48], [.2, .48], [.28, 1], [1, 1]]);
         targetYOffset = -.07;
       } else {
-        if (camera.faceCloseup) {
+        if (camera.closeupMode) {
           const entryEnd = clamp(160 / camera.duration, .035, .1);
           const releaseProgress = clamp(camera.releaseAt / camera.duration, entryEnd + .035, .42);
           const returnEnd = Math.min(.88, releaseProgress + clamp(1500 / camera.duration, .32, .58));
+          const maximumZoom = camera.closeupMode === "aster-evil-eye" ? 5.2 : camera.closeupMode === "aster-death-energy" ? 2.85 : 5;
           const closeupAmount = interpolateKeyframes(progress, [
             [0, 0], [entryEnd, 1], [releaseProgress, 1], [returnEnd, 0], [1, 0],
           ]);
           const closeupZoom = interpolateKeyframes(progress, [
-            [0, 1], [entryEnd, 5], [releaseProgress, 5], [returnEnd, 1], [1, 1],
+            [0, 1], [entryEnd, maximumZoom], [releaseProgress, maximumZoom], [returnEnd, 1], [1, 1],
           ]);
           zoom = closeupZoom;
           // 通常はステージのzoomを相殺するが、顔アップだけはカメラと同率でキャラも拡大する。
@@ -378,7 +384,13 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
           otherAlpha = interpolateKeyframes(progress, [
             [0, 1], [entryEnd, 0], [releaseProgress, 0], [returnEnd, 1], [1, 1],
           ]);
-          const face = fighterSystem.getBasePoint(camera.side, .5, .13);
+          const focusX = camera.closeupMode === "aster-evil-eye"
+            ? (camera.side === "hero" ? .6 : .4)
+            : camera.closeupMode === "aster-death-energy"
+              ? (camera.side === "hero" ? .38 : .62)
+              : .5;
+          const focusY = camera.closeupMode === "aster-evil-eye" ? .27 : camera.closeupMode === "aster-death-energy" ? .22 : .13;
+          const face = fighterSystem.getBasePoint(camera.side, focusX, focusY);
           pivotX += (face.x - pivotX) * closeupAmount;
           pivotY += (face.y - pivotY) * closeupAmount;
         } else if (camera.tracksRelease) {

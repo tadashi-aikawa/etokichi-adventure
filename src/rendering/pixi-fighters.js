@@ -562,6 +562,15 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       rotation -= direction * .22 * leap;
       scale += .12 * leap;
     }
+    if (classes.has("aster-tail-sweep-sequence")) {
+      const spinProgress = Math.min(1, actionSeconds / 1.05);
+      const spinAngle = spinProgress * Math.PI * 2;
+      horizontalScale *= Math.cos(spinAngle);
+      offsetX += direction * actor.size * .1 * Math.sin(spinAngle);
+      offsetY -= actor.size * .045 * Math.sin(spinProgress * Math.PI);
+      rotation += direction * .08 * Math.sin(spinAngle);
+      scale += .1 * Math.sin(spinProgress * Math.PI);
+    }
     if (classes.has("status-charm")) {
       rotation += Math.sin(elapsed * 3.4) * .045;
       offsetX += Math.sin(elapsed * 2.7) * actor.size * .012;

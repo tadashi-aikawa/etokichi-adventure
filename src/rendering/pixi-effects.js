@@ -1575,6 +1575,173 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
+  function asterFacingRatio(side, heroRatio) {
+    return side === "hero" ? heroRatio : 1 - heroRatio;
+  }
+
+  function makeAsterTailSweep(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const center = point(side, .5, .62);
+    const direction = side === "hero" ? 1 : -1;
+    const container = new Container();
+    container.position.copyFrom(center);
+    const arcs = [0, 1, 2].map((index) => {
+      const radius = 118 + index * 25;
+      const arc = new Graphics()
+        .arc(0, 0, radius, -.82 * Math.PI, .42 * Math.PI)
+        .stroke({ color: index === 1 ? 0xe4c66d : index === 2 ? 0xffffff : 0x7045c7, alpha: .9 - index * .17, width: 18 - index * 4 });
+      arc.scale.x = direction;
+      container.addChild(arc);
+      return arc;
+    });
+    const afterimages = Array.from({ length: 14 }, (_, index) => {
+      const mote = glow(index % 3 === 0 ? 0xffffff : index % 2 ? 0xe4c66d : 0x7045c7, 16 + index % 4 * 5, .9);
+      container.addChild(mote);
+      return mote;
+    });
+    makeBurst({ side: targetSide, yRatio: .62, color: 0x34205f, secondary: 0xe4c66d, duration: 900, radius: 175, count: 17 });
+    return add(container, 940, (progress, elapsed) => {
+      const sweep = easeOut(clamp01(progress * 1.35));
+      container.rotation = direction * (-.46 + sweep * 1.24);
+      arcs.forEach((arc, index) => {
+        arc.alpha = (1 - progress) * (.92 - index * .15);
+        arc.scale.y = .42 + sweep * (.62 + index * .07);
+      });
+      afterimages.forEach((mote, index) => {
+        const angle = -.72 * Math.PI + sweep * 1.5 * Math.PI - index * .075;
+        const radius = 138 + index % 4 * 15;
+        mote.position.set(Math.cos(angle) * radius * direction, Math.sin(angle) * radius * .58);
+        mote.scale.set(.7 + Math.sin(elapsed * 18 + index) * .18);
+        mote.alpha = Math.max(0, 1 - progress * 1.12) * (.48 + index % 3 * .16);
+      });
+    });
+  }
+
+  function makeAsterMigration(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const origin = point(targetSide, .5, .48);
+    const destination = point(side, asterFacingRatio(side, .57), .4);
+    const dx = destination.x - origin.x;
+    const dy = destination.y - origin.y;
+    const container = new Container();
+    const vortex = [0, 1, 2].map((index) => {
+      const ring = new Graphics().ellipse(0, 0, 56 + index * 22, 30 + index * 12)
+        .stroke({ color: index % 2 ? 0x63e0dc : 0xc766e8, alpha: .84, width: 7 - index });
+      container.addChild(ring);
+      return ring;
+    });
+    const motes = Array.from({ length: 42 }, (_, index) => {
+      const life = index % 2 === 0;
+      const mote = glow(life ? 0xff66bd : 0x63e0dc, 10 + index % 5 * 4, .92);
+      container.addChild(mote);
+      return { mote, offset: index / 42, phase: index * 1.73, life };
+    });
+    container.position.copyFrom(origin);
+    makeBeam({ from: targetSide, to: side, fromRatio: [.5, .43], toRatio: [asterFacingRatio(side, .57), .38], color: 0xff4fae, secondary: 0xc766e8, width: 28, duration: 1480 });
+    makeBeam({ from: targetSide, to: side, fromRatio: [.5, .56], toRatio: [asterFacingRatio(side, .57), .43], color: 0x63e0dc, secondary: 0xbdfcff, width: 22, duration: 1540 });
+    makeScreenFlash(0x8b42bd, 460);
+    return add(container, 1600, (progress, elapsed) => {
+      const suction = easeInOut(clamp01(progress * 1.08));
+      vortex.forEach((ring, index) => {
+        ring.rotation = elapsed * (index % 2 ? -4.2 : 3.4);
+        ring.scale.set(.72 + Math.sin(elapsed * 10 + index) * .12);
+        ring.alpha = (1 - progress) * (.9 - index * .16);
+      });
+      motes.forEach(({ mote, offset, phase, life }) => {
+        const travel = (suction * 1.55 + offset) % 1;
+        const spiral = (1 - travel) * (72 + offset * 38);
+        mote.position.set(
+          dx * travel + Math.cos(elapsed * 11 + phase) * spiral * .34,
+          dy * travel + Math.sin(elapsed * 11 + phase) * spiral,
+        );
+        mote.scale.set(.45 + travel * 1.25, .45 + travel * .55);
+        mote.alpha = (1 - progress) * (life ? .92 : .78);
+      });
+      container.alpha = progress > .9 ? (1 - progress) / .1 : 1;
+    });
+  }
+
+  function makeAsterEvilEyeCharge(side) {
+    const eye = point(side, asterFacingRatio(side, .6), .27);
+    const container = new Container();
+    container.position.copyFrom(eye);
+    const aura = glow(0xc642ff, 230, .82);
+    const core = glow(0xffffff, 76, 1);
+    const rings = [0, 1, 2].map((index) => {
+      const ring = new Graphics().circle(0, 0, 31 + index * 17)
+        .stroke({ color: index === 1 ? 0xff8ced : 0xc642ff, alpha: .9, width: 5 - index });
+      container.addChild(ring);
+      return ring;
+    });
+    const rays = new Graphics();
+    for (let index = 0; index < 12; index += 1) {
+      const angle = index * Math.PI * 2 / 12;
+      rays.moveTo(Math.cos(angle) * 42, Math.sin(angle) * 42)
+        .lineTo(Math.cos(angle) * (94 + index % 3 * 18), Math.sin(angle) * (94 + index % 3 * 18));
+    }
+    rays.stroke({ color: 0xffd8ff, alpha: .88, width: 4 });
+    container.addChildAt(aura, 0);
+    container.addChild(rays, core);
+    return add(container, 980, (progress, elapsed) => {
+      const flare = easeOut(clamp01(progress * 2.5));
+      aura.scale.set(.35 + flare * 1.15 + Math.sin(elapsed * 20) * .1);
+      core.scale.set(.35 + flare * .75 + Math.sin(elapsed * 28) * .14);
+      rays.rotation = elapsed * 1.8;
+      rays.scale.set(.35 + flare * .85);
+      rays.alpha = (1 - Math.max(0, progress - .72) / .28) * .86;
+      rings.forEach((ring, index) => {
+        ring.rotation = elapsed * (index % 2 ? -2.4 : 2.1);
+        ring.scale.set(.35 + flare * (1 + index * .2));
+        ring.alpha = (1 - progress) * (.92 - index * .18);
+      });
+    });
+  }
+
+  function makeAsterDeathEnergy(side) {
+    const targetSide = side === "hero" ? "enemy" : "hero";
+    const screen = getScreen();
+    const fromRatio = [asterFacingRatio(side, .3), .23];
+    const origin = point(side, fromRatio[0], fromRatio[1]);
+    const target = point(targetSide, .5, .46);
+    const dx = target.x - origin.x;
+    const dy = target.y - origin.y;
+    const length = Math.max(180, Math.hypot(dx, dy));
+    const fogHeight = Math.max(300, screen.height * .58);
+    const fog = new Container();
+    fog.position.copyFrom(origin);
+    fog.rotation = Math.atan2(dy, dx);
+    const clouds = Array.from({ length: 38 }, (_, index) => {
+      const dark = index % 4 !== 0;
+      const cloud = new Container();
+      const radius = 68 + index % 6 * 19;
+      const halo = glow(index % 3 ? 0x8c35b0 : 0xe2a5ff, radius * 2.8, dark ? .42 : .62);
+      halo.scale.set(1.5 + index % 3 * .28, .72 + index % 4 * .13);
+      const body = new Graphics().ellipse(0, 0, radius * (1.15 + index % 4 * .14), radius * (.54 + index % 5 * .07))
+        .fill({ color: dark ? (index % 2 ? 0x21042f : 0x4b0d61) : 0x8a36a8, alpha: dark ? .34 : .24 });
+      cloud.addChild(halo, body);
+      fog.addChild(cloud);
+      return {
+        cloud,
+        lag: (index % 12) * .025,
+        depth: .32 + index % 7 * .09,
+        wave: (index % 2 ? 1 : -1) * fogHeight * (.12 + index % 5 * .035),
+      };
+    });
+    makeScreenFlash(0x9e55c7, 620);
+    return add(fog, 1500, (progress, elapsed) => {
+      clouds.forEach(({ cloud, lag, depth, wave }, index) => {
+        const travel = easeInOut(clamp01((progress - lag) / Math.max(.2, .72 - lag)));
+        const turbulence = Math.sin(elapsed * (2.2 + depth) + index * 1.43);
+        cloud.position.set(
+          travel * length - (1 - travel) * 70 + Math.sin(elapsed * 1.3 + index) * 35,
+          turbulence * wave + Math.cos(elapsed * 1.7 + index * .71) * fogHeight * .08,
+        );
+        cloud.rotation = turbulence * .28;
+        cloud.alpha = (1 - Math.max(0, progress - .82) / .18) * (index % 4 === 0 ? .5 : .58 + depth * .12);
+      });
+    });
+  }
+
   const handlers = {
     criticalScreenBurst: (options) => makeBurst({ side: options.side, yRatio: .48, color: COLORS.ember, secondary: COLORS.white, duration: 900, radius: 210, count: 18, critical: true }),
     impact: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .55, color: options.characterId === "kuroboshi" || (!options.characterId && options.side === "enemy") ? COLORS.violet : COLORS.gold, secondary: COLORS.white, duration: 480, radius: 120, count: 10 }),
@@ -1629,17 +1796,17 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     tatsuoPressRise: (options) => makeBurst({ side: options.side, yRatio: .82, color: 0x9a6c42, secondary: 0xffcf7b, duration: 760, radius: 130, count: 12 }),
     tatsuoPressDive: (options) => makeTatsuoPressDive(options.side),
     tatsuoPressImpact: (options) => makeTatsuoPressImpact(options.side),
-    asterTailSweep: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .62, color: 0x34205f, secondary: 0xe4c66d, duration: 820, radius: 155, count: 15 }),
-    asterMigrationCharge: (options) => makeCharge({ side: options.side, xRatio: .58, yRatio: .42, color: 0x7045c7, secondary: 0x63e0dc, duration: 1500, radius: 82, count: 14 }),
-    asterMigration: (options) => makeBeam({ from: options.side === "hero" ? "enemy" : "hero", to: options.side, fromRatio: [.5, .5], toRatio: [.58, .42], color: 0xa854ca, secondary: 0x63e0dc, width: 18, duration: 950, reverse: true }),
-    asterEvilEyeCharge: (options) => makeCharge({ side: options.side, xRatio: .55, yRatio: .2, color: 0xb64cff, secondary: 0xffd6ff, duration: 850, radius: 44, count: 8 }),
+    asterTailSweep: (options) => makeAsterTailSweep(options.side),
+    asterMigrationCharge: (options) => makeCharge({ side: options.side, xRatio: asterFacingRatio(options.side, .57), yRatio: .4, color: 0x7045c7, secondary: 0x63e0dc, duration: 1250, radius: 120, count: 22 }),
+    asterMigration: (options) => makeAsterMigration(options.side),
+    asterEvilEyeCharge: (options) => makeAsterEvilEyeCharge(options.side),
     asterEvilEye: (options) => {
-      makeBeam({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", fromRatio: [.55, .2], toRatio: [.5, .45], color: 0x9b2bff, secondary: 0xff7ce8, width: 12, duration: 520 });
+      makeBeam({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", fromRatio: [asterFacingRatio(options.side, .6), .27], toRatio: [.5, .45], color: 0x9b2bff, secondary: 0xff7ce8, width: 18, duration: 580 });
       makeScreenFlash(0xd9b4ff, 360);
       return true;
     },
-    asterDeathEnergyCharge: (options) => makeCharge({ side: options.side, xRatio: .58, yRatio: .18, color: 0x4c176f, secondary: 0xc979ff, duration: 1750, radius: 110, count: 16 }),
-    asterDeathEnergy: (options) => makeEnergyProjectile({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", color: 0x371150, secondary: 0xd58aff, duration: 920 }),
+    asterDeathEnergyCharge: (options) => makeCharge({ side: options.side, xRatio: asterFacingRatio(options.side, .3), yRatio: .23, color: 0x4c176f, secondary: 0xc979ff, duration: 1900, radius: 150, count: 24 }),
+    asterDeathEnergy: (options) => makeAsterDeathEnergy(options.side),
     petrificationStatus: (options) => makeBurst({ side: options.side, yRatio: .52, color: 0x7d8793, secondary: 0xd8dde2, duration: 920, radius: 165, count: 18 }),
     petrificationBreak: (options) => makeBurst({ side: options.side, yRatio: .58, color: 0x89939d, secondary: COLORS.white, duration: 720, radius: 120, count: 14 }),
     charmStatus: (options) => makeCharmStatus(options.side),

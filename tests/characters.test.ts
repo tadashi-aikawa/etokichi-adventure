@@ -142,7 +142,7 @@ describe("キャラクター定義", () => {
     expect(profile.images.walk).toHaveLength(3);
   });
 
-  it("魔眼は通常ダメージとガッツダウンを伴う50%の8秒石化技である", () => {
+  it("魔眼は通常ダメージとガッツダウンを伴う50%の10秒石化技である", () => {
     const evilEye = profiles.aster.techniques.find(({ id }) => id === "asterEvilEye");
     expect(evilEye).toMatchObject({
       attackStat: "intelligence",
@@ -150,7 +150,7 @@ describe("キャラクター定義", () => {
       gutsDamage: 18,
       accuracy: 85,
       petrifyChance: 0.5,
-      petrifyDuration: 8000,
+      petrifyDuration: 10000,
       range: 2,
     });
   });
@@ -163,6 +163,17 @@ describe("キャラクター定義", () => {
       lifeDrainRatio: 1,
       gutsDrainRatio: 1,
       range: 1,
+    });
+  });
+
+  it("デスエナジーは消費29で命中が高い知力技である", () => {
+    const deathEnergy = profiles.aster.techniques.find(({ id }) => id === "asterDeathEnergy");
+    expect(deathEnergy).toMatchObject({
+      cost: 29,
+      power: 155,
+      accuracy: 94,
+      attackStat: "intelligence",
+      range: 3,
     });
   });
 });

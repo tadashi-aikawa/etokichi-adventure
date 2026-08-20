@@ -33,7 +33,7 @@ export const RESTRAINT_EFFECT = {
 } as const;
 
 export const PETRIFICATION_EFFECT = {
-  duration: 8000,
+  duration: 10000,
   triggerChance: 0.5,
   hitRate: 100,
   movementMultiplier: 0,

@@ -584,7 +584,7 @@ import {
     refs.gameShell.classList.remove("prebattle");
     refs.startScreen.classList.remove("visible");
     refs.resultScreen.classList.remove("visible");
-    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.removeProperty("--victory-focus-x");
     refs.hero.className = "combatant hero";
     refs.enemy.className = "combatant enemy";
@@ -1273,7 +1273,10 @@ import {
     state[busyKey] = now + technique.duration;
     state.actionLockUntil = now + technique.duration;
     state.actionActor = side;
-    startCamera(side, technique.duration, technique.cameraReleaseDelay, technique.animation === "angelWink");
+    const asterCloseupMode = technique.animation === "asterEvilEye"
+      ? "aster-evil-eye"
+      : technique.animation === "asterDeathEnergy" ? "aster-death-energy" : false;
+    startCamera(side, technique.duration, technique.cameraReleaseDelay, technique.animation === "angelWink" ? "face" : asterCloseupMode);
     const token = ++state[tokenKey];
     actor.classList.remove("moving-forward", "moving-back");
     const animationClasses = {
@@ -1319,9 +1322,9 @@ import {
       tatsuoRestraint: "physicalWindup",
       tatsuoRoar: "tatsuoRoarWindup",
       tatsuoPress: "tatsuoPressWindup",
-      asterDeathEnergy: "charge",
-      asterEvilEye: "rayCharge",
-      asterMigration: "orbitCharge",
+      asterDeathEnergy: "asterDeathLaugh",
+      asterEvilEye: "asterEvilEyeFocus",
+      asterMigration: "asterMigrationCharge",
       asterTailSweep: "physicalWindup",
     };
     sound(openingSounds[technique.animation] ?? (technique.kind === "shot" ? "enemyShot" : "enemySwing"));
@@ -1541,44 +1544,56 @@ import {
     } else if (technique.animation === "asterTailSweep") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        transitionTechniqueSprite(actorSprite, images.tailSweepCast, 100);
+        transitionTechniqueSprite(actorSprite, images.tailSweepWindup, 120);
+      }, 100);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.tailSweepCast, 90);
+      }, 410);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        transitionTechniqueSprite(actorSprite, images.tailSweepStrike, 80);
         createAsterTechniqueEffect("asterTailSweep", side);
         sound("ringWhip");
-      }, 180);
+      }, 720);
     } else if (technique.animation === "asterMigration") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.migrationCast, 220);
         createAsterTechniqueEffect("asterMigrationCharge", side);
-      }, 320);
+      }, 220);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterMigration", side);
-        sound("orbitLaunch");
-      }, 1450);
+        sound("asterMigrationDrain");
+      }, 1050);
     } else if (technique.animation === "asterEvilEye") {
       refs.arena.classList.add("aster-evil-eye-mode");
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.evilEyeCast, 110);
         createAsterTechniqueEffect("asterEvilEyeCharge", side);
-      }, 130);
+      }, 150);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        sound("asterEvilEyeGlow");
+      }, 420);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterEvilEye", side);
         sound("rayLock");
-      }, 920);
+      }, 1080);
     } else if (technique.animation === "asterDeathEnergy") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.deathEnergyCast, 240);
         createAsterTechniqueEffect("asterDeathEnergyCharge", side);
-      }, 300);
+      }, 260);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterDeathEnergy", side);
-        sound("orbitLaunch");
-      }, 1850);
+        sound("asterDeathMist");
+      }, 2050);
     }
 
     setTimeout(() => {
@@ -1811,7 +1826,7 @@ import {
   }
 
   function startPushCamera(side, duration) {
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
     refs.arena.style.setProperty("--push-camera-duration", `${duration}ms`);
     refs.arena.style.setProperty("--push-travel-duration", `${PUSH_TRAVEL_DURATION}ms`);
     void refs.arena.offsetWidth;
@@ -1819,17 +1834,18 @@ import {
     setTimeout(() => refs.arena.classList.remove("push-camera", "push-camera-hero", "push-camera-enemy"), duration);
   }
 
-  function startCamera(side, duration, releaseDelay = null, faceCloseup = false) {
+  function startCamera(side, duration, releaseDelay = null, closeupMode = false) {
     const cameraClass = side === "hero" ? "camera-hero" : "camera-enemy";
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup");
+    const closeupClass = closeupMode ? `camera-${closeupMode === true ? "face" : closeupMode}-closeup` : null;
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup");
     refs.arena.style.setProperty("--camera-duration", `${duration}ms`);
     if (Number.isFinite(releaseDelay)) refs.arena.style.setProperty("--camera-release-delay", `${releaseDelay}ms`);
     else refs.arena.style.removeProperty("--camera-release-delay");
     void refs.arena.offsetWidth;
     refs.arena.classList.add(cameraClass);
     if (Number.isFinite(releaseDelay)) refs.arena.classList.add("camera-track-release");
-    if (faceCloseup) refs.arena.classList.add("camera-face-closeup");
-    setTimeout(() => refs.arena.classList.remove(cameraClass, "camera-track-release", "camera-face-closeup"), duration);
+    if (closeupClass) refs.arena.classList.add(closeupClass);
+    setTimeout(() => refs.arena.classList.remove(cameraClass, "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup"), duration);
   }
 
   function hasBattleSpecial(side, type) {
@@ -2084,7 +2100,7 @@ import {
     const token = ++state.specialCameraToken;
     const element = side === "hero" ? refs.hero : refs.enemy;
     const totalDuration = duration + SPECIAL_POST_PAUSE;
-    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.hero.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.enemy.classList.remove(...SPECIAL_ACTION_CLASSES);
     refs.arena.style.setProperty("--special-action-duration", `${duration}ms`);
@@ -2453,7 +2469,7 @@ import {
     refs.hero.classList.remove("status-petrified");
     refs.enemy.classList.remove("status-petrified");
     refs.arena.classList.remove("sutekichi-comet-mode", "aster-evil-eye-mode");
-    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
+    refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.arena.classList.add("battle-ending");
     updateUI();
 
@@ -3358,6 +3374,12 @@ import {
       tatsuoPressCrash: () => { impact(true); impact(true, .11, -.42); noiseBurst(.74, .058, 360, 0, .38); tone(32, 1.05, "sine", .072, .02, 26); crowdReaction(1.42); },
       punchRush: () => { whoosh(1550, 92, .27, 0, -.66, .027); whoosh(980, 68, .22, .075, .48, .016); },
       ringWhip: () => { whoosh(1850, 150, .58, 0, -.72, .024); tone(340, .48, "triangle", .018, .045, 1120, .5); sparkle([1175,1568], .16, .009); },
+      asterMigrationCharge: () => { tone(118, 1.15, "sawtooth", .024, 0, 460); tone(236, .95, "sine", .016, .08, 920); noiseBurst(.72, .011, 1080, .16); },
+      asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
+      asterEvilEyeFocus: () => { tone(92, .72, "sine", .015, 0, 260); },
+      asterEvilEyeGlow: () => { tone(360, .56, "sine", .029, 0, 2480); tone(720, .46, "triangle", .022, .025, 3200); sparkle([988,1480,2217], .08, .018); noiseBurst(.32, .014, 2600, .04); },
+      asterDeathLaugh: () => { [.02,.22,.43].forEach((delay, index) => { crowdVoice(220 - index * 28, .22, .039, delay, index % 2 ? .3 : -.3, .72); tone(330 - index * 36, .18, "triangle", .017, delay, 190 - index * 20); }); tone(68, .82, "sawtooth", .018, 0, 42); },
+      asterDeathMist: () => { whoosh(2100, 120, 1.42, 0, -.18, .037); noiseBurst(1.48, .038, 1250, 0, .22); tone(920, 1.42, "sawtooth", .025, 0, 170, -.3); tone(460, 1.34, "triangle", .022, .03, 110, .34); tone(58, 1.5, "sine", .038, 0, 36); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },
       novaRush: () => { whoosh(2400, 65, .54, 0, -.75, .038); tone(168, .48, "square", .028, .02, 58, .62); noiseBurst(.34, .025, 2100, .02, -.45); },
       novaCapture: () => { tone(286, .62, "triangle", .026, 0, 1240); tone(572, .5, "sine", .018, .04, 1716); sparkle([988,1319,1760], .1, .014); },
