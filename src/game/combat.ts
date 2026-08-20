@@ -32,6 +32,14 @@ export const RESTRAINT_EFFECT = {
   gutsRegenMultiplier: 1 / 3,
 } as const;
 
+export const PETRIFICATION_EFFECT = {
+  duration: 8000,
+  triggerChance: 0.5,
+  hitRate: 100,
+  movementMultiplier: 0,
+  gutsRegenMultiplier: 0,
+} as const;
+
 export const PURSUIT_EFFECT = {
   duration: 9000,
   triggerDuration: 1500,
@@ -125,6 +133,14 @@ export function applyRestraintMovementMultiplier(multiplier: number, active: boo
 
 export function applyRestraintGutsRegenMultiplier(multiplier: number, active: boolean): number {
   return active ? multiplier * RESTRAINT_EFFECT.gutsRegenMultiplier : multiplier;
+}
+
+export function applyPetrificationMovementMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * PETRIFICATION_EFFECT.movementMultiplier : multiplier;
+}
+
+export function applyPetrificationGutsRegenMultiplier(multiplier: number, active: boolean): number {
+  return active ? multiplier * PETRIFICATION_EFFECT.gutsRegenMultiplier : multiplier;
 }
 
 export function applyPursuitMovementMultiplier(multiplier: number, active: boolean): number {

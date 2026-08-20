@@ -1,4 +1,4 @@
-import { Assets, Container, Graphics, Sprite } from "pixi.js";
+import { Assets, ColorMatrixFilter, Container, Graphics, NoiseFilter, Sprite } from "pixi.js";
 import { resolveActorUrl } from "../actor-assets.ts";
 import { getFighterDepth } from "../game/animation-plan.ts";
 
@@ -17,6 +17,7 @@ const STATUS_COLORS = {
   "status-pursuit": 0xffa94d,
   "status-pleasure": 0xff8fb7,
   "status-restraint": 0x91a4b7,
+  "status-petrified": 0x9099a3,
 };
 
 const ACTION_CLASSES = [
@@ -30,12 +31,13 @@ const ACTION_CLASSES = [
   "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence",
   "approval-meteor-sequence",
   "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence",
+  "aster-death-energy-sequence", "aster-evil-eye-sequence", "aster-migration-sequence", "aster-tail-sweep-sequence",
   "galaxy-ray-recoil", "technique-recoil", "pentagram-nova-combo", "pentagram-nova-finisher",
   "pentagram-nova-diving", "pentagram-nova-miss", "etoile-drive-peak",
   "special-action", "hurt", "critical-hit", "tatsuo-pinned", "dodging", "push-focus", "push-threatened", "push-travel",
   "blown-right", "blown-left", "nova-captured", "ko", "ko-pending", "result-loser", "result-winner",
   "result-winner-climax",
-  "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "special-action-inspiration",
+  "status-inspiration", "status-genki", "status-charm", "status-zone", "status-pursuit", "status-pleasure", "status-restraint", "status-petrified", "special-action-inspiration",
   "special-action-zone",
   "flash-knockback",
 ];
@@ -123,7 +125,22 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     const trails = new Container();
     const sprite = new Sprite(texture);
     sprite.anchor.set(.5, 1);
-    container.addChild(aura, trails, sprite);
+    const petrifyColorFilter = new ColorMatrixFilter();
+    petrifyColorFilter.blackAndWhite(true);
+    const petrifyNoiseFilter = new NoiseFilter({ noise: .12, seed: side === "hero" ? .31 : .67 });
+    const petrifyCracks = new Graphics();
+    [
+      [-.32, -.82, -.12, -.61, -.2, -.43],
+      [.2, -.9, .06, -.72, .18, -.55, .11, -.37],
+      [-.42, -.54, -.28, -.43, -.36, -.25],
+      [.35, -.64, .25, -.48, .4, -.32],
+    ].forEach((points) => {
+      petrifyCracks.moveTo(points[0], points[1]);
+      for (let index = 2; index < points.length; index += 2) petrifyCracks.lineTo(points[index], points[index + 1]);
+    });
+    petrifyCracks.stroke({ color: 0x303841, alpha: .82, width: .018 });
+    petrifyCracks.visible = false;
+    container.addChild(aura, trails, sprite, petrifyCracks);
     layer.addChild(container);
 
     return {
@@ -137,6 +154,9 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
       charmHearts,
       trails,
       sprite,
+      petrifyColorFilter,
+      petrifyNoiseFilter,
+      petrifyCracks,
       source: elements[side].image.getAttribute("src") || elements[side].image.currentSrc,
       classes: new Set(elements[side].root.classList),
       actionStartedAt: performance.now(),
@@ -420,7 +440,7 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     const actionSeconds = (now - actor.actionStartedAt) / 1000;
     const direction = actor.side === "hero" ? 1 : -1;
     let offsetX = 0;
-    let offsetY = -Math.sin(elapsed * Math.PI * 2 / 2.1) * actor.size * .014;
+    let offsetY = classes.has("status-petrified") ? 0 : -Math.sin(elapsed * Math.PI * 2 / 2.1) * actor.size * .014;
     let rotation = 0;
     let scale = 1;
     let horizontalScale = 1;
@@ -654,7 +674,13 @@ export async function createFighterSystem({ layer, glowTexture, heroElement, ene
     actor.container.rotation = rotation;
     actor.container.scale.set(scale * horizontalScale, scale);
     actor.sprite.alpha = alpha;
-    actor.sprite.tint = tint;
+    const petrified = classes.has("status-petrified");
+    actor.sprite.tint = petrified ? 0xa7afb7 : tint;
+    actor.sprite.filters = petrified ? [actor.petrifyColorFilter, actor.petrifyNoiseFilter] : null;
+    actor.petrifyNoiseFilter.seed = (Math.floor(elapsed * 3) % 100) / 100;
+    actor.petrifyCracks.visible = petrified;
+    actor.petrifyCracks.scale.set(actor.size);
+    actor.petrifyCracks.alpha = petrified ? .62 + Math.sin(elapsed * 5) * .06 : 0;
     textureScale(actor.sprite, actor.size, actorFacing(actor));
 
     const activeStatus = Object.entries(STATUS_COLORS).find(([className]) => classes.has(className));

@@ -1,5 +1,5 @@
 import type { CharacterId, CharacterProfile, TechniqueDefinition } from "./types.ts";
-import { CHARM_EFFECT } from "./combat.ts";
+import { CHARM_EFFECT, PETRIFICATION_EFFECT } from "./combat.ts";
 
 type AssetResolver = (source: string) => string;
 
@@ -49,6 +49,14 @@ const icon = {
     '<path d="M5 17c10 0 16-4 21-11v36c-5-7-11-11-21-11z"/><path d="M31 14c7 3 10 7 12 11M32 25c6 1 9 3 12 7M32 7c7 4 11 9 14 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
   tatsuoPress:
     '<path d="M7 31l14-18 20 15-14 15z"/><path d="M12 9l8 6M35 8l-6 10M42 34l-8-3" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>',
+  deathEnergy:
+    '<path d="M10 38c10-16 16-24 27-31" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="36" cy="10" r="7"/><path d="M8 9l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM35 27l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/>',
+  evilEye:
+    '<path d="M4 24c10-14 30-14 40 0-10 14-30 14-40 0z" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="24" cy="24" r="8"/><path d="M24 16v16M16 24h16" fill="none" stroke="currentColor" stroke-width="2"/>',
+  migration:
+    '<path d="M6 24h27M25 15l9 9-9 9" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 8v32M36 14l6-6 6 6M36 34l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3"/>',
+  tailSweep:
+    '<path d="M7 12c21-5 34 4 34 15 0 9-9 15-22 12-7-2-10-7-8-12 2-4 8-5 13-2" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M35 8l7 4-6 5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
 } as const;
 
 const etokichiTechniques: TechniqueDefinition[] = [
@@ -484,6 +492,83 @@ const tatsuoTechniques: TechniqueDefinition[] = [
   },
 ];
 
+const asterTechniques: TechniqueDefinition[] = [
+  {
+    id: "asterTailSweep",
+    name: "蛇尾薙ぎ",
+    iconSvg: icon.tailSweep,
+    cost: 12,
+    power: 120,
+    accuracy: 90,
+    critical: 10,
+    range: 1,
+    duration: 1500,
+    cameraReleaseDelay: 520,
+    impactDelay: 780,
+    kind: "strike",
+    animation: "asterTailSweep",
+    attackStat: "power",
+    gutsDamage: 10,
+    knockback: 32,
+  },
+  {
+    id: "asterMigration",
+    name: "マイグレーション",
+    iconSvg: icon.migration,
+    cost: 34,
+    power: 105,
+    accuracy: 44,
+    critical: 4,
+    range: 1,
+    duration: 3300,
+    cameraReleaseDelay: 900,
+    impactDelay: 2100,
+    kind: "shot",
+    animation: "asterMigration",
+    attackStat: "intelligence",
+    gutsDamage: 24,
+    lifeDrainRatio: 1,
+    gutsDrainRatio: 1,
+  },
+  {
+    id: "asterEvilEye",
+    name: "魔眼",
+    iconSvg: icon.evilEye,
+    cost: 38,
+    power: 70,
+    accuracy: 85,
+    critical: 6,
+    range: 2,
+    duration: 3600,
+    cameraReleaseDelay: 720,
+    impactDelay: 1450,
+    kind: "shot",
+    animation: "asterEvilEye",
+    attackStat: "intelligence",
+    gutsDamage: 18,
+    petrifyChance: PETRIFICATION_EFFECT.triggerChance,
+    petrifyDuration: PETRIFICATION_EFFECT.duration,
+  },
+  {
+    id: "asterDeathEnergy",
+    name: "デスエナジー",
+    iconSvg: icon.deathEnergy,
+    cost: 45,
+    power: 245,
+    accuracy: 94,
+    critical: 18,
+    range: 3,
+    duration: 4200,
+    cameraReleaseDelay: 1100,
+    impactDelay: 2850,
+    kind: "shot",
+    animation: "asterDeathEnergy",
+    attackStat: "intelligence",
+    gutsDamage: 10,
+    knockback: 20,
+  },
+];
+
 export function createCharacterProfiles(resolveAsset: AssetResolver): Record<CharacterId, CharacterProfile> {
   const asset = resolveAsset;
   return {
@@ -629,6 +714,34 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       stats: { life: 820, power: 600, defense: 540, accuracy: 390, evasion: 250, intelligence: 260, gutsRegen: 2.3 },
       abilities: ["real", "pursuit", "pleasure"],
       techniques: tatsuoTechniques,
+    },
+    aster: {
+      id: "aster",
+      baseFacing: "right",
+      visualScale: 1.05,
+      name: "アステール",
+      subtitle: "ORDERED ORACLE",
+      abilitiesLabel: "余裕・本気",
+      images: {
+        idle: asset("assets/characters/aster/idle.webp"),
+        battleIdle: asset("assets/characters/aster/idle.webp"),
+        deathEnergyCast: asset("assets/characters/aster/death-energy-cast.webp"),
+        evilEyeCast: asset("assets/characters/aster/evil-eye-cast.webp"),
+        migrationCast: asset("assets/characters/aster/migration-cast.webp"),
+        tailSweepCast: asset("assets/characters/aster/tail-sweep-cast.webp"),
+        victoryClimax: asset("assets/characters/aster/victory-climax.webp"),
+        defeat: asset("assets/characters/aster/defeat.webp"),
+        walk: [
+          asset("assets/characters/aster/walk-1.webp"),
+          asset("assets/characters/aster/idle.webp"),
+          asset("assets/characters/aster/walk-3.webp"),
+        ],
+      },
+      introPoseKeys: ["idle", "evilEyeCast", "idle", "deathEnergyCast"],
+      versusPoseKey: "evilEyeCast",
+      stats: { life: 410, power: 170, defense: 270, accuracy: 720, evasion: 560, intelligence: 760, gutsRegen: 2.4 },
+      abilities: ["ease", "real"],
+      techniques: asterTechniques,
     },
   };
 }

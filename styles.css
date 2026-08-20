@@ -107,6 +107,9 @@ button { font: inherit; }
 [data-enemy-id="tatsuo"] .enemy-rank { color: #21160c; background: linear-gradient(#f7d59c,#a86d36); box-shadow: 0 0 14px rgba(205,139,72,.42); }
 [data-enemy-id="tatsuo"] .enemy-hud .life-track i { background: linear-gradient(90deg,#a56b3d,#dfaa65 72%,#ffe0aa); box-shadow: 0 0 12px rgba(223,170,101,.55); }
 [data-enemy-id="tatsuo"] .enemy-hud .name-row strong { color: #f4d3a2; }
+[data-enemy-id="aster"] .enemy-hud { background: linear-gradient(260deg,rgba(20,12,51,.97),rgba(60,38,93,.86)); }
+[data-enemy-id="aster"] .enemy-hud .life-track i { background: linear-gradient(90deg,#6d3ab3,#ae73dc 70%,#eed17a); box-shadow: 0 0 12px rgba(174,115,220,.6); }
+[data-enemy-id="aster"] .enemy-hud .name-row strong { color: #eadbff; }
 @keyframes danger-pulse { to { filter: brightness(1.45); } }
 
 .timer-wrap { text-align: center; padding-top: 2px; text-shadow: 0 2px 8px #000; }
@@ -588,6 +591,11 @@ button { font: inherit; }
 .tatsuo-option .opponent-portrait img { transform: scale(1.08); filter: drop-shadow(0 16px 17px rgba(0,0,0,.58)) drop-shadow(0 0 24px rgba(208,139,71,.31)); }
 .tatsuo-option:hover .opponent-portrait img,.tatsuo-option.selected .opponent-portrait img { transform: scale(1.115); }
 .tatsuo-option .opponent-copy small,.tatsuo-option .opponent-ability { color: #e6b273; }
+.aster-option { background: radial-gradient(circle at 50% 36%,rgba(152,92,207,.28),transparent 46%),linear-gradient(160deg,rgba(36,27,74,.94),rgba(11,8,28,.99)); }
+.aster-option .opponent-portrait img { transform: scale(1.08); filter: drop-shadow(0 16px 17px rgba(0,0,0,.58)) drop-shadow(0 0 25px rgba(164,93,220,.38)); }
+.aster-option:hover .opponent-portrait img,.aster-option.selected .opponent-portrait img { transform: scale(1.115); }
+.aster-option .opponent-copy small,.aster-option .opponent-ability { color: #dcb7ff; }
+.arena.aster-evil-eye-mode canvas { filter: hue-rotate(155deg) saturate(1.35) contrast(1.08); }
 .opponent-select-card > .primary-button { margin-top: 20px; min-width: min(300px,78vw); }
 .opponent-select-card > small { margin-top: 9px; color: #817594; font-size: 9px; }
 .fighter-select-groups { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 14px; align-items: center; }

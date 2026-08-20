@@ -5,7 +5,14 @@ const profiles = createCharacterProfiles((source) => source);
 
 describe("キャラクター定義", () => {
   it("キャラクターIDと技IDが一意である", () => {
-    expect(Object.keys(profiles)).toEqual(["etokichi", "kuroboshi", "sutekichi", "salarymanEtokichi", "tatsuo"]);
+    expect(Object.keys(profiles)).toEqual([
+      "etokichi",
+      "kuroboshi",
+      "sutekichi",
+      "salarymanEtokichi",
+      "tatsuo",
+      "aster",
+    ]);
     for (const profile of Object.values(profiles)) {
       const techniqueIds = profile.techniques.map((technique) => technique.id);
       expect(new Set(techniqueIds).size).toBe(techniqueIds.length);
@@ -116,6 +123,46 @@ describe("キャラクター定義", () => {
       duration: 1050,
       impactDelay: 430,
       range: 0,
+    });
+  });
+
+  it("アステールは低耐久・低ちから・高命中かしこさで、余裕と本気を持つ", () => {
+    const profile = profiles.aster;
+    expect(profile.stats).toMatchObject({
+      life: 410,
+      power: 170,
+      defense: 270,
+      accuracy: 720,
+      evasion: 560,
+      intelligence: 760,
+      gutsRegen: 2.4,
+    });
+    expect(profile.abilities).toEqual(["ease", "real"]);
+    expect(profile.techniques.filter(({ range }) => range === 0)).toHaveLength(0);
+    expect(profile.images.walk).toHaveLength(3);
+  });
+
+  it("魔眼は通常ダメージとガッツダウンを伴う50%の8秒石化技である", () => {
+    const evilEye = profiles.aster.techniques.find(({ id }) => id === "asterEvilEye");
+    expect(evilEye).toMatchObject({
+      attackStat: "intelligence",
+      power: 70,
+      gutsDamage: 18,
+      accuracy: 85,
+      petrifyChance: 0.5,
+      petrifyDuration: 8000,
+      range: 2,
+    });
+  });
+
+  it("マイグレーションは低命中でライフとガッツを等倍吸収する", () => {
+    const migration = profiles.aster.techniques.find(({ id }) => id === "asterMigration");
+    expect(migration).toMatchObject({
+      attackStat: "intelligence",
+      accuracy: 44,
+      lifeDrainRatio: 1,
+      gutsDrainRatio: 1,
+      range: 1,
     });
   });
 });

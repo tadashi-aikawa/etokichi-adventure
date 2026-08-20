@@ -1629,6 +1629,19 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     tatsuoPressRise: (options) => makeBurst({ side: options.side, yRatio: .82, color: 0x9a6c42, secondary: 0xffcf7b, duration: 760, radius: 130, count: 12 }),
     tatsuoPressDive: (options) => makeTatsuoPressDive(options.side),
     tatsuoPressImpact: (options) => makeTatsuoPressImpact(options.side),
+    asterTailSweep: (options) => makeBurst({ side: options.side === "hero" ? "enemy" : "hero", yRatio: .62, color: 0x34205f, secondary: 0xe4c66d, duration: 820, radius: 155, count: 15 }),
+    asterMigrationCharge: (options) => makeCharge({ side: options.side, xRatio: .58, yRatio: .42, color: 0x7045c7, secondary: 0x63e0dc, duration: 1500, radius: 82, count: 14 }),
+    asterMigration: (options) => makeBeam({ from: options.side === "hero" ? "enemy" : "hero", to: options.side, fromRatio: [.5, .5], toRatio: [.58, .42], color: 0xa854ca, secondary: 0x63e0dc, width: 18, duration: 950, reverse: true }),
+    asterEvilEyeCharge: (options) => makeCharge({ side: options.side, xRatio: .55, yRatio: .2, color: 0xb64cff, secondary: 0xffd6ff, duration: 850, radius: 44, count: 8 }),
+    asterEvilEye: (options) => {
+      makeBeam({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", fromRatio: [.55, .2], toRatio: [.5, .45], color: 0x9b2bff, secondary: 0xff7ce8, width: 12, duration: 520 });
+      makeScreenFlash(0xd9b4ff, 360);
+      return true;
+    },
+    asterDeathEnergyCharge: (options) => makeCharge({ side: options.side, xRatio: .58, yRatio: .18, color: 0x4c176f, secondary: 0xc979ff, duration: 1750, radius: 110, count: 16 }),
+    asterDeathEnergy: (options) => makeEnergyProjectile({ from: options.side, to: options.side === "hero" ? "enemy" : "hero", color: 0x371150, secondary: 0xd58aff, duration: 920 }),
+    petrificationStatus: (options) => makeBurst({ side: options.side, yRatio: .52, color: 0x7d8793, secondary: 0xd8dde2, duration: 920, radius: 165, count: 18 }),
+    petrificationBreak: (options) => makeBurst({ side: options.side, yRatio: .58, color: 0x89939d, secondary: COLORS.white, duration: 720, radius: 120, count: 14 }),
     charmStatus: (options) => makeCharmStatus(options.side),
     charmBreak: (options) => makeCharmStatus(options.side, true),
     galaxyCharge: (options) => makeGalaxyCharge(options.side),

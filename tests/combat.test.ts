@@ -4,6 +4,8 @@ import {
   applyGenkiMovementMultiplier,
   applyPursuitGutsRegenMultiplier,
   applyPursuitMovementMultiplier,
+  applyPetrificationGutsRegenMultiplier,
+  applyPetrificationMovementMultiplier,
   applyRestraintGutsRegenMultiplier,
   applyRestraintMovementMultiplier,
   applyCharmEvasionPenalty,
@@ -16,6 +18,7 @@ import {
   getRangeForDistance,
   reachedZoneLifeThreshold,
   PLEASURE_EFFECT,
+  PETRIFICATION_EFFECT,
   PURSUIT_EFFECT,
   RESTRAINT_EFFECT,
   shouldTriggerPleasure,
@@ -72,6 +75,13 @@ describe("純粋な戦闘計算", () => {
     expect(applyRestraintMovementMultiplier(1.5, true)).toBeCloseTo(0.5);
     expect(applyRestraintGutsRegenMultiplier(1.5, true)).toBeCloseTo(0.5);
     expect(applyRestraintMovementMultiplier(1.5, false)).toBe(1.5);
+  });
+
+  it("石化は8秒間、行動用の移動とガッツ回復を完全に止め、被命中率を100%にする", () => {
+    expect(PETRIFICATION_EFFECT).toMatchObject({ duration: 8000, triggerChance: 0.5, hitRate: 100 });
+    expect(applyPetrificationMovementMultiplier(1.5, true)).toBe(0);
+    expect(applyPetrificationGutsRegenMultiplier(2, true)).toBe(0);
+    expect(applyPetrificationMovementMultiplier(1.5, false)).toBe(1.5);
   });
 
   it("追跡は9秒間、移動・命中・ガッツ回復を強化する", () => {

@@ -1,6 +1,6 @@
 export type Side = "hero" | "enemy";
 export type Facing = "left" | "right";
-export type CharacterId = "etokichi" | "kuroboshi" | "sutekichi" | "salarymanEtokichi" | "tatsuo";
+export type CharacterId = "etokichi" | "kuroboshi" | "sutekichi" | "salarymanEtokichi" | "tatsuo" | "aster";
 export type AttackStat = "power" | "intelligence";
 export type TechniqueKind = "strike" | "shot" | "special" | "super" | "support";
 
@@ -28,7 +28,11 @@ export type AnimationId =
   | "tatsuoSlap"
   | "tatsuoRestraint"
   | "tatsuoRoar"
-  | "tatsuoPress";
+  | "tatsuoPress"
+  | "asterDeathEnergy"
+  | "asterEvilEye"
+  | "asterMigration"
+  | "asterTailSweep";
 
 export interface FighterStats {
   life: number;
@@ -62,6 +66,10 @@ export interface TechniqueDefinition {
   successChance?: number;
   charmChance?: number;
   restraintDuration?: number;
+  petrifyChance?: number;
+  petrifyDuration?: number;
+  lifeDrainRatio?: number;
+  gutsDrainRatio?: number;
   closesDistance?: boolean;
 }
 
