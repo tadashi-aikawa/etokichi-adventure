@@ -1568,21 +1568,27 @@ import {
         sound("asterMigrationDrain");
       }, 1050);
     } else if (technique.animation === "asterEvilEye") {
-      refs.arena.classList.add("aster-evil-eye-mode");
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.evilEyeCast, 110);
+      }, 100);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterEvilEyeCharge", side);
-      }, 150);
+      }, 500);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         sound("asterEvilEyeGlow");
-      }, 420);
+      }, 520);
+      setTimeout(() => {
+        if (state.phase !== "battle" || token !== state[tokenKey]) return;
+        refs.arena.classList.add("aster-evil-eye-mode");
+      }, 1120);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterEvilEye", side);
         sound("rayLock");
-      }, 1080);
+      }, 1250);
     } else if (technique.animation === "asterDeathEnergy") {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
@@ -1593,7 +1599,7 @@ import {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterDeathEnergy", side);
         sound("asterDeathMist");
-      }, 2050);
+      }, 800);
     }
 
     setTimeout(() => {
@@ -3379,7 +3385,7 @@ import {
       asterEvilEyeFocus: () => { tone(92, .72, "sine", .015, 0, 260); },
       asterEvilEyeGlow: () => { tone(360, .56, "sine", .029, 0, 2480); tone(720, .46, "triangle", .022, .025, 3200); sparkle([988,1480,2217], .08, .018); noiseBurst(.32, .014, 2600, .04); },
       asterDeathLaugh: () => { [.02,.22,.43].forEach((delay, index) => { crowdVoice(220 - index * 28, .22, .039, delay, index % 2 ? .3 : -.3, .72); tone(330 - index * 36, .18, "triangle", .017, delay, 190 - index * 20); }); tone(68, .82, "sawtooth", .018, 0, 42); },
-      asterDeathMist: () => { whoosh(2100, 120, 1.42, 0, -.18, .037); noiseBurst(1.48, .038, 1250, 0, .22); tone(920, 1.42, "sawtooth", .025, 0, 170, -.3); tone(460, 1.34, "triangle", .022, .03, 110, .34); tone(58, 1.5, "sine", .038, 0, 36); },
+      asterDeathMist: () => { whoosh(2900, 82, 2.05, 0, -.48, .047); whoosh(1740, 116, 1.7, .2, .5, .033); noiseBurst(2.28, .043, 1380, 0, .16); noiseBurst(1.72, .026, 720, .16, -.3); tone(1320, 2.16, "sawtooth", .029, 0, 92, -.36); tone(610, 2.22, "triangle", .025, .025, 78, .38); tone(62, 2.38, "sine", .044, 0, 31); [1480,1175,880].forEach((frequency, index) => tone(frequency, .66, "sine", .012, .1 + index * .19, frequency * .46, index % 2 ? .62 : -.62)); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },
       novaRush: () => { whoosh(2400, 65, .54, 0, -.75, .038); tone(168, .48, "square", .028, .02, 58, .62); noiseBurst(.34, .025, 2100, .02, -.45); },
       novaCapture: () => { tone(286, .62, "triangle", .026, 0, 1240); tone(572, .5, "sine", .018, .04, 1716); sparkle([988,1319,1760], .1, .014); },

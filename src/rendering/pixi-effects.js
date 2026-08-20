@@ -1682,7 +1682,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     rays.stroke({ color: 0xffd8ff, alpha: .88, width: 4 });
     container.addChildAt(aura, 0);
     container.addChild(rays, core);
-    return add(container, 980, (progress, elapsed) => {
+    return add(container, 600, (progress, elapsed) => {
       const flare = easeOut(clamp01(progress * 2.5));
       aura.scale.set(.35 + flare * 1.15 + Math.sin(elapsed * 20) * .1);
       core.scale.set(.35 + flare * .75 + Math.sin(elapsed * 28) * .14);
@@ -1728,7 +1728,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       };
     });
     makeScreenFlash(0x9e55c7, 620);
-    return add(fog, 1500, (progress, elapsed) => {
+    return add(fog, 1900, (progress, elapsed) => {
       clouds.forEach(({ cloud, lag, depth, wave }, index) => {
         const travel = easeInOut(clamp01((progress - lag) / Math.max(.2, .72 - lag)));
         const turbulence = Math.sin(elapsed * (2.2 + depth) + index * 1.43);
@@ -1805,7 +1805,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       makeScreenFlash(0xd9b4ff, 360);
       return true;
     },
-    asterDeathEnergyCharge: (options) => makeCharge({ side: options.side, xRatio: asterFacingRatio(options.side, .3), yRatio: .23, color: 0x4c176f, secondary: 0xc979ff, duration: 1900, radius: 150, count: 24 }),
+    asterDeathEnergyCharge: (options) => makeCharge({ side: options.side, xRatio: asterFacingRatio(options.side, .3), yRatio: .23, color: 0x4c176f, secondary: 0xc979ff, duration: 520, radius: 150, count: 24 }),
     asterDeathEnergy: (options) => makeAsterDeathEnergy(options.side),
     petrificationStatus: (options) => makeBurst({ side: options.side, yRatio: .52, color: 0x7d8793, secondary: 0xd8dde2, duration: 920, radius: 165, count: 18 }),
     petrificationBreak: (options) => makeBurst({ side: options.side, yRatio: .58, color: 0x89939d, secondary: COLORS.white, duration: 720, radius: 120, count: 14 }),

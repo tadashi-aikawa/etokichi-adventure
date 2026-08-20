@@ -365,10 +365,14 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
         targetYOffset = -.07;
       } else {
         if (camera.closeupMode) {
-          const entryEnd = clamp(160 / camera.duration, .035, .1);
+          const isAsterEvilEye = camera.closeupMode === "aster-evil-eye";
+          const isAsterDeathEnergy = camera.closeupMode === "aster-death-energy";
+          const entryDuration = isAsterEvilEye ? 500 : isAsterDeathEnergy ? 260 : 160;
+          const returnDuration = isAsterEvilEye ? 520 : isAsterDeathEnergy ? 300 : 1500;
+          const entryEnd = clamp(entryDuration / camera.duration, .035, .2);
           const releaseProgress = clamp(camera.releaseAt / camera.duration, entryEnd + .035, .42);
-          const returnEnd = Math.min(.88, releaseProgress + clamp(1500 / camera.duration, .32, .58));
-          const maximumZoom = camera.closeupMode === "aster-evil-eye" ? 5.2 : camera.closeupMode === "aster-death-energy" ? 2.85 : 5;
+          const returnEnd = Math.min(.88, releaseProgress + clamp(returnDuration / camera.duration, .075, .58));
+          const maximumZoom = isAsterEvilEye ? 5.2 : isAsterDeathEnergy ? 2.85 : 5;
           const closeupAmount = interpolateKeyframes(progress, [
             [0, 0], [entryEnd, 1], [releaseProgress, 1], [returnEnd, 0], [1, 0],
           ]);
@@ -378,11 +382,14 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
           zoom = closeupZoom;
           // 通常はステージのzoomを相殺するが、顔アップだけはカメラと同率でキャラも拡大する。
           desiredTargetScale = closeupZoom;
+          const otherReturnEnd = isAsterEvilEye
+            ? Math.min(returnEnd, releaseProgress + 220 / camera.duration)
+            : returnEnd;
           desiredOtherScale = interpolateKeyframes(progress, [
-            [0, 1], [entryEnd, .78], [releaseProgress, .78], [returnEnd, 1], [1, 1],
+            [0, 1], [entryEnd, .78], [releaseProgress, .78], [otherReturnEnd, 1], [1, 1],
           ]);
           otherAlpha = interpolateKeyframes(progress, [
-            [0, 1], [entryEnd, 0], [releaseProgress, 0], [returnEnd, 1], [1, 1],
+            [0, 1], [entryEnd, 0], [releaseProgress, 0], [otherReturnEnd, 1], [1, 1],
           ]);
           const focusX = camera.closeupMode === "aster-evil-eye"
             ? (camera.side === "hero" ? .6 : .4)
@@ -391,8 +398,23 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
               : .5;
           const focusY = camera.closeupMode === "aster-evil-eye" ? .27 : camera.closeupMode === "aster-death-energy" ? .22 : .13;
           const face = fighterSystem.getBasePoint(camera.side, focusX, focusY);
-          pivotX += (face.x - pivotX) * closeupAmount;
-          pivotY += (face.y - pivotY) * closeupAmount;
+          if (isAsterEvilEye) {
+            const targetSide = camera.side === "hero" ? "enemy" : "hero";
+            const target = fighterSystem.getBasePoint(targetSide, .5, .45);
+            const targetPan = clamp((progress - releaseProgress) / Math.max(.001, returnEnd - releaseProgress), 0, 1);
+            const targetHoldEnd = Math.min(.9, returnEnd + 720 / camera.duration);
+            const targetReturnEnd = Math.min(.98, targetHoldEnd + 420 / camera.duration);
+            const focusStrength = interpolateKeyframes(progress, [
+              [0, 0], [entryEnd, 1], [targetHoldEnd, 1], [targetReturnEnd, 0], [1, 0],
+            ]);
+            const focusPointX = face.x + (target.x - face.x) * targetPan;
+            const focusPointY = face.y + (target.y - face.y) * targetPan;
+            pivotX += (focusPointX - pivotX) * focusStrength;
+            pivotY += (focusPointY - pivotY) * focusStrength;
+          } else {
+            pivotX += (face.x - pivotX) * closeupAmount;
+            pivotY += (face.y - pivotY) * closeupAmount;
+          }
         } else if (camera.tracksRelease) {
           const entryEnd = clamp(260 / camera.duration, .05, .13);
           const releaseProgress = clamp(camera.releaseAt / camera.duration, entryEnd + .02, .84);

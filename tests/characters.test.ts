@@ -132,9 +132,9 @@ describe("キャラクター定義", () => {
       life: 410,
       power: 170,
       defense: 270,
-      accuracy: 720,
+      accuracy: 820,
       evasion: 560,
-      intelligence: 760,
+      intelligence: 860,
       gutsRegen: 2.4,
     });
     expect(profile.abilities).toEqual(["ease", "real"]);
