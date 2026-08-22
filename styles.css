@@ -1424,6 +1424,176 @@ button { font: inherit; }
     user-select: none;
   }
 
+  .title-screen {
+    padding: 6px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));
+  }
+  .title-card {
+    width: min(680px,100%);
+    height: 100%;
+    grid-template-rows: auto auto minmax(0,1fr) auto;
+    padding: 7px 18px max(12px,env(safe-area-inset-bottom));
+  }
+  .title-card > p { font-size: 7px; }
+  .title-card h1 { margin: 1px 0 -2px; }
+  .title-card h1 span { font-size: clamp(22px,5.2vh,30px); }
+  .title-card h1 strong { margin-top: 1px; font-size: clamp(52px,14vh,68px); }
+  .title-hero {
+    width: min(190px,43vh);
+    height: min(190px,43vh);
+  }
+  .title-card .primary-button {
+    min-width: min(260px,62vw);
+    margin-top: 0;
+    padding: 10px 28px;
+    font-size: 14px;
+  }
+  .title-card > small { display: none; }
+
+  .opponent-select-screen {
+    padding: 5px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+  }
+  .opponent-select-card {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    grid-template-rows: auto auto auto minmax(0,1fr) auto auto;
+    padding: 6px 10px;
+    overflow: hidden;
+    border-radius: 15px;
+  }
+  .opponent-select-card > .eyebrow { margin-bottom: 1px; font-size: 6px; }
+  .opponent-select-card h2 { font-size: clamp(21px,6.5vh,28px); }
+  .opponent-select-guide { margin: 1px 0 4px; font-size: 7px; }
+  .fighter-select-groups {
+    min-height: 0;
+    grid-template-columns: minmax(0,1fr) 18px minmax(0,1fr);
+    gap: 5px;
+    align-items: stretch;
+  }
+  .fighter-select-group {
+    display: grid;
+    grid-template-rows: auto minmax(0,1fr);
+  }
+  .fighter-select-group h3 { margin: 0 0 2px; font-size: 11px; }
+  .fighter-select-group h3 small { font-size: 5px; }
+  .fighter-select-vs { align-self: center; font-size: 10px; }
+  .character-grid {
+    height: 100%;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    grid-template-rows: repeat(2,minmax(0,1fr));
+    gap: 3px;
+  }
+  .character-option {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: minmax(0,1fr) auto;
+    padding: 2px;
+    border-width: 1px;
+    border-radius: 7px;
+  }
+  .character-option .opponent-portrait img {
+    width: 100%;
+    height: 100%;
+    max-height: 96px;
+  }
+  .character-option .opponent-copy { gap: 0; padding: 0 2px; }
+  .character-option .opponent-copy small,
+  .character-option .opponent-copy em,
+  .character-option .opponent-ability { display: none; }
+  .character-option .opponent-copy strong {
+    overflow: hidden;
+    font-size: 8px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .character-option.selected::after {
+    right: 3px;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    font-size: 7px;
+  }
+  .battle-music-select { margin-top: 3px; }
+  .battle-music-select h3 { margin: 0 0 2px; font-size: 9px; }
+  .battle-music-select h3 small { font-size: 5px; }
+  .battle-music-grid { gap: 3px; }
+  .battle-music-option {
+    grid-template-columns: auto minmax(0,1fr);
+    grid-template-rows: 1fr;
+    gap: 4px;
+    padding: 3px 6px;
+    border-radius: 7px;
+  }
+  .battle-music-option > span { grid-row: 1; font-size: 8px; }
+  .battle-music-option > strong { font-size: 7px; }
+  .battle-music-option > small { display: none; }
+  .opponent-select-card > .primary-button {
+    min-width: min(240px,58vw);
+    margin-top: 4px;
+    padding: 6px 18px;
+    font-size: 10px;
+  }
+  .opponent-select-card > small { display: none; }
+
+  #start-screen {
+    padding: 4px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+  }
+  #start-screen .status-card {
+    width: 100%;
+    height: 100%;
+    grid-template-rows: auto auto auto minmax(0,1fr) auto;
+    padding: 5px 10px;
+  }
+  #start-screen .eyebrow { margin-bottom: 1px; font-size: 6px; }
+  #start-screen .status-card > h2 { font-size: clamp(21px,6.5vh,28px); }
+  #start-screen .status-guide { margin: 1px 0 3px; font-size: 7px; }
+  #start-screen .status-card > .primary-button {
+    min-width: min(280px,64vw);
+    margin-top: 5px;
+    padding: 7px 20px;
+    font-size: 11px;
+  }
+  #start-screen .status-card > small { display: none; }
+  #start-screen.intro-focus .status-card {
+    grid-template-rows: 0 0 0 minmax(0,1fr) auto;
+  }
+  #start-screen.intro-focus .status-portrait { inset: 4% 10% 18%; }
+  #start-screen.intro-focus .status-portrait img {
+    width: 86%;
+    max-width: min(50vw,470px);
+    height: 86%;
+    max-height: none;
+  }
+  #start-screen.intro-versus .status-vs {
+    width: 38px;
+    height: 38px;
+    font-size: 13px;
+  }
+  #start-screen.intro-versus .status-compare-name {
+    top: 2px;
+    font-size: clamp(15px,4.8vh,20px);
+  }
+  #start-screen.intro-versus .hero-status .status-portrait { inset: 8% 40% 5% 2%; }
+  #start-screen.intro-versus .enemy-status .status-portrait { inset: 8% 2% 5% 40%; }
+  #start-screen.intro-versus .status-portrait img {
+    width: 100%;
+    height: 100%;
+  }
+  #start-screen.intro-versus .monster-status dl {
+    inset: 13% 0 11%;
+    gap: 2px;
+  }
+  #start-screen.intro-versus .monster-status dl div {
+    width: 60%;
+    padding: 2px 5px;
+    background: rgba(13,7,31,.34);
+  }
+  #start-screen.intro-versus .monster-status dt { font-size: 7px; }
+  #start-screen.intro-versus .monster-status dd { font-size: 10px; }
+  #start-screen.intro-versus .monster-status > .status-summary { bottom: 1%; }
+  #start-screen.intro-versus .ability-note { font-size: 6px; }
+
   .game-shell {
     position: relative;
     display: block;

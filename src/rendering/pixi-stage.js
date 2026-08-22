@@ -21,6 +21,7 @@ const STAR_COUNT = 150;
 const PROJECTION_EPSILON = .001;
 const BACKGROUND_CAMERA_PARALLAX = .18;
 const BACKGROUND_COVER_PADDING = 12;
+const MOBILE_LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 500px)";
 
 const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
 
@@ -161,6 +162,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   dramaticShade.alpha = 0;
   dramaticShade.visible = false;
   const cameraRoot = new Container();
+  const sceneRoot = new Container();
+  const playfieldMask = new Graphics();
   const vignette = new Sprite(vignetteTexture);
   vignette.anchor.set(.5);
   vignette.alpha = .72;
@@ -168,7 +171,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   world.addChild(stars, haze, floor, particles);
   // 超必殺技の暗幕は背景だけに掛ける。キャラと技エフェクトは前面で明るさを保つ。
   cameraRoot.addChild(background, world, dramaticShade, actorShadows, fighterLayer, effectLayer);
-  app.stage.addChild(cameraRoot, vignette);
+  sceneRoot.addChild(cameraRoot, vignette);
+  app.stage.addChild(sceneRoot, playfieldMask);
   app.stage.eventMode = "static";
 
   const shadowTexture = createRadialTexture(128, [
@@ -222,6 +226,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   let enemyShadowBaseScaleY = 1;
   let elapsed = 0;
   let prebattle = gameShell.classList.contains("prebattle");
+  const mobileLandscapeMedia = window.matchMedia(MOBILE_LANDSCAPE_QUERY);
 
   let fighterSystem;
   try {
@@ -506,6 +511,29 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     }
   }
 
+  function layoutSceneViewport() {
+    sceneRoot.position.set(0, 0);
+    sceneRoot.scale.set(1);
+    sceneRoot.mask = null;
+    playfieldMask.clear();
+    if (prebattle || !mobileLandscapeMedia.matches) return;
+
+    const viewportX = width * .145;
+    const viewportTop = 4;
+    const viewportWidth = width - viewportX * 2;
+    const viewportHeight = Math.max(1, height - viewportTop - 99);
+    const scale = Math.min(viewportWidth / width, viewportHeight / height);
+    sceneRoot.scale.set(scale);
+    sceneRoot.position.set(
+      viewportX + (viewportWidth - width * scale) / 2,
+      viewportTop + (viewportHeight - height * scale) / 2,
+    );
+    playfieldMask
+      .roundRect(viewportX, viewportTop, viewportWidth, viewportHeight, 5)
+      .fill({ color: 0xffffff });
+    sceneRoot.mask = playfieldMask;
+  }
+
   function layout() {
     width = app.screen.width;
     height = app.screen.height;
@@ -531,6 +559,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     drawStars();
     drawFloor();
     mobileControls.layout(width, height);
+    layoutSceneViewport();
   }
 
   function applyProjection() {
@@ -572,6 +601,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     mobileControls.setState({ visible: !prebattle });
     background.tint = prebattle ? 0xa89dbd : 0xc9bfdc;
     vignette.alpha = prebattle ? .84 : .72;
+    layoutSceneViewport();
   }
 
   layout();
@@ -591,6 +621,11 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   const cameraObserver = new MutationObserver(syncCameraClasses);
   cameraObserver.observe(arena, { attributes: true, attributeFilter: ["class"], attributeOldValue: true });
   syncCameraClasses();
+  const onMobileLandscapeChange = () => {
+    layoutSceneViewport();
+    applyProjection();
+  };
+  mobileLandscapeMedia.addEventListener("change", onMobileLandscapeChange);
 
   app.ticker.maxFPS = 60;
   app.ticker.add((ticker) => {
@@ -684,6 +719,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       phaseObserver.disconnect();
       cameraObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      mobileLandscapeMedia.removeEventListener("change", onMobileLandscapeChange);
       effectSystem.clear();
       fighterSystem.destroy();
       mobileControls.destroy();

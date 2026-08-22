@@ -97,7 +97,6 @@ import {
   };
   const assetUrl = (source) => window.etokichiAssetUrl?.(source) ?? source;
   const actorImage = assetUrl;
-  const mobileLandscapeMedia = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
 
   const CHARACTER_PROFILES = createCharacterProfiles(actorImage);
   let selectedHeroId = "etokichi";
@@ -2462,14 +2461,12 @@ import {
     const screenMidpoint = clamp(desiredScreenMidpoint, SCREEN_FIGHTER_MARGIN + projectedDistance / 2, 100 - SCREEN_FIGHTER_MARGIN - projectedDistance / 2);
     const pan = (.5 - stageProgress) * Math.min(window.innerWidth, 1500) * .28;
     const backdropParallax = .22 + closeupProgress * .72;
-    const mobileScreenScale = mobileLandscapeMedia.matches ? .73 : 1;
-    const mapToPlayableScreen = (position) => 50 + (position - 50) * mobileScreenScale;
     return {
-      heroX: mapToPlayableScreen(screenMidpoint - projectedDistance / 2),
-      enemyX: mapToPlayableScreen(screenMidpoint + projectedDistance / 2),
-      pan: pan * mobileScreenScale,
+      heroX: screenMidpoint - projectedDistance / 2,
+      enemyX: screenMidpoint + projectedDistance / 2,
+      pan,
       zoom,
-      backdropPan: pan * mobileScreenScale * backdropParallax,
+      backdropPan: pan * backdropParallax,
       backdropZoom: .88 + zoom * .12 + closeupProgress * .2,
     };
   }
