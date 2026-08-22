@@ -1,4 +1,4 @@
-import { Container, Graphics, Rectangle, Text } from "pixi.js";
+import { Container, Graphics, Polygon, Rectangle, Text } from "pixi.js";
 
 const MOBILE_LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 500px)";
 
@@ -19,6 +19,7 @@ function createControlButton({ label, kind = "direction", accent = 0x5f4a80, onP
   caption.anchor.set(.5);
   root.addChild(background, caption);
   root.eventMode = "static";
+  root.interactiveChildren = false;
   root.cursor = "pointer";
 
   const activePointers = new Set();
@@ -80,11 +81,11 @@ function createControlButton({ label, kind = "direction", accent = 0x5f4a80, onP
 
   return {
     root,
-    layout(x, y, nextWidth, nextHeight = nextWidth) {
+    layout(x, y, nextWidth, nextHeight = nextWidth, nextHitArea = null) {
       width = nextWidth;
       height = nextHeight;
       root.position.set(x, y);
-      root.hitArea = new Rectangle(-width / 2, -height / 2, width, height);
+      root.hitArea = nextHitArea ?? new Rectangle(-width / 2, -height / 2, width, height);
       caption.style.fontSize = kind === "attack"
         ? clamp(width * .3, 18, 23)
         : kind === "direction" ? clamp(width * .34, 14, 18) : clamp(width * .19, 8, 11);
@@ -163,15 +164,50 @@ export function createMobileControlSystem() {
     width = nextWidth;
     height = nextHeight;
     root.hitArea = new Rectangle(0, 0, width, height);
-    const railWidth = clamp(width * .135, 92, 132);
+    const railWidth = clamp(width * .145, 100, 140);
     const directionSize = clamp(height * .105, 36, 44);
-    const dpadStep = directionSize * .78;
+    const dpadStep = directionSize * .96;
     const bottomPadding = clamp(height * .045, 14, 22);
     const dpadX = railWidth / 2;
     const dpadY = height - bottomPadding - directionSize * 1.5;
+    const dpadRadius = dpadStep + directionSize / 2;
+    const dpadDeadZone = directionSize * .2;
     const actionX = width - railWidth / 2;
     const attackSize = clamp(height * .175, 60, 72);
     const pushSize = clamp(height * .12, 42, 50);
+
+    const directionalHitArea = (buttonX, buttonY, points) => new Polygon(points.flatMap(([x, y]) => [
+      dpadX + x - buttonX,
+      dpadY + y - buttonY,
+    ]));
+    const leftX = dpadX - dpadStep;
+    const rightX = dpadX + dpadStep;
+    const upY = dpadY - dpadStep;
+    const downY = dpadY + dpadStep;
+    const leftHitArea = directionalHitArea(leftX, dpadY, [
+      [-dpadDeadZone, -dpadDeadZone],
+      [-dpadRadius, -dpadRadius],
+      [-dpadRadius, dpadRadius],
+      [-dpadDeadZone, dpadDeadZone],
+    ]);
+    const rightHitArea = directionalHitArea(rightX, dpadY, [
+      [dpadDeadZone, -dpadDeadZone],
+      [dpadRadius, -dpadRadius],
+      [dpadRadius, dpadRadius],
+      [dpadDeadZone, dpadDeadZone],
+    ]);
+    const upHitArea = directionalHitArea(dpadX, upY, [
+      [-dpadRadius, -dpadRadius],
+      [dpadRadius, -dpadRadius],
+      [dpadDeadZone, -dpadDeadZone],
+      [-dpadDeadZone, -dpadDeadZone],
+    ]);
+    const downHitArea = directionalHitArea(dpadX, downY, [
+      [-dpadDeadZone, dpadDeadZone],
+      [dpadDeadZone, dpadDeadZone],
+      [dpadRadius, dpadRadius],
+      [-dpadRadius, dpadRadius],
+    ]);
 
     rails
       .clear()
@@ -182,12 +218,20 @@ export function createMobileControlSystem() {
       .rect(railWidth - 1, 0, 1, height)
       .fill({ color: 0xffffff, alpha: .09 })
       .rect(width - railWidth, 0, 1, height)
-      .fill({ color: 0xffffff, alpha: .09 });
+      .fill({ color: 0xffffff, alpha: .09 })
+      .roundRect(
+        dpadX - directionSize * .48,
+        dpadY - directionSize * .48,
+        directionSize * .96,
+        directionSize * .96,
+        8,
+      )
+      .fill({ color: 0x4d3c69, alpha: .96 });
 
-    buttons.left.layout(dpadX - dpadStep, dpadY, directionSize);
-    buttons.right.layout(dpadX + dpadStep, dpadY, directionSize);
-    buttons.up.layout(dpadX, dpadY - dpadStep, directionSize);
-    buttons.down.layout(dpadX, dpadY + dpadStep, directionSize);
+    buttons.left.layout(leftX, dpadY, directionSize, directionSize, leftHitArea);
+    buttons.right.layout(rightX, dpadY, directionSize, directionSize, rightHitArea);
+    buttons.up.layout(dpadX, upY, directionSize, directionSize, upHitArea);
+    buttons.down.layout(dpadX, downY, directionSize, directionSize, downHitArea);
     buttons.attack.layout(actionX, height - bottomPadding - pushSize - attackSize * .76, attackSize);
     buttons.push.layout(actionX, height - bottomPadding - pushSize / 2, pushSize);
     syncVisibility();
