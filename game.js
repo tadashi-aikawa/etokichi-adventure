@@ -998,6 +998,7 @@ import {
     }
 
     const actionGuts = state[gutsKey];
+    const defenderActionGuts = state[isHero ? "enemyGuts" : "heroGuts"];
     const serenityAttack = isSpecialActive(side, "serenity");
     const impactDelay = technique.impactDelay ?? (technique.kind === "special" ? 3150 : technique.kind === "shot" ? 390 : 250);
     beginTechniqueResolution(side, serenityAttack);
@@ -1037,12 +1038,12 @@ import {
       }, 1120);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, isHero);
+        const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, defenderActionGuts, isHero);
         pentagramWillHit = Math.random() * 100 < hitChance;
         if (!pentagramWillHit) {
           actor.classList.add("pentagram-nova-miss");
           refs.arena.classList.add("pentagram-nova-missed");
-          resolveHit(side, technique, actionGuts, serenityAttack, false);
+          resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack, false);
           state[busyKey] = actionStartedAt + 3300;
           state.actionLockUntil = actionStartedAt + 3300;
           setTimeout(() => {
@@ -1086,7 +1087,7 @@ import {
         if (state.phase !== "battle" || token !== state[tokenKey] || pentagramWillHit !== true) return;
         target.classList.remove("nova-captured");
         void target.offsetWidth;
-        const outcome = resolveHit(side, technique, actionGuts, serenityAttack, true);
+        const outcome = resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack, true);
         createPentagramNovaImpact(side, Boolean(outcome?.critical));
       }, technique.impactDelay);
     } else if (technique.kind === "special") {
@@ -1205,7 +1206,7 @@ import {
     if (!isPentagramNova) {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        resolveHit(side, technique, actionGuts, serenityAttack);
+        resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack);
       }, impactDelay);
     }
 
@@ -1290,6 +1291,7 @@ import {
       return;
     }
     const actionGuts = state[gutsKey];
+    const defenderActionGuts = state[isHero ? "enemyGuts" : "heroGuts"];
     const rangeChoices = (isHero ? techniques : enemyTechniques).filter((candidate) => candidate.range === technique.range);
     const selectedIndex = rangeChoices.indexOf(technique);
     if (selectedIndex >= 0) state[selectionKey][technique.range] = selectedIndex;
@@ -1530,10 +1532,10 @@ import {
       }, 60);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, isHero);
+        const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, defenderActionGuts, isHero);
         restraintHit = Math.random() * 100 < hitChance;
         if (!restraintHit) {
-          resolveHit(side, technique, actionGuts, serenityAttack, false);
+          resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack, false);
           return;
         }
         transitionTechniqueSprite(actorSprite, images.restraintPin);
@@ -1634,11 +1636,11 @@ import {
     setTimeout(() => {
       if (state.phase !== "battle" || token !== state[tokenKey]) return;
       if (technique.animation === "tatsuoRestraint") {
-        if (restraintHit) resolveHit(side, technique, actionGuts, serenityAttack, true);
+        if (restraintHit) resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack, true);
         return;
       }
       if (technique.animation === "sutekichiNap") resolveRecoveryTechnique(side, technique, actionGuts);
-      else resolveHit(side, technique, actionGuts, serenityAttack);
+      else resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack);
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
@@ -1649,13 +1651,13 @@ import {
     }, technique.duration);
   }
 
-  function resolveHit(attacker, technique, actionGuts, serenityAttack = false, forcedHit = null) {
+  function resolveHit(attacker, technique, actionGuts, defenderActionGuts, serenityAttack = false, forcedHit = null) {
     try {
     const heroAttacks = attacker === "hero";
     const defender = heroAttacks ? "enemy" : "hero";
     const target = heroAttacks ? refs.enemy : refs.hero;
     recordOpponentObservation(defender, technique.range);
-    const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, heroAttacks);
+    const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, defenderActionGuts, heroAttacks);
     const hit = forcedHit ?? (Math.random() * 100 < hitChance);
 
     if (!hit) {
@@ -2434,10 +2436,10 @@ import {
     return applyPetrificationMovementMultiplier(multiplier, isPetrified(side));
   }
 
-  function calculateHitChance(technique, guts, heroAttacks = true) {
+  function calculateHitChance(technique, attackerGuts, defenderGuts, heroAttacks = true) {
     const attackerStats = fighterStats[heroAttacks ? "hero" : "enemy"];
     const defenderStats = fighterStats[heroAttacks ? "enemy" : "hero"];
-    let hitRate = calculateBaseHitRate(technique.accuracy, guts, attackerStats.accuracy, defenderStats.evasion);
+    let hitRate = calculateBaseHitRate(technique.accuracy, attackerGuts, defenderGuts, attackerStats.accuracy, defenderStats.evasion);
     const attacker = heroAttacks ? "hero" : "enemy";
     const defender = heroAttacks ? "enemy" : "hero";
     if (isPetrified(defender)) return PETRIFICATION_EFFECT.hitRate;
@@ -2603,8 +2605,8 @@ import {
     const distancePosition = getDistanceCursorPosition(state.enemyX - state.heroX);
     refs.heroDistanceRuler.style.setProperty("--distance-position", `${100 - distancePosition}%`);
     refs.enemyDistanceRuler.style.setProperty("--distance-position", `${distancePosition}%`);
-    refs.hitRate.textContent = current ? current.kind === "support" ? "自己強化" : `${calculateHitChance(current, state.heroGuts)}%` : range === null ? "圏外" : "技なし";
-    refs.enemyHitRate.textContent = enemyCurrent ? enemyCurrent.kind === "support" ? "回復技" : `${calculateHitChance(enemyCurrent, state.enemyGuts, false)}%` : range === null ? "圏外" : "技なし";
+    refs.hitRate.textContent = current ? current.kind === "support" ? "自己強化" : `${calculateHitChance(current, state.heroGuts, state.enemyGuts)}%` : range === null ? "圏外" : "技なし";
+    refs.enemyHitRate.textContent = enemyCurrent ? enemyCurrent.kind === "support" ? "回復技" : `${calculateHitChance(enemyCurrent, state.enemyGuts, state.heroGuts, false)}%` : range === null ? "圏外" : "技なし";
     refs.heroFocusedTechnique.textContent = current?.name ?? (range === null ? "技の圏外" : "この間合いに技なし");
     refs.enemyFocusedTechnique.textContent = enemyCurrent?.name ?? (range === null ? "技の圏外" : "この間合いに技なし");
     refs.heroDistanceRuler.classList.toggle("out-of-technique-range", outsideHeroTechniqueRange);

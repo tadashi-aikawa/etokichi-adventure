@@ -52,9 +52,11 @@ describe("純粋な戦闘計算", () => {
     expect(applyGenkiMovementMultiplier(1.35, false)).toBe(1.35);
   });
 
-  it("命中と回避の差およびガッツから基礎命中率を算出する", () => {
-    expect(calculateBaseHitRate(70, 50, 500, 500)).toBe(70);
-    expect(calculateBaseHitRate(70, 100, 680, 500)).toBe(92);
+  it("命中と回避の差および両者のガッツ差から基礎命中率を算出する", () => {
+    expect(calculateBaseHitRate(70, 50, 50, 500, 500)).toBe(70);
+    expect(calculateBaseHitRate(70, 100, 50, 680, 500)).toBeCloseTo(94.4);
+    expect(calculateBaseHitRate(70, 50, 100, 500, 500)).toBe(60);
+    expect(calculateBaseHitRate(70, 100, 100, 500, 500)).toBe(70);
     expect(NORMAL_MAX_HIT_RATE).toBe(99);
   });
 

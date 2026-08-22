@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCharacterProfiles } from "../src/game/characters.ts";
+import { calculateBaseHitRate, clamp, NORMAL_MAX_HIT_RATE } from "../src/game/combat.ts";
 
 const profiles = createCharacterProfiles((source) => source);
 
@@ -26,6 +27,68 @@ describe("キャラクター定義", () => {
         expect(technique.animation).toBeTruthy();
       }
     }
+  });
+
+  it("全攻撃技の命中値を新しい戦闘計算向けに調整している", () => {
+    const attackAccuracies = Object.fromEntries(
+      Object.values(profiles).flatMap((profile) =>
+        profile.techniques.filter(({ kind }) => kind !== "support").map(({ id, accuracy }) => [id, accuracy]),
+      ),
+    );
+
+    expect(attackAccuracies).toEqual({
+      punch: 91,
+      pentagramNova: 55,
+      starRing: 81,
+      galaxyRay: 71,
+      galaxyFlash: 62,
+      throwKiss: 93,
+      meteorClaw: 89,
+      crescentHorn: 79,
+      darkOrbit: 70,
+      blackMeteor: 60,
+      starTouch: 90,
+      haloSkip: 80,
+      stellaSearch: 74,
+      discoveryComet: 56,
+      businessCardStrike: 91,
+      angelWink: 86,
+      approvalMeteor: 58,
+      closingTimeDash: 79,
+      tatsuoSlap: 92,
+      tatsuoRestraint: 63,
+      tatsuoRoar: 88,
+      tatsuoPress: 59,
+      asterTailSweep: 70,
+      asterMigration: 35,
+      asterEvilEye: 60,
+      asterDeathEnergy: 65,
+    });
+  });
+
+  it("高回避型と低回避型の被命中率に明確な差を保つ", () => {
+    const hitRatesAgainst = (defender: (typeof profiles)[keyof typeof profiles]) =>
+      Object.values(profiles).flatMap((attacker) =>
+        attacker.techniques
+          .filter(({ kind }) => kind !== "support")
+          .map((technique) =>
+            clamp(
+              Math.round(
+                calculateBaseHitRate(technique.accuracy, 50, 50, attacker.stats.accuracy, defender.stats.evasion),
+              ),
+              18,
+              NORMAL_MAX_HIT_RATE,
+            ),
+          ),
+      );
+    const average = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+    const sutekichiRates = hitRatesAgainst(profiles.sutekichi);
+    const tatsuoRates = hitRatesAgainst(profiles.tatsuo);
+
+    expect(average(sutekichiRates)).toBeGreaterThanOrEqual(50);
+    expect(average(sutekichiRates)).toBeLessThanOrEqual(56);
+    expect(Math.max(...sutekichiRates)).toBeLessThanOrEqual(80);
+    expect(average(tatsuoRates) - average(sutekichiRates)).toBeGreaterThanOrEqual(35);
   });
 
   it("おひるねは超遠距離枠に共存する全回復技である", () => {
@@ -102,7 +165,7 @@ describe("キャラクター定義", () => {
     const restraint = profiles.tatsuo.techniques.find(({ id }) => id === "tatsuoRestraint");
     expect(restraint).toMatchObject({
       cost: 42,
-      accuracy: 61,
+      accuracy: 63,
       restraintDuration: 8000,
       range: 1,
       closesDistance: true,
@@ -148,7 +211,7 @@ describe("キャラクター定義", () => {
       attackStat: "intelligence",
       power: 70,
       gutsDamage: 18,
-      accuracy: 85,
+      accuracy: 60,
       petrifyChance: 0.5,
       petrifyDuration: 10000,
       range: 2,
@@ -159,19 +222,19 @@ describe("キャラクター定義", () => {
     const migration = profiles.aster.techniques.find(({ id }) => id === "asterMigration");
     expect(migration).toMatchObject({
       attackStat: "intelligence",
-      accuracy: 44,
+      accuracy: 35,
       lifeDrainRatio: 1,
       gutsDrainRatio: 1,
       range: 1,
     });
   });
 
-  it("デスエナジーは消費29で命中が高い知力技である", () => {
+  it("デスエナジーは消費29の高威力な知力技である", () => {
     const deathEnergy = profiles.aster.techniques.find(({ id }) => id === "asterDeathEnergy");
     expect(deathEnergy).toMatchObject({
       cost: 29,
       power: 155,
-      accuracy: 94,
+      accuracy: 65,
       attackStat: "intelligence",
       range: 3,
     });

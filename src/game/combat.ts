@@ -107,12 +107,14 @@ export function getRangeForDistance(distance: number, maximumTechniqueDistance =
 
 export function calculateBaseHitRate(
   techniqueAccuracy: number,
-  guts: number,
+  attackerGuts: number,
+  defenderGuts: number,
   attackerAccuracy: number,
   defenderEvasion: number,
 ): number {
-  const gutsBonus = (guts - 50) * 0.24;
-  const abilityBonus = (attackerAccuracy - defenderEvasion) / 18;
+  // MF2の「能力差50ごとに4ポイント」を連続値化する。技命中率は基礎50込みの値なので、そのまま使う。
+  const gutsBonus = (attackerGuts - defenderGuts) * 0.2;
+  const abilityBonus = (attackerAccuracy - defenderEvasion) / 12.5;
   return techniqueAccuracy + gutsBonus + abilityBonus;
 }
 
