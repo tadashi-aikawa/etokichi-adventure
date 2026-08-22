@@ -1357,7 +1357,7 @@ import {
       tatsuoRoar: "tatsuoRoarWindup",
       tatsuoPress: "tatsuoPressWindup",
       asterDeathEnergy: "asterDeathCharge",
-      asterEvilEye: "asterEvilEyeFocus",
+      asterEvilEye: "asterEvilEyeZoom",
       asterMigration: "asterMigrationCharge",
       asterTailSweep: "physicalWindup",
     };
@@ -1612,16 +1612,12 @@ import {
       }, 500);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        sound("asterEvilEyeGlow");
-      }, 520);
-      setTimeout(() => {
-        if (state.phase !== "battle" || token !== state[tokenKey]) return;
         refs.arena.classList.add("aster-evil-eye-mode");
       }, 1120);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterEvilEye", side);
-        sound("rayLock");
+        sound("asterEvilEyeFire");
       }, 1250);
     } else if (technique.animation === "asterDeathEnergy") {
       setTimeout(() => {
@@ -3391,14 +3387,25 @@ import {
     if (audioContext.state === "suspended") audioContext.resume();
   }
 
-  function tone(frequency, duration, type = "sine", volume = .035, delay = 0, endFrequency = null, pan = 0) {
+  function tone(frequency, duration, type = "sine", volume = .035, delay = 0, endFrequency = null, pan = 0, detune = 0, vibrato = 0) {
     if (!audioContext) return;
     const start = audioContext.currentTime + delay;
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, start);
+    oscillator.detune.setValueAtTime(detune, start);
     if (endFrequency) oscillator.frequency.exponentialRampToValueAtTime(Math.max(30, endFrequency), start + duration);
+    let vibratoOscillator = null;
+    if (vibrato) {
+      vibratoOscillator = audioContext.createOscillator();
+      const vibratoDepth = audioContext.createGain();
+      vibratoOscillator.frequency.value = vibrato;
+      vibratoDepth.gain.value = frequency * .055;
+      vibratoOscillator.connect(vibratoDepth).connect(oscillator.frequency);
+      vibratoOscillator.start(start);
+      vibratoOscillator.stop(start + duration + .02);
+    }
     gain.gain.setValueAtTime(.0001, start);
     gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + .012);
     gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
@@ -3479,8 +3486,8 @@ import {
       ringWhip: () => { whoosh(1850, 150, .58, 0, -.72, .024); tone(340, .48, "triangle", .018, .045, 1120, .5); sparkle([1175,1568], .16, .009); },
       asterMigrationCharge: () => { tone(118, 1.15, "sawtooth", .024, 0, 460); tone(236, .95, "sine", .016, .08, 920); noiseBurst(.72, .011, 1080, .16); },
       asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
-      asterEvilEyeFocus: () => { tone(92, .72, "sine", .015, 0, 260); },
-      asterEvilEyeGlow: () => { tone(360, .56, "sine", .029, 0, 2480); tone(720, .46, "triangle", .022, .025, 3200); sparkle([988,1480,2217], .08, .018); noiseBurst(.32, .014, 2600, .04); },
+      asterEvilEyeZoom: () => { tone(118, 1.3, "sawtooth", .13, 0, 68, 0, -24, 4.3); tone(118, 1.3, "sawtooth", .13, 0, 72, 0, 29, 5.1); tone(55, 1.4, "sine", .16, 0, 38); filteredNoise(1.22, .06, 180, 1400, 420, .06, 0, .12); },
+      asterEvilEyeFire: () => { tone(3900, .4, "sawtooth", .13, 0, 180); tone(1950, .36, "square", .075, .01, 92); filteredNoise(.27, .16, 1600, 13000, 2300, 0, 0, .002); tone(6200, .07, "triangle", .08, 0, 2100); },
       asterDeathCharge: () => galaxyFlashChargeSound(2),
       asterDeathMist: () => { filteredNoise(.14, .14, 1800, 11000, 11000, 0, -.15, .002); filteredNoise(2.36, .13, 140, 6800, 980, .015, .05); filteredNoise(2.3, .072, 480, 2600, 2600, .06, -.28, .018); tone(980, 2.18, "sawtooth", .06, .025, 82, -.3); tone(620, 2.26, "triangle", .052, .04, 74, .34); tone(61, 2.4, "sine", .082, 0, 29); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },
