@@ -3274,7 +3274,7 @@ import {
     source.stop(start + duration + .01);
   }
 
-  function filteredNoise(duration, volume, highpassFrequency, lowpassStart, lowpassEnd = lowpassStart, delay = 0, pan = 0, attack = .008) {
+  function filteredNoise(duration, volume, highpassFrequency, lowpassStart, lowpassEnd = lowpassStart, delay = 0, pan = 0, attack = .008, crescendo = false) {
     if (!audioContext) return;
     const frameCount = Math.max(1, Math.floor(audioContext.sampleRate * duration));
     const buffer = audioContext.createBuffer(1, frameCount, audioContext.sampleRate);
@@ -3291,8 +3291,9 @@ import {
     lowpass.frequency.setValueAtTime(lowpassStart, start);
     if (lowpassEnd !== lowpassStart) lowpass.frequency.exponentialRampToValueAtTime(lowpassEnd, start + duration);
     gain.gain.setValueAtTime(.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + Math.min(attack, duration * .25));
-    gain.gain.setValueAtTime(volume * SOUND_EFFECT_VOLUME * .84, start + duration * .68);
+    gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME * (crescendo ? .14 : 1), start + Math.min(attack, duration * .25));
+    if (crescendo) gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + duration * .9);
+    else gain.gain.setValueAtTime(volume * SOUND_EFFECT_VOLUME * .84, start + duration * .68);
     gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
     source.buffer = buffer;
     source.connect(highpass).connect(lowpass).connect(gain);
@@ -3387,7 +3388,7 @@ import {
     if (audioContext.state === "suspended") audioContext.resume();
   }
 
-  function tone(frequency, duration, type = "sine", volume = .035, delay = 0, endFrequency = null, pan = 0, detune = 0, vibrato = 0) {
+  function tone(frequency, duration, type = "sine", volume = .035, delay = 0, endFrequency = null, pan = 0, detune = 0, vibrato = 0, crescendo = false) {
     if (!audioContext) return;
     const start = audioContext.currentTime + delay;
     const oscillator = audioContext.createOscillator();
@@ -3407,7 +3408,8 @@ import {
       vibratoOscillator.stop(start + duration + .02);
     }
     gain.gain.setValueAtTime(.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + .012);
+    gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME * (crescendo ? .22 : 1), start + (crescendo ? duration * .12 : .012));
+    if (crescendo) gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + duration * .88);
     gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
     oscillator.connect(gain);
     connectAudioOutput(gain, pan);
@@ -3486,7 +3488,7 @@ import {
       ringWhip: () => { whoosh(1850, 150, .58, 0, -.72, .024); tone(340, .48, "triangle", .018, .045, 1120, .5); sparkle([1175,1568], .16, .009); },
       asterMigrationCharge: () => { tone(118, 1.15, "sawtooth", .024, 0, 460); tone(236, .95, "sine", .016, .08, 920); noiseBurst(.72, .011, 1080, .16); },
       asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
-      asterEvilEyeZoom: () => { tone(34, 1.16, "sine", .026, 0, 42, 0, 0, 2.8); [.08,.68].forEach((delay) => { tone(68, .32, "triangle", .115, delay, 37); tone(136, .18, "square", .032, delay + .018, 54); filteredNoise(.12, .038, 170, 1250, 310, delay + .025, 0, .003); }); },
+      asterEvilEyeZoom: () => { tone(52, 1.16, "sine", .045, 0, 310, 0, 0, 0, true); tone(104, 1.1, "sawtooth", .02, .035, 1240, -.14, 0, 0, true); filteredNoise(1.12, .02, 80, 420, 4200, 0, 0, .12, true); [0,.28,.49,.66,.8,.91,1].forEach((delay, index) => tone(420 + index * 125, .1, "triangle", .007 + index * .0014, delay, (420 + index * 125) * 1.7, index % 2 ? .35 : -.35)); },
       asterEvilEyeFire: () => { tone(3900, .4, "sawtooth", .13, 0, 180); tone(1950, .36, "square", .075, .01, 92); filteredNoise(.27, .16, 1600, 13000, 2300, 0, 0, .002); tone(6200, .07, "triangle", .08, 0, 2100); },
       asterDeathCharge: () => galaxyFlashChargeSound(2),
       asterDeathMist: () => { filteredNoise(.14, .14, 1800, 11000, 11000, 0, -.15, .002); filteredNoise(2.36, .13, 140, 6800, 980, .015, .05); filteredNoise(2.3, .072, 480, 2600, 2600, .06, -.28, .018); tone(980, 2.18, "sawtooth", .06, .025, 82, -.3); tone(620, 2.26, "triangle", .052, .04, 74, .34); tone(61, 2.4, "sine", .082, 0, 29); },
