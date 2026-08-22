@@ -1356,7 +1356,7 @@ import {
       tatsuoRestraint: "physicalWindup",
       tatsuoRoar: "tatsuoRoarWindup",
       tatsuoPress: "tatsuoPressWindup",
-      asterDeathEnergy: "galaxyFlashCharge",
+      asterDeathEnergy: "asterDeathCharge",
       asterEvilEye: "asterEvilEyeFocus",
       asterMigration: "asterMigrationCharge",
       asterTailSweep: "physicalWindup",
@@ -3423,12 +3423,26 @@ import {
     if (heavy) tone(72, .42, "triangle", .027, delay + .075, 34, -pan * .7);
   }
 
-  function sparkle(notes, delay = 0, volume = .015) {
+  function sparkle(notes, delay = 0, volume = .015, speed = 1) {
+    const timeScale = 1 / speed;
     notes.forEach((frequency, index) => {
       const pan = index % 2 === 0 ? -.42 : .42;
-      tone(frequency, .3, "sine", volume, delay + index * .055, frequency * 1.16, pan);
-      tone(frequency * 2, .18, "triangle", volume * .38, delay + index * .055, frequency * 1.5, -pan);
+      tone(frequency, .3 * timeScale, "sine", volume, delay + index * .055 * timeScale, frequency * 1.16, pan);
+      tone(frequency * 2, .18 * timeScale, "triangle", volume * .38, delay + index * .055 * timeScale, frequency * 1.5, -pan);
     });
+  }
+
+  function galaxyFlashChargeSound(speed = 1) {
+    const timeScale = 1 / speed;
+    tone(48, 2.2 * timeScale, "sine", .08, 0, 176);
+    tone(96, 2.08 * timeScale, "sawtooth", .034, .05 * timeScale, 920, -.18);
+    filteredNoise(2.05 * timeScale, .052, 100, 520, 2600, .08 * timeScale, .2);
+    [0,.43,.79,1.09,1.34,1.56,1.75].forEach((delay, index) => {
+      tone(128 + index * 38, .14 * timeScale, "triangle", .048, delay * timeScale, 300 + index * 95, index % 2 ? .42 : -.42);
+      filteredNoise(.075 * timeScale, .024, 900, 3600, 3600, delay * timeScale, index % 2 ? -.36 : .36, .003 * timeScale);
+    });
+    sparkle([784,1175,1568,2093], 1.55 * timeScale, .025, speed);
+    tone(1760, .16 * timeScale, "square", .042, 2.02 * timeScale, 3100);
   }
 
   function crowdReaction(strength = 1) {
@@ -3467,6 +3481,7 @@ import {
       asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
       asterEvilEyeFocus: () => { tone(92, .72, "sine", .015, 0, 260); },
       asterEvilEyeGlow: () => { tone(360, .56, "sine", .029, 0, 2480); tone(720, .46, "triangle", .022, .025, 3200); sparkle([988,1480,2217], .08, .018); noiseBurst(.32, .014, 2600, .04); },
+      asterDeathCharge: () => galaxyFlashChargeSound(2),
       asterDeathMist: () => { filteredNoise(.14, .14, 1800, 11000, 11000, 0, -.15, .002); filteredNoise(2.36, .13, 140, 6800, 980, .015, .05); filteredNoise(2.3, .072, 480, 2600, 2600, .06, -.28, .018); tone(980, 2.18, "sawtooth", .06, .025, 82, -.3); tone(620, 2.26, "triangle", .052, .04, 74, .34); tone(61, 2.4, "sine", .082, 0, 29); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },
       novaRush: () => { whoosh(2400, 65, .54, 0, -.75, .038); tone(168, .48, "square", .028, .02, 58, .62); noiseBurst(.34, .025, 2100, .02, -.45); },
@@ -3501,7 +3516,7 @@ import {
       miss: () => { noiseBurst(.13, .024, 2600); tone(1180, .16, "sine", .025, 0, 430); tone(560, .2, "triangle", .016, .035, 1040); },
       hit: () => { impact(false); crowdReaction(); },
       push: () => { whoosh(740, 64, .23, 0, -.45, .018); impact(true, .055, .35); },
-      galaxyFlashCharge: () => { tone(48, 2.2, "sine", .08, 0, 176); tone(96, 2.08, "sawtooth", .034, .05, 920, -.18); filteredNoise(2.05, .052, 100, 520, 2600, .08, .2); [0,.43,.79,1.09,1.34,1.56,1.75].forEach((delay, index) => { tone(128 + index * 38, .14, "triangle", .048, delay, 300 + index * 95, index % 2 ? .42 : -.42); filteredNoise(.075, .024, 900, 3600, 3600, delay, index % 2 ? -.36 : .36, .003); }); sparkle([784,1175,1568,2093], 1.55, .025); tone(1760, .16, "square", .042, 2.02, 3100); },
+      galaxyFlashCharge: () => galaxyFlashChargeSound(),
       galaxyFlashRelease: () => { filteredNoise(.12, .13, 1700, 11000, 11000, 0, -.2, .002); filteredNoise(1.42, .11, 80, 2600, 2600, 0, .15); tone(2600, 1.42, "sawtooth", .06, 0, 94, .15); tone(1300, 1.28, "triangle", .042, .02, 47, -.09); filteredNoise(1.35, .076, 420, 3400, 3400, .04, -.25); tone(59, 1.55, "sine", .084, 0, 29); sparkle([1175,1568,2093], .02, .024); },
       rayCharge: () => { tone(210, .82, "sine", .021, 0, 1180, -.32); tone(460, .7, "triangle", .013, .04, 1860, .32); noiseBurst(.42, .008, 2100, .2); },
       rayLock: () => { sparkle([880,1320,1760], 0, .014); tone(120, .3, "square", .013, .08, 70); },

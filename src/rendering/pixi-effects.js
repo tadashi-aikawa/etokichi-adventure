@@ -459,9 +459,10 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
 
   function makeGalaxyCharge(side = "hero") {
     const container = new Container();
-    const violetHalo = glow(0x5120b7, 300, .48);
-    const cyanCloud = glow(COLORS.cyan, 190, .3);
-    const magentaCloud = glow(COLORS.pink, 220, .34);
+    const violetHalo = glow(0x5120b7, 340, .52);
+    const shadowAura = new Graphics().ellipse(0, 0, 100, 72).fill({ color: 0x080112, alpha: .66 });
+    const cyanCloud = glow(COLORS.cyan, 210, .34);
+    const magentaCloud = glow(COLORS.pink, 240, .38);
     const accretionOuter = new Graphics().ellipse(0, 0, 82, 34).stroke({ color: 0xb070ff, alpha: .9, width: 7 });
     const accretionInner = new Graphics().ellipse(0, 0, 58, 22).stroke({ color: COLORS.cyan, alpha: .9, width: 5 });
     const coreGlow = glow(COLORS.white, 78, .95);
@@ -469,52 +470,99 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
       .circle(0, 0, 18)
       .fill({ color: 0x070218, alpha: .98 })
       .stroke({ color: 0xff86e8, alpha: .9, width: 3 });
+    const pulseRings = Array.from({ length: 3 }, (_, index) => {
+      const ring = new Graphics().circle(0, 0, 48 + index * 9).stroke({ color: index % 2 ? COLORS.cyan : 0xb070ff, alpha: .7, width: 3 });
+      container.addChild(ring);
+      return ring;
+    });
+    const spiralArcs = Array.from({ length: 4 }, (_, index) => {
+      const radius = 66 + index * 13;
+      const arc = new Graphics().arc(0, 0, radius, -.65, .7).stroke({ color: index % 2 ? COLORS.pink : COLORS.cyan, alpha: .82, width: 4 - index * .45 });
+      arc.blendMode = "add";
+      container.addChild(arc);
+      return arc;
+    });
+    const wisps = [];
     const dust = [];
     const stars = [];
-    container.addChild(violetHalo, magentaCloud, cyanCloud, accretionOuter, accretionInner, coreGlow, voidCore);
-    for (let index = 0; index < 18; index += 1) {
-      const color = [COLORS.cyan, COLORS.pink, COLORS.violet, COLORS.white][index % 4];
-      const mote = glow(color, 13 + index % 4 * 4, .82);
-      container.addChildAt(mote, 3);
-      dust.push({ sprite: mote, angle: index * Math.PI * 2 / 18, radius: 55 + index % 5 * 17, speed: 1.7 + index % 4 * .31 });
+    container.addChildAt(violetHalo, 0);
+    container.addChildAt(shadowAura, 1);
+    container.addChild(magentaCloud, cyanCloud);
+    for (let index = 0; index < 7; index += 1) {
+      const wisp = new Graphics().ellipse(0, 0, 34 + index % 3 * 10, 10 + index % 2 * 5).fill({ color: index % 2 ? 0x17052d : 0x05000c, alpha: .48 });
+      container.addChildAt(wisp, 2 + index);
+      wisps.push({ sprite: wisp, angle: index * Math.PI * 2 / 7, radius: 66 + index % 3 * 18, speed: 2.4 + index % 4 * .42 });
     }
-    for (let index = 0; index < 10; index += 1) {
+    container.addChild(accretionOuter, accretionInner, coreGlow, voidCore);
+    for (let index = 0; index < 28; index += 1) {
+      const color = [COLORS.cyan, COLORS.pink, COLORS.violet, COLORS.white][index % 4];
+      const mote = glow(color, 10 + index % 5 * 4, .86);
+      container.addChild(mote);
+      dust.push({ sprite: mote, angle: index * Math.PI * 2 / 28, radius: 58 + index % 7 * 16, speed: 2 + index % 5 * .38 });
+    }
+    for (let index = 0; index < 16; index += 1) {
       const star = drawStar(new Graphics(), 3 + index % 3 * 1.7, index % 3 === 0 ? 0xff9ee9 : COLORS.white, .95);
       star.blendMode = "add";
       container.addChild(star);
-      stars.push({ sprite: star, angle: index * Math.PI * 2 / 10 + .24, radius: 72 + index % 4 * 18, speed: 2.2 + index % 3 * .4 });
+      stars.push({ sprite: star, angle: index * Math.PI * 2 / 16 + .24, radius: 78 + index % 5 * 19, speed: 2.6 + index % 4 * .46 });
     }
-    return add(container, 1950, (progress, elapsed) => {
-      container.position.copyFrom(point(side, .72, .53));
+    return add(container, 2200, (progress, elapsed) => {
+      const handXRatio = side === "hero" ? .535 : .465;
+      container.position.copyFrom(point(side, handXRatio, .55));
       const form = Math.min(1, easeOut(progress * 2.2));
       const collapse = progress > .79 ? (1 - progress) / .21 : 1;
-      violetHalo.scale.set(.62 + form * .52 + Math.sin(elapsed * 5) * .08);
-      violetHalo.alpha = collapse * (.34 + Math.sin(elapsed * 4.2) * .1);
-      cyanCloud.position.set(Math.cos(elapsed * 2.1) * 24, Math.sin(elapsed * 2.7) * 17);
-      magentaCloud.position.set(Math.cos(elapsed * 1.7 + Math.PI) * 28, Math.sin(elapsed * 2.3 + 1.2) * 20);
-      cyanCloud.scale.set(.72 + Math.sin(elapsed * 6) * .15);
-      magentaCloud.scale.set(.76 + Math.cos(elapsed * 5.1) * .16);
-      cyanCloud.alpha = collapse * (.2 + Math.sin(elapsed * 5.7) * .08);
-      magentaCloud.alpha = collapse * (.24 + Math.cos(elapsed * 4.8) * .09);
-      accretionOuter.rotation = elapsed * 2.8;
-      accretionInner.rotation = -elapsed * 4.1;
-      accretionOuter.scale.set(.35 + form * .75, .55 + form * .45);
-      accretionInner.scale.set(.3 + form * .7, .48 + form * .52);
-      coreGlow.scale.set(.42 + form * .7 + Math.sin(elapsed * 16) * .1);
-      coreGlow.alpha = collapse * (.64 + Math.sin(elapsed * 13) * .2);
-      voidCore.scale.set(.58 + form * .46 + Math.sin(elapsed * 9) * .06);
-      dust.forEach(({ sprite, angle, radius, speed }, index) => {
-        const inward = radius * (1 - progress * .68);
+      const surge = 1 + Math.sin(elapsed * 17) * .06 + Math.sin(elapsed * 7.3) * .04;
+      container.rotation = Math.sin(elapsed * 8) * .015;
+      violetHalo.scale.set((.58 + form * .62 + Math.sin(elapsed * 6) * .12) * surge);
+      violetHalo.alpha = collapse * (.38 + Math.sin(elapsed * 7.2) * .13);
+      shadowAura.scale.set(.62 + form * .62 + Math.sin(elapsed * 11) * .09, .72 + form * .42 + Math.cos(elapsed * 9) * .08);
+      shadowAura.rotation = elapsed * .7;
+      shadowAura.alpha = collapse * (.48 + Math.sin(elapsed * 12) * .12);
+      cyanCloud.position.set(Math.cos(elapsed * 3.1) * 32, Math.sin(elapsed * 3.8) * 23);
+      magentaCloud.position.set(Math.cos(elapsed * 2.7 + Math.PI) * 36, Math.sin(elapsed * 3.3 + 1.2) * 27);
+      cyanCloud.scale.set(.68 + Math.sin(elapsed * 8) * .21);
+      magentaCloud.scale.set(.72 + Math.cos(elapsed * 7.1) * .22);
+      cyanCloud.alpha = collapse * (.24 + Math.sin(elapsed * 8.7) * .11);
+      magentaCloud.alpha = collapse * (.28 + Math.cos(elapsed * 7.8) * .12);
+      pulseRings.forEach((ring, index) => {
+        const cycle = (elapsed * (1.65 + index * .16) + index / pulseRings.length) % 1;
+        ring.scale.set(.35 + cycle * 1.8);
+        ring.alpha = collapse * (1 - cycle) * (.72 - index * .1);
+      });
+      spiralArcs.forEach((arc, index) => {
+        arc.rotation = elapsed * (index % 2 ? -3.8 : 3.2) + index * Math.PI / 2;
+        arc.scale.set(.55 + form * .58 + Math.sin(elapsed * 10 + index) * .08);
+        arc.alpha = collapse * (.48 + Math.sin(elapsed * 12 + index * 1.4) * .3);
+      });
+      wisps.forEach(({ sprite, angle, radius, speed }, index) => {
         const orbit = angle + elapsed * speed;
+        const inward = radius * (1 - progress * .58);
+        sprite.position.set(Math.cos(orbit) * inward, Math.sin(orbit) * inward * .55);
+        sprite.rotation = orbit + Math.PI / 2;
+        sprite.scale.set(.7 + Math.sin(elapsed * 8 + index) * .18);
+        sprite.alpha = collapse * (.32 + Math.sin(elapsed * 9 + index * 1.7) * .16);
+      });
+      accretionOuter.rotation = elapsed * 4.2;
+      accretionInner.rotation = -elapsed * 6.1;
+      accretionOuter.scale.set(.3 + form * .88, .5 + form * .56);
+      accretionInner.scale.set(.26 + form * .82, .43 + form * .64);
+      coreGlow.position.set(Math.sin(elapsed * 19) * 3.5, Math.cos(elapsed * 17) * 2.5);
+      coreGlow.scale.set(.38 + form * .82 + Math.sin(elapsed * 21) * .15);
+      coreGlow.alpha = collapse * (.68 + Math.sin(elapsed * 17) * .25);
+      voidCore.scale.set(.52 + form * .58 + Math.sin(elapsed * 13) * .09);
+      dust.forEach(({ sprite, angle, radius, speed }, index) => {
+        const inward = radius * (1 - progress * .76);
+        const orbit = angle + elapsed * speed * (1 + progress * .9);
         sprite.position.set(Math.cos(orbit) * inward, Math.sin(orbit) * inward * .6);
-        sprite.scale.set(.45 + form * .65);
-        sprite.alpha = collapse * (.5 + Math.sin(elapsed * 8 + index) * .28);
+        sprite.scale.set(.4 + form * .78 + Math.sin(elapsed * 14 + index) * .09);
+        sprite.alpha = collapse * (.52 + Math.sin(elapsed * 12 + index) * .34);
       });
       stars.forEach(({ sprite, angle, radius, speed }, index) => {
-        const orbit = angle - elapsed * speed;
-        sprite.position.set(Math.cos(orbit) * radius * (1 - progress * .52), Math.sin(orbit) * radius * .54 * (1 - progress * .52));
-        sprite.rotation = -orbit + elapsed * 2;
-        sprite.alpha = collapse * (.62 + Math.sin(elapsed * 10 + index * 1.7) * .34);
+        const orbit = angle - elapsed * speed * (1 + progress * .65);
+        sprite.position.set(Math.cos(orbit) * radius * (1 - progress * .62), Math.sin(orbit) * radius * .54 * (1 - progress * .62));
+        sprite.rotation = -orbit + elapsed * 3.4;
+        sprite.scale.set(.78 + Math.sin(elapsed * 15 + index) * .22);
+        sprite.alpha = collapse * (.64 + Math.sin(elapsed * 14 + index * 1.7) * .35);
       });
       container.alpha = collapse;
     });
