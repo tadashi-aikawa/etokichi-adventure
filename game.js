@@ -3486,7 +3486,7 @@ import {
       ringWhip: () => { whoosh(1850, 150, .58, 0, -.72, .024); tone(340, .48, "triangle", .018, .045, 1120, .5); sparkle([1175,1568], .16, .009); },
       asterMigrationCharge: () => { tone(118, 1.15, "sawtooth", .024, 0, 460); tone(236, .95, "sine", .016, .08, 920); noiseBurst(.72, .011, 1080, .16); },
       asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
-      asterEvilEyeZoom: () => { tone(118, 1.3, "sawtooth", .13, 0, 68, 0, -24, 4.3); tone(118, 1.3, "sawtooth", .13, 0, 72, 0, 29, 5.1); tone(55, 1.4, "sine", .16, 0, 38); filteredNoise(1.22, .06, 180, 1400, 420, .06, 0, .12); },
+      asterEvilEyeZoom: () => { tone(92, 1.35, "sawtooth", .12, 0, 48, 0, 0, 5.2); tone(46, 1.38, "sine", .135, 0, 32); tone(184, 1.22, "triangle", .052, .04, 74, 0, 0, 7); filteredNoise(1.28, .041, 70, 720, 260, .03, 0, .08); },
       asterEvilEyeFire: () => { tone(3900, .4, "sawtooth", .13, 0, 180); tone(1950, .36, "square", .075, .01, 92); filteredNoise(.27, .16, 1600, 13000, 2300, 0, 0, .002); tone(6200, .07, "triangle", .08, 0, 2100); },
       asterDeathCharge: () => galaxyFlashChargeSound(2),
       asterDeathMist: () => { filteredNoise(.14, .14, 1800, 11000, 11000, 0, -.15, .002); filteredNoise(2.36, .13, 140, 6800, 980, .015, .05); filteredNoise(2.3, .072, 480, 2600, 2600, .06, -.28, .018); tone(980, 2.18, "sawtooth", .06, .025, 82, -.3); tone(620, 2.26, "triangle", .052, .04, 74, .34); tone(61, 2.4, "sine", .082, 0, 29); },
