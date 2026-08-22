@@ -1589,10 +1589,10 @@ button { font: inherit; }
     padding: 2px 5px;
     background: rgba(13,7,31,.34);
   }
-  #start-screen.intro-versus .monster-status dt { font-size: 7px; }
-  #start-screen.intro-versus .monster-status dd { font-size: 10px; }
+  #start-screen.intro-versus .monster-status dt { font-size: clamp(9px,2.2vh,11px); }
+  #start-screen.intro-versus .monster-status dd { font-size: clamp(13px,3.3vh,16px); }
   #start-screen.intro-versus .monster-status > .status-summary { bottom: 1%; }
-  #start-screen.intro-versus .ability-note { font-size: 6px; }
+  #start-screen.intro-versus .ability-note { font-size: clamp(8px,2vh,10px); }
 
   .game-shell {
     position: relative;
@@ -1610,6 +1610,7 @@ button { font: inherit; }
     border: 0;
     border-radius: 0;
   }
+  .game-shell:not(.prebattle) .arena { isolation: auto; }
   .pixi-stage {
     pointer-events: auto;
     touch-action: none;
@@ -1708,7 +1709,7 @@ button { font: inherit; }
     top: 0;
     font-size: 5px;
   }
-  .technique-stack.has-multiple .technique-card { padding-right: 2px; }
+  .technique-stack.has-multiple .technique-card { padding-right: 10px; }
   .technique.technique-card,
   .enemy-technique.technique-card {
     height: 46px;
@@ -1743,7 +1744,25 @@ button { font: inherit; }
   .technique-cost small { display: inline !important; font-size: 4px !important; }
   .technique-cost b { font-size: 10px; }
   .technique-cycle,
-  .enemy-technique-cycle { display: none !important; }
+  .enemy-technique-cycle {
+    right: 1px;
+    top: 10px;
+    bottom: 1px;
+    width: 9px;
+    display: grid !important;
+    grid-template-rows: 9px 1fr 9px;
+    border-radius: 5px;
+    pointer-events: none;
+  }
+  .technique-cycle button {
+    width: 9px;
+    height: 9px;
+    font-size: 5px;
+  }
+  .technique-cycle-dots,
+  .enemy-technique-cycle-dots { gap: 2px; }
+  .technique-cycle-dots i,
+  .enemy-technique-cycle-dots i { width: 3px; height: 3px; }
 
   .battle-core {
     display: grid;
