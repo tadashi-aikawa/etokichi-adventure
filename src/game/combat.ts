@@ -1,5 +1,7 @@
 export type RangeBand = 0 | 1 | 2 | 3;
 
+export const NORMAL_MAX_HIT_RATE = 99;
+
 export const GENKI_EFFECT = {
   duration: 8000,
   gutsRegenMultiplier: 1.35,

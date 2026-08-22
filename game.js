@@ -18,6 +18,7 @@ import {
   closeToMinimumRange,
   GENKI_EFFECT,
   getRangeForDistance,
+  NORMAL_MAX_HIT_RATE,
   PLEASURE_EFFECT,
   PETRIFICATION_EFFECT,
   PURSUIT_EFFECT,
@@ -2452,8 +2453,7 @@ import {
     hitRate = applyCharmEvasionPenalty(hitRate, isSpecialActive(defender, "zone"));
     hitRate = applyCharmEvasionPenalty(hitRate, isCharmed(defender));
     const minimumHitRate = isSpecialActive(defender, "awakening") ? 1 : 18;
-    const maximumHitRate = isSpecialActive(attacker, "awakening") ? 99 : 96;
-    return clamp(Math.round(hitRate), minimumHitRate, maximumHitRate);
+    return clamp(Math.round(hitRate), minimumHitRate, NORMAL_MAX_HIT_RATE);
   }
 
   function getRange() {

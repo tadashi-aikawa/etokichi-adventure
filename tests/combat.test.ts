@@ -16,6 +16,7 @@ import {
   closeToMinimumRange,
   GENKI_EFFECT,
   getRangeForDistance,
+  NORMAL_MAX_HIT_RATE,
   reachedZoneLifeThreshold,
   PLEASURE_EFFECT,
   PETRIFICATION_EFFECT,
@@ -54,6 +55,7 @@ describe("純粋な戦闘計算", () => {
   it("命中と回避の差およびガッツから基礎命中率を算出する", () => {
     expect(calculateBaseHitRate(70, 50, 500, 500)).toBe(70);
     expect(calculateBaseHitRate(70, 100, 680, 500)).toBe(92);
+    expect(NORMAL_MAX_HIT_RATE).toBe(99);
   });
 
   it("回復技の成功率を25〜90%へ制限する", () => {
