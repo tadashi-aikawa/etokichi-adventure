@@ -483,7 +483,10 @@ import {
   }
 
   function bindControls() {
-    refs.gameStartButton.addEventListener("click", leaveTitleScreen);
+    refs.gameStartButton.addEventListener("click", () => {
+      requestGameFullscreen();
+      leaveTitleScreen();
+    });
     refs.characterOptions.forEach((option) => option.addEventListener("click", () => {
       if (option.dataset.selectSide === "hero") applyHeroProfile(option.dataset.characterId);
       else applyEnemyProfile(option.dataset.characterId);
@@ -554,6 +557,14 @@ import {
       },
       attack: useCurrentTechnique,
       push: pushEnemy,
+    });
+  }
+
+  function requestGameFullscreen() {
+    const root = document.documentElement;
+    if (!mobileLandscapeMedia.matches || document.fullscreenElement || !document.fullscreenEnabled || typeof root.requestFullscreen !== "function") return;
+    root.requestFullscreen({ navigationUI: "hide" }).catch((error) => {
+      console.info("フルスクリーン表示を開始できなかったため、通常表示で続行します。", error);
     });
   }
 
