@@ -1768,6 +1768,28 @@ button { font: inherit; }
   .guts-ring-inner small { font-size: 4px; }
   .battle-core .controls { display: none; }
 
+  .damage-pop {
+    min-width: 148px;
+  }
+  .damage-pop > strong {
+    font-size: clamp(38px,11vh,50px);
+  }
+  .damage-pop .guts-damage {
+    min-width: 96px;
+    gap: 6px;
+    margin-top: 5px;
+    padding: 4px 11px;
+  }
+  .damage-pop .guts-damage b { font-size: 16px; }
+  .super-damage,
+  .critical-damage { min-width: 176px; }
+  .super-damage > strong,
+  .critical-damage > strong { font-size: clamp(44px,13vh,58px); }
+  .critical-damage .critical-burst {
+    width: 150px;
+    height: 150px;
+  }
+
   .result-retry { bottom: 104px; }
   .result-retry .primary-button { min-width: 170px; padding: 9px 18px; }
 }

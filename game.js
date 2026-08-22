@@ -31,6 +31,7 @@ import {
 (() => {
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
+  const mobileLandscapeMedia = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
 
   const refs = {
     gameShell: $(".game-shell"),
@@ -2802,7 +2803,12 @@ import {
   }
 
   function showDamage(element, damage, heroAttacks, gutsDamage = 0, critical = false, superHit = false) {
-    const targetPoint = getEffectPoint(element.querySelector(".sprite"), .5, .36);
+    const targetSide = heroAttacks ? "enemy" : "hero";
+    const followsPixiTarget = mobileLandscapeMedia.matches;
+    const getTargetPoint = () => followsPixiTarget
+      ? window.etokichiRenderer.getActorPoint(targetSide, .5, .36)
+      : getEffectPoint(element.querySelector(".sprite"), .5, .36);
+    const targetPoint = getTargetPoint();
     const pop = document.createElement("div");
     pop.className = `status-pop damage-pop ${heroAttacks ? "hero-damage" : "enemy-damage"}${superHit ? " super-damage" : ""}${critical ? " critical-damage" : ""}`;
     pop.style.left = `${targetPoint.x}px`;
@@ -2829,10 +2835,23 @@ import {
     if (critical) pop.append(criticalBonus);
     pop.append(gutsValue);
     refs.effects.append(pop);
+    let targetFollowFrame = 0;
+    if (followsPixiTarget) {
+      const followTarget = () => {
+        const point = getTargetPoint();
+        pop.style.left = `${point.x}px`;
+        pop.style.top = `${point.y}px`;
+        targetFollowFrame = requestAnimationFrame(followTarget);
+      };
+      followTarget();
+    }
     void pop.offsetWidth;
     pop.classList.add("show");
     const displayDuration = critical ? 1950 : superHit ? 1750 : 1450;
-    setTimeout(() => pop.remove(), displayDuration);
+    setTimeout(() => {
+      if (targetFollowFrame) cancelAnimationFrame(targetFollowFrame);
+      pop.remove();
+    }, displayDuration);
     if (critical) createCriticalScreenBurst(element);
     if (damage >= 240) {
       refs.arena.classList.remove("shake");
