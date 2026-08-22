@@ -161,6 +161,7 @@
       <section class="command-deck" aria-label="バトル操作">
         <article id="hero-technique-panel" class="technique-panel hero-technique-panel" aria-label="エトキチの距離別技">
           <div id="hero-distance-ruler" class="distance-ruler hero-distance-ruler" aria-label="現在の間合い"><i class="out-distance-zone" title="技の圏外"></i><i></i><i></i><i></i><i></i><b>▼</b></div>
+          <div class="mobile-focused-technique hero-focused-technique"><small>YOU</small><strong id="hero-focused-technique">スターリング</strong></div>
           <div id="techniques" class="technique-grid">
             <div class="technique-stack hero-technique-stack" data-range="3">
               <span class="range-caption">超遠距離</span>
@@ -238,6 +239,7 @@
 
         <article id="enemy-technique-panel" class="technique-panel enemy-intel" aria-label="クロボシの距離別技">
           <div id="enemy-distance-ruler" class="distance-ruler enemy-distance-ruler" aria-label="現在の間合い"><i></i><i></i><i></i><i></i><i class="out-distance-zone" title="技の圏外"></i><b>▼</b></div>
+          <div class="mobile-focused-technique enemy-focused-technique"><small>RIVAL</small><strong id="enemy-focused-technique">クレセントホーン</strong></div>
           <div class="enemy-technique-grid">
             <div class="technique-stack enemy-technique-stack" data-range="0"><span class="range-caption">近距離</span><div class="enemy-technique technique-card" data-enemy-tech="0"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M8 11c9 8 18 9 31 8M5 23c11 7 20 7 35 4M8 36c10 4 18 2 30-2" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg></span><strong class="technique-name">メテオクロー</strong><span class="technique-cost"><small>GUTS</small><b>16</b></span></div><div class="technique-cycle enemy-technique-cycle" aria-label="近距離技の切り替え" hidden><button type="button" data-enemy-tech-cycle="-1" data-enemy-cycle-range="0" aria-label="前の近距離技">▲</button><span class="enemy-technique-cycle-dots" data-enemy-cycle-range="0" aria-hidden="true"></span><button type="button" data-enemy-tech-cycle="1" data-enemy-cycle-range="0" aria-label="次の近距離技">▼</button></div></div>
             <div class="technique-stack enemy-technique-stack" data-range="1"><span class="range-caption">中距離</span><div class="enemy-technique technique-card" data-enemy-tech="1"><span class="technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M39 5C20 10 10 24 14 43c4-10 11-16 21-19-6-4-5-11 4-19z"/></svg></span><strong class="technique-name">クレセントホーン</strong><span class="technique-cost"><small>GUTS</small><b>23</b></span></div><div class="technique-cycle enemy-technique-cycle" aria-label="中距離技の切り替え" hidden><button type="button" data-enemy-tech-cycle="-1" data-enemy-cycle-range="1" aria-label="前の中距離技">▲</button><span class="enemy-technique-cycle-dots" data-enemy-cycle-range="1" aria-hidden="true"></span><button type="button" data-enemy-tech-cycle="1" data-enemy-cycle-range="1" aria-label="次の中距離技">▼</button></div></div>

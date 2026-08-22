@@ -12,6 +12,7 @@ import {
 import "pixi.js/browser";
 import BACKGROUND_URL from "../../assets/backgrounds/cosmic-ranch-colosseum.webp?url";
 import { getFighterRenderSize } from "../game/actors.ts";
+import { createMobileControlSystem } from "./pixi-controls.js";
 import { createEffectSystem } from "./pixi-effects.js";
 import { createFighterSystem } from "./pixi-fighters.js";
 
@@ -168,7 +169,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   // 超必殺技の暗幕は背景だけに掛ける。キャラと技エフェクトは前面で明るさを保つ。
   cameraRoot.addChild(background, world, dramaticShade, actorShadows, fighterLayer, effectLayer);
   app.stage.addChild(cameraRoot, vignette);
-  app.stage.eventMode = "none";
+  app.stage.eventMode = "static";
 
   const shadowTexture = createRadialTexture(128, [
     [0, "rgba(255,255,255,.9)"],
@@ -240,6 +241,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     getActorPoint: (side, xRatio, yRatio) => fighterSystem.getPoint(side, xRatio, yRatio),
     getScreen: () => ({ width, height }),
   });
+  const mobileControls = createMobileControlSystem();
+  app.stage.addChild(mobileControls.root);
 
   const camera = {
     mode: null,
@@ -527,6 +530,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     }
     drawStars();
     drawFloor();
+    mobileControls.layout(width, height);
   }
 
   function applyProjection() {
@@ -565,6 +569,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     actorShadows.visible = !prebattle;
     fighterSystem.setVisible(!prebattle);
     effectLayer.visible = !prebattle;
+    mobileControls.setState({ visible: !prebattle });
     background.tint = prebattle ? 0xa89dbd : 0xc9bfdc;
     vignette.alpha = prebattle ? .84 : .72;
   }
@@ -668,6 +673,12 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
         if (Number.isFinite(value)) targetProjection[key] = value;
       }
     },
+    setMobileControlHandlers(handlers) {
+      mobileControls.setHandlers(handlers);
+    },
+    setMobileControlState(state) {
+      mobileControls.setState(state);
+    },
     destroy() {
       resizeObserver.disconnect();
       phaseObserver.disconnect();
@@ -675,6 +686,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       document.removeEventListener("visibilitychange", onVisibilityChange);
       effectSystem.clear();
       fighterSystem.destroy();
+      mobileControls.destroy();
       app.destroy();
     },
   };

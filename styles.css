@@ -896,6 +896,7 @@ button { font: inherit; }
 .enemy-intel .technique-panel-header p b { color: #d8caff; }
 .technique-grid, .enemy-technique-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .enemy-technique-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.mobile-focused-technique { display: none; }
 .enemy-technique-stack[hidden], .enemy-technique-cycle[hidden], .hero-technique-stack .technique-cycle[hidden] { display: none !important; }
 .hero-technique-panel .technique-grid { margin-left: 12%; }
 .enemy-technique-grid { margin-right: 12%; }
@@ -1411,6 +1412,194 @@ button { font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+/* Smartphone landscape: PixiJS controller rails + the PC command grammar in one compact row. */
+@media (orientation: landscape) and (max-height: 500px) {
+  html, body {
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .game-shell {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    padding: 0;
+  }
+  .arena {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .pixi-stage {
+    pointer-events: auto;
+    touch-action: none;
+  }
+  .hud {
+    left: calc(13.5% + 7px);
+    right: calc(13.5% + 7px);
+    top: 6px;
+    grid-template-columns: 1fr 50px 1fr;
+    gap: 4px;
+  }
+  .fighter-hud { padding: 5px 8px 6px; }
+  .rank-badge, .name-row small { display: none; }
+  .name-row h2 { font-size: 11px; }
+  .name-row strong { font-size: 9px; }
+  .life-track { height: 8px; margin-top: 4px; }
+  .special-badges { min-height: 8px; margin-top: 2px; }
+  .special-badges span { padding: 1px 4px; font-size: 5px; }
+  .timer-wrap { padding-top: 0; }
+  .timer-wrap span { display: none; }
+  .timer-wrap strong { font-size: 26px; }
+
+  .command-deck {
+    position: absolute;
+    z-index: 18;
+    left: 14.5%;
+    right: 14.5%;
+    bottom: 5px;
+    height: 90px;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 102px minmax(0,1fr);
+    grid-template-rows: 1fr;
+    gap: 4px;
+    padding: 0;
+    pointer-events: none;
+  }
+  .technique-panel,
+  .enemy-intel,
+  .battle-core {
+    min-height: 0;
+    border-radius: 9px;
+    background: rgba(13,8,35,.94);
+    box-shadow: 0 7px 18px rgba(0,0,0,.4);
+    backdrop-filter: blur(6px);
+  }
+  .technique-panel,
+  .enemy-intel {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 11px 14px minmax(0,1fr);
+    gap: 1px;
+    padding: 3px 4px 4px;
+  }
+  .hero-technique-panel,
+  .enemy-intel { grid-column: auto; grid-row: auto; }
+  .distance-ruler { height: 11px; padding: 0 1px 1px; }
+  .distance-ruler i { height: 4px; }
+  .distance-ruler b { top: -2px; font-size: 9px; }
+  .distance-ruler .out-distance-zone::after { display: none; }
+  .mobile-focused-technique {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 2px;
+  }
+  .mobile-focused-technique small {
+    color: #a397b5;
+    font: 800 5px "Orbitron",sans-serif;
+    letter-spacing: .08em;
+  }
+  .mobile-focused-technique strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #fff1a4;
+    font-size: 8px;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .enemy-focused-technique { justify-content: flex-end; }
+  .enemy-focused-technique strong { color: #d8c5ff; }
+  .hero-technique-panel .technique-grid,
+  .enemy-technique-grid {
+    grid-column: 1;
+    grid-row: 3;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 3px;
+    margin: 0;
+  }
+  .technique-stack {
+    min-width: 0;
+    padding-top: 8px;
+  }
+  .range-caption {
+    top: 0;
+    font-size: 5px;
+  }
+  .technique-stack.has-multiple .technique-card { padding-right: 2px; }
+  .technique.technique-card,
+  .enemy-technique.technique-card {
+    height: 46px;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0,1fr) auto;
+    gap: 0;
+    padding: 2px;
+    border-radius: 6px;
+  }
+  .technique-card > .technique-icon,
+  .technique.technique-card > .technique-icon,
+  .enemy-technique.technique-card > .technique-icon {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: 27px;
+    border: 0;
+    background: transparent;
+  }
+  .technique-icon svg { width: 24px; height: 24px; }
+  .technique-card > .technique-name,
+  .technique.technique-card > .technique-name,
+  .enemy-technique.technique-card > .technique-name { display: none; }
+  .technique-card > .technique-cost,
+  .technique.technique-card > .technique-cost,
+  .enemy-technique.technique-card > .technique-cost {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: center;
+    gap: 2px;
+  }
+  .technique-cost small { display: inline !important; font-size: 4px !important; }
+  .technique-cost b { font-size: 10px; }
+  .technique-cycle,
+  .enemy-technique-cycle { display: none !important; }
+
+  .battle-core {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    gap: 0;
+    padding: 4px 3px;
+  }
+  .dual-guts { height: 100%; align-items: center; gap: 3px; }
+  .core-fighter { align-content: center; }
+  .core-hit-rate { margin-bottom: 2px; }
+  .core-hit-rate span { display: none; }
+  .core-hit-rate b { font-size: 9px; }
+  .guts-ring {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+  .guts-ring-inner { inset: 5px; }
+  .guts-ring-inner span { display: none; }
+  .guts-ring-inner strong { font-size: 12px; }
+  .guts-ring-inner small { font-size: 4px; }
+  .battle-core .controls { display: none; }
+
+  .result-retry { bottom: 104px; }
+  .result-retry .primary-button { min-width: 170px; padding: 9px 18px; }
 }
 
 /* ステキチ専用技。クロボシの紫系演出とは異なる、金・星空色の演出経路を持つ。 */

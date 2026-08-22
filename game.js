@@ -92,9 +92,12 @@ import {
     heroSubtitle: $("#hero-subtitle"),
     heroTechniquePanel: $("#hero-technique-panel"),
     enemyTechniquePanel: $("#enemy-technique-panel"),
+    heroFocusedTechnique: $("#hero-focused-technique"),
+    enemyFocusedTechnique: $("#enemy-focused-technique"),
   };
   const assetUrl = (source) => window.etokichiAssetUrl?.(source) ?? source;
   const actorImage = assetUrl;
+  const mobileLandscapeMedia = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
 
   const CHARACTER_PROFILES = createCharacterProfiles(actorImage);
   let selectedHeroId = "etokichi";
@@ -538,6 +541,20 @@ import {
 
     bindHoldButton(refs.moveLeft, "left");
     bindHoldButton(refs.moveRight, "right");
+    window.etokichiRenderer.setMobileControlHandlers({
+      moveLeft: (active) => { keys.left = active; },
+      moveRight: (active) => { keys.right = active; },
+      cycleUp: () => {
+        const range = getRange();
+        if (range !== null) cycleTechniqueAtRange(range, -1);
+      },
+      cycleDown: () => {
+        const range = getRange();
+        if (range !== null) cycleTechniqueAtRange(range, 1);
+      },
+      attack: useCurrentTechnique,
+      push: pushEnemy,
+    });
   }
 
   function leaveTitleScreen() {
@@ -2445,12 +2462,14 @@ import {
     const screenMidpoint = clamp(desiredScreenMidpoint, SCREEN_FIGHTER_MARGIN + projectedDistance / 2, 100 - SCREEN_FIGHTER_MARGIN - projectedDistance / 2);
     const pan = (.5 - stageProgress) * Math.min(window.innerWidth, 1500) * .28;
     const backdropParallax = .22 + closeupProgress * .72;
+    const mobileScreenScale = mobileLandscapeMedia.matches ? .73 : 1;
+    const mapToPlayableScreen = (position) => 50 + (position - 50) * mobileScreenScale;
     return {
-      heroX: screenMidpoint - projectedDistance / 2,
-      enemyX: screenMidpoint + projectedDistance / 2,
-      pan,
+      heroX: mapToPlayableScreen(screenMidpoint - projectedDistance / 2),
+      enemyX: mapToPlayableScreen(screenMidpoint + projectedDistance / 2),
+      pan: pan * mobileScreenScale,
       zoom,
-      backdropPan: pan * backdropParallax,
+      backdropPan: pan * mobileScreenScale * backdropParallax,
       backdropZoom: .88 + zoom * .12 + closeupProgress * .2,
     };
   }
@@ -2577,6 +2596,8 @@ import {
     refs.enemyDistanceRuler.style.setProperty("--distance-position", `${distancePosition}%`);
     refs.hitRate.textContent = current ? current.kind === "support" ? "自己強化" : `${calculateHitChance(current, state.heroGuts)}%` : range === null ? "圏外" : "技なし";
     refs.enemyHitRate.textContent = enemyCurrent ? enemyCurrent.kind === "support" ? "回復技" : `${calculateHitChance(enemyCurrent, state.enemyGuts, false)}%` : range === null ? "圏外" : "技なし";
+    refs.heroFocusedTechnique.textContent = current?.name ?? (range === null ? "技の圏外" : "この間合いに技なし");
+    refs.enemyFocusedTechnique.textContent = enemyCurrent?.name ?? (range === null ? "技の圏外" : "この間合いに技なし");
     refs.heroDistanceRuler.classList.toggle("out-of-technique-range", outsideHeroTechniqueRange);
     refs.enemyDistanceRuler.classList.toggle("out-of-technique-range", outsideEnemyTechniqueRange);
 
@@ -2643,6 +2664,9 @@ import {
     refs.pushButton.disabled = state.phase !== "battle" || heroActionDisabled;
     refs.moveLeft.disabled = state.phase !== "battle" || heroActionDisabled;
     refs.moveRight.disabled = state.phase !== "battle" || heroActionDisabled;
+    window.etokichiRenderer.setMobileControlState({
+      enabled: state.phase === "battle" && !heroActionDisabled,
+    });
     renderSpecialBadges("hero", refs.heroSpecials);
     renderSpecialBadges("enemy", refs.enemySpecials);
     renderCombatStatus("hero", refs.heroCombatStatus);
