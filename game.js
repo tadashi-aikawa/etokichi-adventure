@@ -181,6 +181,7 @@ import {
     "ceremonial-colosseum-2": "assets/audio/ceremonial-colosseum-2.mp3",
     "the-unyielding-titan": "assets/audio/the-unyielding-titan.mp3",
   };
+  const ASTER_DEATH_SMILE_URL = assetUrl("assets/audio/aster-death-smile.mp3");
   const entranceMusic = new Audio(assetUrl("assets/audio/arena-overture-intro.mp3"));
   entranceMusic.loop = false;
   entranceMusic.preload = "auto";
@@ -203,6 +204,8 @@ import {
   const projectionStyleCache = new Map();
   let audioContext = null;
   let effectsOutput = null;
+  let asterDeathSmileBuffer = null;
+  let asterDeathSmileLoading = null;
   let prebattleIntroToken = 0;
 
   function freshState() {
@@ -1022,7 +1025,9 @@ import {
     else if (technique.animation === "physicalStarRing") actor.classList.add("star-ring-sequence");
     else actor.classList.add("attack-light");
     announceTechnique(technique.name, technique.kind === "special" || technique.kind === "super", !isHero);
-    sound(isPentagramNova ? "novaCharge" : technique.kind === "special" ? "charge" : technique.animation === "galaxyRay" ? "rayCharge" : technique.animation === "throwKiss" ? "kissWindup" : technique.animation?.startsWith("physical") ? "physicalWindup" : "swing");
+    if (technique.kind !== "special") {
+      sound(isPentagramNova ? "novaCharge" : technique.animation === "galaxyRay" ? "rayCharge" : technique.animation === "throwKiss" ? "kissWindup" : technique.animation?.startsWith("physical") ? "physicalWindup" : "swing");
+    }
 
     if (isPentagramNova) {
       refs.arena.classList.add("pentagram-nova-mode");
@@ -1098,7 +1103,7 @@ import {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.galaxyCharge, 260);
         createGalaxyCharge(side);
-        sound("chargePeak");
+        sound("galaxyFlashCharge");
       }, 500);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
@@ -1107,6 +1112,7 @@ import {
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createGalaxyFlash(side);
+        sound("galaxyFlashRelease");
       }, 2700);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
@@ -1353,7 +1359,7 @@ import {
       tatsuoRestraint: "physicalWindup",
       tatsuoRoar: "tatsuoRoarWindup",
       tatsuoPress: "tatsuoPressWindup",
-      asterDeathEnergy: "asterDeathLaugh",
+      asterDeathEnergy: "asterDeathSmile",
       asterEvilEye: "asterEvilEyeFocus",
       asterMigration: "asterMigrationCharge",
       asterTailSweep: "physicalWindup",
@@ -3254,6 +3260,38 @@ import {
     node.connect(panner).connect(output);
   }
 
+  function preloadAsterDeathSmile() {
+    if (!audioContext || asterDeathSmileBuffer || asterDeathSmileLoading) return;
+    asterDeathSmileLoading = fetch(ASTER_DEATH_SMILE_URL)
+      .then((response) => {
+        if (!response.ok) throw new Error(`音声の取得に失敗しました (${response.status})`);
+        return response.arrayBuffer();
+      })
+      .then((audioData) => audioContext.decodeAudioData(audioData))
+      .then((buffer) => {
+        asterDeathSmileBuffer = buffer;
+      })
+      .catch((error) => {
+        console.warn("アステールの微笑SEを読み込めませんでした", error);
+      })
+      .finally(() => {
+        asterDeathSmileLoading = null;
+      });
+  }
+
+  function playSoundBuffer(buffer, volume = 1, delay = 0, pan = 0) {
+    if (!audioContext || !buffer) return false;
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    const start = audioContext.currentTime + delay;
+    source.buffer = buffer;
+    gain.gain.setValueAtTime(volume * SOUND_EFFECT_VOLUME, start);
+    source.connect(gain);
+    connectAudioOutput(gain, pan);
+    source.start(start);
+    return true;
+  }
+
   function noiseBurst(duration, volume, highpass, delay = 0, pan = 0) {
     if (!audioContext) return;
     const frameCount = Math.max(1, Math.floor(audioContext.sampleRate * duration));
@@ -3270,6 +3308,33 @@ import {
     gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
     source.buffer = buffer;
     source.connect(filter).connect(gain);
+    connectAudioOutput(gain, pan);
+    source.start(start);
+    source.stop(start + duration + .01);
+  }
+
+  function filteredNoise(duration, volume, highpassFrequency, lowpassStart, lowpassEnd = lowpassStart, delay = 0, pan = 0, attack = .008) {
+    if (!audioContext) return;
+    const frameCount = Math.max(1, Math.floor(audioContext.sampleRate * duration));
+    const buffer = audioContext.createBuffer(1, frameCount, audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let index = 0; index < data.length; index += 1) data[index] = Math.random() * 2 - 1;
+    const source = audioContext.createBufferSource();
+    const highpass = audioContext.createBiquadFilter();
+    const lowpass = audioContext.createBiquadFilter();
+    const gain = audioContext.createGain();
+    const start = audioContext.currentTime + delay;
+    highpass.type = "highpass";
+    highpass.frequency.setValueAtTime(highpassFrequency, start);
+    lowpass.type = "lowpass";
+    lowpass.frequency.setValueAtTime(lowpassStart, start);
+    if (lowpassEnd !== lowpassStart) lowpass.frequency.exponentialRampToValueAtTime(lowpassEnd, start + duration);
+    gain.gain.setValueAtTime(.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume * SOUND_EFFECT_VOLUME, start + Math.min(attack, duration * .25));
+    gain.gain.setValueAtTime(volume * SOUND_EFFECT_VOLUME * .84, start + duration * .68);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+    source.buffer = buffer;
+    source.connect(highpass).connect(lowpass).connect(gain);
     connectAudioOutput(gain, pan);
     source.start(start);
     source.stop(start + duration + .01);
@@ -3359,6 +3424,7 @@ import {
       effectsOutput.connect(audioContext.destination);
     }
     if (audioContext.state === "suspended") audioContext.resume();
+    preloadAsterDeathSmile();
   }
 
   function tone(frequency, duration, type = "sine", volume = .035, delay = 0, endFrequency = null, pan = 0) {
@@ -3437,8 +3503,8 @@ import {
       asterMigrationDrain: () => { [0,.075,.15,.225,.3,.375,.45,.525].forEach((delay, index) => { tone(520 - index * 34, .18, "sawtooth", .022, delay, 180 - index * 8, index % 2 ? .58 : -.58); whoosh(1250 - index * 70, 92, .2, delay, index % 2 ? -.46 : .46, .016); }); tone(74, 1.25, "triangle", .032, 0, 41); noiseBurst(1.05, .022, 720, .02); },
       asterEvilEyeFocus: () => { tone(92, .72, "sine", .015, 0, 260); },
       asterEvilEyeGlow: () => { tone(360, .56, "sine", .029, 0, 2480); tone(720, .46, "triangle", .022, .025, 3200); sparkle([988,1480,2217], .08, .018); noiseBurst(.32, .014, 2600, .04); },
-      asterDeathLaugh: () => { [.02,.22,.43].forEach((delay, index) => { crowdVoice(220 - index * 28, .22, .039, delay, index % 2 ? .3 : -.3, .72); tone(330 - index * 36, .18, "triangle", .017, delay, 190 - index * 20); }); tone(68, .82, "sawtooth", .018, 0, 42); },
-      asterDeathMist: () => { whoosh(2900, 82, 2.05, 0, -.48, .047); whoosh(1740, 116, 1.7, .2, .5, .033); noiseBurst(2.28, .043, 1380, 0, .16); noiseBurst(1.72, .026, 720, .16, -.3); tone(1320, 2.16, "sawtooth", .029, 0, 92, -.36); tone(610, 2.22, "triangle", .025, .025, 78, .38); tone(62, 2.38, "sine", .044, 0, 31); [1480,1175,880].forEach((frequency, index) => tone(frequency, .66, "sine", .012, .1 + index * .19, frequency * .46, index % 2 ? .62 : -.62)); },
+      asterDeathSmile: () => { playSoundBuffer(asterDeathSmileBuffer, .92); },
+      asterDeathMist: () => { filteredNoise(.14, .078, 1800, 11000, 11000, 0, -.15, .002); filteredNoise(2.36, .071, 140, 6800, 980, .015, .05); filteredNoise(2.3, .037, 480, 2600, 2600, .06, -.28, .018); tone(980, 2.18, "sawtooth", .033, .025, 82, -.3); tone(620, 2.26, "triangle", .029, .04, 74, .34); tone(61, 2.4, "sine", .052, 0, 29); },
       novaCharge: () => { tone(54, 1.35, "sine", .042, 0, 310); tone(108, 1.2, "sawtooth", .019, .08, 920, -.28); noiseBurst(.72, .012, 1550, .3, .3); sparkle([523,784,1047], .64, .01); },
       novaRush: () => { whoosh(2400, 65, .54, 0, -.75, .038); tone(168, .48, "square", .028, .02, 58, .62); noiseBurst(.34, .025, 2100, .02, -.45); },
       novaCapture: () => { tone(286, .62, "triangle", .026, 0, 1240); tone(572, .5, "sine", .018, .04, 1716); sparkle([988,1319,1760], .1, .014); },
@@ -3472,8 +3538,8 @@ import {
       miss: () => { noiseBurst(.13, .024, 2600); tone(1180, .16, "sine", .025, 0, 430); tone(560, .2, "triangle", .016, .035, 1040); },
       hit: () => { impact(false); crowdReaction(); },
       push: () => { whoosh(740, 64, .23, 0, -.45, .018); impact(true, .055, .35); },
-      charge: () => { tone(135, .95, "sine", .025, 0, 980, -.28); tone(285, .82, "triangle", .016, .07, 1680, .3); noiseBurst(.62, .009, 1700, .12); },
-      chargePeak: () => { tone(390, 1.55, "sine", .017, 0, 1880, -.36); tone(620, 1.3, "triangle", .012, .1, 2480, .4); sparkle([1047,1319,1760], .62, .007); },
+      galaxyFlashCharge: () => { tone(48, 2.2, "sine", .044, 0, 176); tone(96, 2.08, "sawtooth", .018, .05, 920, -.18); filteredNoise(2.05, .026, 100, 520, 2600, .08, .2); [0,.43,.79,1.09,1.34,1.56,1.75].forEach((delay, index) => { tone(128 + index * 38, .14, "triangle", .026, delay, 300 + index * 95, index % 2 ? .42 : -.42); filteredNoise(.075, .012, 900, 3600, 3600, delay, index % 2 ? -.36 : .36, .003); }); sparkle([784,1175,1568,2093], 1.55, .014); tone(1760, .16, "square", .024, 2.02, 3100); },
+      galaxyFlashRelease: () => { filteredNoise(.12, .074, 1700, 11000, 11000, 0, -.2, .002); filteredNoise(1.42, .063, 80, 2600, 2600, 0, .15); tone(2600, 1.42, "sawtooth", .033, 0, 94, .15); tone(1300, 1.28, "triangle", .022, .02, 47, -.09); filteredNoise(1.35, .041, 420, 3400, 3400, .04, -.25); tone(59, 1.55, "sine", .054, 0, 29); sparkle([1175,1568,2093], .02, .014); },
       rayCharge: () => { tone(210, .82, "sine", .021, 0, 1180, -.32); tone(460, .7, "triangle", .013, .04, 1860, .32); noiseBurst(.42, .008, 2100, .2); },
       rayLock: () => { sparkle([880,1320,1760], 0, .014); tone(120, .3, "square", .013, .08, 70); },
       rayFire: () => { whoosh(2100, 105, .42, 0, -.58, .03); tone(720, .48, "square", .024, 0, 1820, .4); noiseBurst(.31, .022, 2400, .03, .62); },
