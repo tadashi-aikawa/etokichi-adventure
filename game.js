@@ -76,6 +76,7 @@ import {
     techniqueCycleDotGroups: $$(".technique-cycle-dots"),
     startButton: $("#start-button"),
     retryButton: $("#retry-button"),
+    mapReturnButton: $("#map-return-button"),
     attackButton: $("#attack-button"),
     pushButton: $("#push-button"),
     moveLeft: $("#move-left"),
@@ -500,9 +501,18 @@ import {
     refs.battleMusicOptions.forEach((option) => option.addEventListener("click", () => {
       applyBattleMusic(option.dataset.battleMusicId);
     }));
+    window.addEventListener("etokichi:map-battle-request", (event) => {
+      const { heroId, opponentId } = event.detail ?? {};
+      if (!CHARACTER_PROFILES[heroId] || !CHARACTER_PROFILES[opponentId]) return;
+      applyHeroProfile(heroId);
+      applyEnemyProfile(opponentId);
+      refs.resultScreen.classList.remove("visible");
+      startPrebattleIntro();
+    });
     refs.opponentConfirmButton.addEventListener("click", confirmOpponentSelection);
     refs.startButton.addEventListener("click", startBattle);
     refs.retryButton.addEventListener("click", startBattle);
+    refs.mapReturnButton.addEventListener("click", returnToMap);
     refs.attackButton.addEventListener("click", useCurrentTechnique);
     refs.pushButton.addEventListener("click", pushEnemy);
     refs.techniques.forEach((button) => button.addEventListener("click", () => usePlayerTechnique(getSelectedTechnique(Number(button.dataset.range)))));
@@ -671,12 +681,24 @@ import {
     if (worldState.scene !== "battle") {
       gameSession.beginBattle({
         encounterId: "battle-trial",
+        heroId: selectedHeroId,
         opponentId: selectedEnemyId,
         returnScene: worldState.scene === "map" ? "map" : "title",
       });
       return;
     }
     if (worldState.activeBattle?.result) gameSession.restartBattle();
+  }
+
+  function returnToMap() {
+    const gameSession = window.etokichiGameSession;
+    const activeBattle = gameSession?.getState().activeBattle;
+    if (!activeBattle?.result || activeBattle.returnScene !== "map") return;
+    refs.resultScreen.classList.remove("visible");
+    refs.startScreen.classList.remove("visible");
+    refs.mapReturnButton.hidden = true;
+    state.phase = "map";
+    gameSession.leaveBattle();
   }
 
   function startGameLoop(now = performance.now()) {
@@ -2577,6 +2599,7 @@ import {
     if (reason === "ko") heroWon = attacker === "hero";
     else heroWon = state.heroHp / HERO_MAX_HP >= state.enemyHp / ENEMY_MAX_HP;
     const activeBattle = window.etokichiGameSession?.getState().activeBattle;
+    refs.mapReturnButton.hidden = activeBattle?.returnScene !== "map";
     if (activeBattle && !activeBattle.result) {
       window.etokichiGameSession.resolveBattle({
         outcome: heroWon ? "win" : "loss",

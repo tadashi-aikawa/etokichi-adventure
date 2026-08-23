@@ -16,6 +16,7 @@ export interface MapPosition {
 
 export interface BattleResult {
   encounterId: string;
+  heroId: CharacterId;
   opponentId: CharacterId;
   outcome: BattleOutcome;
   reason: "ko" | "time";
@@ -23,6 +24,7 @@ export interface BattleResult {
 
 export interface ActiveBattle {
   encounterId: string;
+  heroId: CharacterId;
   opponentId: CharacterId;
   returnScene: "title" | "map";
   result: BattleResult | null;
@@ -32,6 +34,8 @@ export interface WorldState {
   version: typeof WORLD_STATE_VERSION;
   scene: AppScene;
   player: MapPosition;
+  controlledCharacterId: CharacterId;
+  mapActors: Record<string, CharacterId>;
   flags: Record<string, WorldFlagValue>;
   activeBattle: ActiveBattle | null;
   lastBattle: BattleResult | null;
@@ -39,6 +43,7 @@ export interface WorldState {
 
 export interface BattleRequest {
   encounterId: string;
+  heroId?: CharacterId;
   opponentId: CharacterId;
   returnScene?: "title" | "map";
 }
@@ -52,6 +57,7 @@ export interface GameSession {
   getState(): WorldState;
   enterMap(position?: Partial<MapPosition>): WorldState;
   updatePlayer(position: Partial<Omit<MapPosition, "mapId">>): WorldState;
+  swapControlledCharacter(actorSlot: string): WorldState;
   setFlag(key: string, value: WorldFlagValue): WorldState;
   beginBattle(request: BattleRequest): WorldState;
   resolveBattle(resolution: BattleResolution): WorldState;
@@ -68,11 +74,21 @@ const INITIAL_POSITION: MapPosition = {
   facing: "down",
 };
 
+const INITIAL_MAP_ACTORS: Record<string, CharacterId> = {
+  kuroboshi: "kuroboshi",
+  sutekichi: "sutekichi",
+  salarymanEtokichi: "salarymanEtokichi",
+  tatsuo: "tatsuo",
+  aster: "aster",
+};
+
 export function createInitialWorldState(): WorldState {
   return {
     version: WORLD_STATE_VERSION,
     scene: "title",
     player: { ...INITIAL_POSITION },
+    controlledCharacterId: "etokichi",
+    mapActors: { ...INITIAL_MAP_ACTORS },
     flags: {},
     activeBattle: null,
     lastBattle: null,
@@ -110,6 +126,16 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
         ...state,
         player: { ...state.player, ...position },
       }),
+    swapControlledCharacter: (actorSlot) => {
+      if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外では操作キャラクターを変更できません");
+      const nextCharacterId = state.mapActors[actorSlot];
+      if (!nextCharacterId) throw new Error(`${actorSlot}に操作可能なキャラクターがいません`);
+      return publish({
+        ...state,
+        controlledCharacterId: nextCharacterId,
+        mapActors: { ...state.mapActors, [actorSlot]: state.controlledCharacterId },
+      });
+    },
     setFlag: (key, value) =>
       publish({
         ...state,
@@ -118,11 +144,13 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
     beginBattle: (request) => {
       if (state.activeBattle) throw new Error("進行中のバトルがあります");
       const returnScene = request.returnScene ?? (state.scene === "map" ? "map" : "title");
+      const heroId = request.heroId ?? state.controlledCharacterId;
       return publish({
         ...state,
         scene: "battle",
         activeBattle: {
           encounterId: request.encounterId,
+          heroId,
           opponentId: request.opponentId,
           returnScene,
           result: null,
@@ -134,6 +162,7 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
       if (state.activeBattle.result) return cloneWorldState(state);
       const result: BattleResult = {
         encounterId: state.activeBattle.encounterId,
+        heroId: state.activeBattle.heroId,
         opponentId: state.activeBattle.opponentId,
         ...resolution,
       };
@@ -171,6 +200,7 @@ function cloneWorldState(state: WorldState): WorldState {
   return {
     ...state,
     player: { ...state.player },
+    mapActors: { ...state.mapActors },
     flags: { ...state.flags },
     activeBattle: state.activeBattle
       ? { ...state.activeBattle, result: state.activeBattle.result ? { ...state.activeBattle.result } : null }
@@ -181,13 +211,23 @@ function cloneWorldState(state: WorldState): WorldState {
 
 function isWorldState(value: unknown): value is WorldState {
   if (!isRecord(value) || value.version !== WORLD_STATE_VERSION) return false;
-  if (!isScene(value.scene) || !isMapPosition(value.player) || !isFlagRecord(value.flags)) return false;
+  if (
+    !isScene(value.scene) ||
+    !isMapPosition(value.player) ||
+    !isCharacterId(value.controlledCharacterId) ||
+    !isMapActorRecord(value.mapActors) ||
+    !isFlagRecord(value.flags)
+  )
+    return false;
+  if (new Set([value.controlledCharacterId, ...Object.values(value.mapActors)]).size !== CHARACTER_IDS.length)
+    return false;
   if (value.activeBattle !== null && !isActiveBattle(value.activeBattle)) return false;
   if ((value.scene === "battle") !== (value.activeBattle !== null)) return false;
   if (
     isActiveBattle(value.activeBattle) &&
     value.activeBattle.result &&
     (value.activeBattle.encounterId !== value.activeBattle.result.encounterId ||
+      value.activeBattle.heroId !== value.activeBattle.result.heroId ||
       value.activeBattle.opponentId !== value.activeBattle.result.opponentId)
   ) {
     return false;
@@ -209,6 +249,7 @@ function isActiveBattle(value: unknown): value is ActiveBattle {
   return (
     isRecord(value) &&
     typeof value.encounterId === "string" &&
+    isCharacterId(value.heroId) &&
     isCharacterId(value.opponentId) &&
     (value.returnScene === "title" || value.returnScene === "map") &&
     (value.result === null || isBattleResult(value.result))
@@ -219,6 +260,7 @@ function isBattleResult(value: unknown): value is BattleResult {
   return (
     isRecord(value) &&
     typeof value.encounterId === "string" &&
+    isCharacterId(value.heroId) &&
     isCharacterId(value.opponentId) &&
     (value.outcome === "win" || value.outcome === "loss" || value.outcome === "draw") &&
     (value.reason === "ko" || value.reason === "time")
@@ -228,6 +270,11 @@ function isBattleResult(value: unknown): value is BattleResult {
 function isFlagRecord(value: unknown): value is Record<string, WorldFlagValue> {
   if (!isRecord(value)) return false;
   return Object.values(value).every((entry) => ["boolean", "number", "string"].includes(typeof entry));
+}
+
+function isMapActorRecord(value: unknown): value is Record<string, CharacterId> {
+  if (!isRecord(value) || Object.keys(value).length !== CHARACTER_IDS.length - 1) return false;
+  return Object.values(value).every(isCharacterId);
 }
 
 function isScene(value: unknown): value is AppScene {

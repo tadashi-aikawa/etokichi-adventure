@@ -6,7 +6,6 @@ import KUROBOSHI_MAP_SHEET_URL from "../../assets/map-characters/kuroboshi/walk.
 import SALARYMAN_ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/salarymanEtokichi/walk.webp?url";
 import SUTEKICHI_MAP_SHEET_URL from "../../assets/map-characters/sutekichi/walk.webp?url";
 import TATSUO_MAP_SHEET_URL from "../../assets/map-characters/tatsuo/walk.webp?url";
-import ETOKICHI_PORTRAIT_URL from "../../assets/etokichi/idle.webp?url";
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
 import { createCharacterProfiles } from "../game/characters.ts";
@@ -65,25 +64,45 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
   const player = createMapCharacterActor(characterSheets.etokichi, { label: "map-player", ...MAP_CHARACTER_VISUALS.etokichi });
-  const npcSystem = createNpcSystem(map, characterSheets, NPC_BODY);
+  const npcSystem = createNpcSystem(map, characterSheets, NPC_BODY, gameSession.getState().mapActors);
   actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
   world.addChild(groundLayer, actorLayer);
   root.addChild(backdrop, world);
   stage.addChildAt(root, 0);
 
   const pressed = new Set();
+  const characterProfiles = createCharacterProfiles((source) => window.etokichiAssetUrl?.(source) ?? source);
   let elapsed = 0;
   let viewport = { width: 1, height: 1 };
   let facing = gameSession.getState().player.facing;
+  let playerCharacterId = gameSession.getState().controlledCharacterId;
+  player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
   player.setMotion(facing, 0, false);
   const mapInterface = createMapInterface({
     arena,
     gameSession,
     map,
-    playerProfile: createCharacterProfiles((source) => source).etokichi,
-    portraitUrl: ETOKICHI_PORTRAIT_URL,
+    playerProfile: characterProfiles.etokichi,
+    portraitUrl: characterProfiles.etokichi.images.idle,
+    characterProfiles,
+    getNpcCharacterId: (name) => npcSystem.getCharacterId(name),
     onDialogueOpen(marker) {
       npcSystem.setFacing(marker.name, getFacingToward(marker, gameSession.getState().player));
+    },
+    onSwitch(marker) {
+      gameSession.swapControlledCharacter(marker.name);
+    },
+    onBattle(_marker, opponentId) {
+      const state = gameSession.getState();
+      gameSession.beginBattle({
+        encounterId: `${map.id}:${state.controlledCharacterId}-vs-${opponentId}`,
+        heroId: state.controlledCharacterId,
+        opponentId,
+        returnScene: "map",
+      });
+      window.dispatchEvent(new CustomEvent("etokichi:map-battle-request", {
+        detail: { heroId: state.controlledCharacterId, opponentId },
+      }));
     },
   });
 
@@ -92,6 +111,11 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     root.visible = state.scene === "map";
     if (!root.visible) pressed.clear();
     if (state.player.mapId !== map.id) return;
+    if (playerCharacterId !== state.controlledCharacterId) {
+      playerCharacterId = state.controlledCharacterId;
+      player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
+    }
+    npcSystem.syncCharacters(state.mapActors);
     player.root.position.set(state.player.x, state.player.y);
     player.root.zIndex = getMapBodyDepth(state.player, PLAYER_BODY);
     if (facing !== state.player.facing) {
@@ -258,7 +282,7 @@ function createTileEntries(map, definition, tileTextures) {
 }
 
 function createMapCharacterActor(sheetTexture, options) {
-  const frames = createCharacterFrames(sheetTexture, options.label);
+  let frames = createCharacterFrames(sheetTexture, options.label);
   const root = new Container({ label: options.label });
   const shadow = new Graphics().ellipse(0, 18, 22, 8).fill({ color: 0x102e25, alpha: .35 });
   const sprite = new Sprite({ texture: frames[1], roundPixels: true });
@@ -270,6 +294,11 @@ function createMapCharacterActor(sheetTexture, options) {
     root,
     getFrameIndex() {
       return frameIndex;
+    },
+    setCharacter(nextSheetTexture, visual) {
+      frames = createCharacterFrames(nextSheetTexture, options.label);
+      sprite.setSize(visual.width, visual.height);
+      sprite.texture = frames[frameIndex];
     },
     setMotion(facing, elapsedSeconds, moving) {
       frameIndex = getMapCharacterFrame(facing, elapsedSeconds, moving);
@@ -303,12 +332,13 @@ async function loadCharacterSheets() {
   return Object.fromEntries(entries);
 }
 
-function createNpcSystem(map, characterSheets, body) {
+function createNpcSystem(map, characterSheets, body, initialAssignments) {
   const actors = new Map();
+  const characterIds = new Map();
   const facings = new Map();
   const roots = [];
   for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
-    const characterId = marker.properties.characterId;
+    const characterId = initialAssignments[marker.name] ?? marker.properties.characterId;
     const sheetTexture = characterSheets[characterId];
     const visual = MAP_CHARACTER_VISUALS[characterId];
     if (!sheetTexture || !visual) throw new Error(`${marker.name}のcharacterIdが不正です`);
@@ -317,6 +347,7 @@ function createNpcSystem(map, characterSheets, body) {
     npc.root.position.set(marker.x, marker.y);
     npc.root.zIndex = getMapBodyDepth(marker, body);
     actors.set(marker.name, npc);
+    characterIds.set(marker.name, characterId);
     facings.set(marker.name, "down");
     roots.push(npc.root);
   }
@@ -330,6 +361,20 @@ function createNpcSystem(map, characterSheets, body) {
       if (!actor) return;
       actor.setMotion(facing, 0, false);
       facings.set(name, facing);
+    },
+    syncCharacters(assignments) {
+      for (const [name, characterId] of Object.entries(assignments)) {
+        if (characterIds.get(name) === characterId) continue;
+        const actor = actors.get(name);
+        const sheetTexture = characterSheets[characterId];
+        const visual = MAP_CHARACTER_VISUALS[characterId];
+        if (!actor || !sheetTexture || !visual) throw new Error(`${name}のキャラクター割当が不正です`);
+        actor.setCharacter(sheetTexture, visual);
+        characterIds.set(name, characterId);
+      }
+    },
+    getCharacterId(name) {
+      return characterIds.get(name) ?? null;
     },
   };
 }

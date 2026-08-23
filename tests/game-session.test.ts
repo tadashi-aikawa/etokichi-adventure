@@ -12,9 +12,10 @@ describe("ゲームセッション", () => {
 
     expect(session.getState()).toMatchObject({
       scene: "battle",
+      controlledCharacterId: "etokichi",
       player: { mapId: "test-map", x: 128, y: 96, facing: "right" },
       flags: { talkedToGuide: true },
-      activeBattle: { encounterId: "guide-battle", returnScene: "map", result: null },
+      activeBattle: { encounterId: "guide-battle", heroId: "etokichi", returnScene: "map", result: null },
     });
 
     session.resolveBattle({ outcome: "win", reason: "ko" });
@@ -25,7 +26,13 @@ describe("ゲームセッション", () => {
       player: { mapId: "test-map", x: 128, y: 96, facing: "right" },
       flags: { talkedToGuide: true },
       activeBattle: null,
-      lastBattle: { encounterId: "guide-battle", opponentId: "kuroboshi", outcome: "win", reason: "ko" },
+      lastBattle: {
+        encounterId: "guide-battle",
+        heroId: "etokichi",
+        opponentId: "kuroboshi",
+        outcome: "win",
+        reason: "ko",
+      },
     });
   });
 
@@ -37,7 +44,13 @@ describe("ゲームセッション", () => {
 
     expect(session.getState()).toMatchObject({
       scene: "battle",
-      activeBattle: { encounterId: "trial", opponentId: "sutekichi", returnScene: "title", result: null },
+      activeBattle: {
+        encounterId: "trial",
+        heroId: "etokichi",
+        opponentId: "sutekichi",
+        returnScene: "title",
+        result: null,
+      },
       lastBattle: { encounterId: "trial", outcome: "loss" },
     });
   });
@@ -48,6 +61,27 @@ describe("ゲームセッション", () => {
     session.setFlag("route", "north");
 
     expect(parseWorldState(session.serialize())).toEqual(session.getState());
+  });
+
+  it("操作キャラクターと広場の会話相手を入れ替える", () => {
+    const session = createGameSession();
+    session.enterMap();
+
+    session.swapControlledCharacter("sutekichi");
+    expect(session.getState()).toMatchObject({
+      controlledCharacterId: "sutekichi",
+      mapActors: { sutekichi: "etokichi" },
+    });
+
+    session.swapControlledCharacter("sutekichi");
+    expect(session.getState()).toMatchObject({
+      controlledCharacterId: "etokichi",
+      mapActors: { sutekichi: "sutekichi" },
+    });
+
+    session.swapControlledCharacter("sutekichi");
+    session.beginBattle({ encounterId: "switched", opponentId: "etokichi" });
+    expect(session.getState().activeBattle).toMatchObject({ heroId: "sutekichi", opponentId: "etokichi" });
   });
 
   it("不正な状態や未解決バトルの退出を拒否する", () => {
@@ -68,6 +102,7 @@ describe("ゲームセッション", () => {
       scene: "battle",
       activeBattle: {
         encounterId: "unknown",
+        heroId: "etokichi",
         opponentId: "unknown-character",
         returnScene: "map",
         result: null,
@@ -84,6 +119,7 @@ describe("ゲームセッション", () => {
       scene: "map",
       activeBattle: {
         encounterId: "hidden-battle",
+        heroId: "etokichi",
         opponentId: "kuroboshi",
         returnScene: "map",
         result: null,

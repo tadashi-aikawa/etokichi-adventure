@@ -15,11 +15,28 @@ const STAT_LABELS = [
   ["intelligence", "かしこさ"],
 ];
 
-export function createMapInterface({ arena, gameSession, map, playerProfile, portraitUrl, onDialogueOpen = () => {} }) {
+const CHARACTER_ACTIONS = [
+  { id: "battle", label: "対戦する" },
+  { id: "switch", label: "操作を変える" },
+  { id: "cancel", label: "なんでもない" },
+];
+
+export function createMapInterface({
+  arena,
+  gameSession,
+  map,
+  playerProfile,
+  portraitUrl,
+  characterProfiles,
+  getNpcCharacterId,
+  onDialogueOpen = () => {},
+  onBattle = () => {},
+  onSwitch = () => {},
+}) {
   const root = document.createElement("div");
   root.className = "map-interface";
   root.innerHTML = `
-    <div class="map-interaction-prompt" hidden><kbd>E</kbd><span>広場のガイドに話す</span></div>
+    <div class="map-interaction-prompt" hidden><kbd>E</kbd><span>話す</span></div>
     <div class="map-action-buttons" aria-label="マップメニュー">
       <button type="button" data-map-action="talk" disabled><span>●</span>話す</button>
       <button type="button" data-map-action="status"><span>✦</span>ステータス</button>
@@ -44,7 +61,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
             <strong>${playerProfile.abilitiesLabel}</strong>
           </div>
           <dl class="map-status-stats">
-            ${STAT_LABELS.map(([key, label]) => `<div><dt>${label}</dt><dd>${playerProfile.stats[key]}</dd></div>`).join("")}
+            ${STAT_LABELS.map(([key, label]) => `<div><dt>${label}</dt><dd data-map-stat="${key}">${playerProfile.stats[key]}</dd></div>`).join("")}
           </dl>
         </div>
         <footer><span><kbd>M</kbd> / メニューボタン</span><button type="button" data-map-action="close-status">マップへ戻る</button></footer>
@@ -53,6 +70,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
   arena.append(root);
 
   const prompt = root.querySelector(".map-interaction-prompt");
+  const promptText = prompt.querySelector("span");
   const talkButton = root.querySelector('[data-map-action="talk"]');
   const statusButton = root.querySelector('[data-map-action="status"]');
   const statusPanel = root.querySelector(".map-status-panel");
@@ -65,6 +83,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
 
   let nearbyNpc = null;
   let progress = null;
+  let characterAction = null;
   let selectedChoiceIndex = 0;
 
   function isMapVisible() {
@@ -78,12 +97,26 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
   function updateNearbyNpc() {
     nearbyNpc = isMapVisible() && !isBlocking() ? findFacingNpc(gameSession.getState().player, map.markers) : null;
     const canTalk = Boolean(nearbyNpc);
+    if (nearbyNpc) {
+      const characterId = getNpcCharacterId(nearbyNpc.name);
+      promptText.textContent = `${characterProfiles[characterId]?.name ?? nearbyNpc.name}に話す`;
+    }
     prompt.hidden = !canTalk;
     talkButton.disabled = !canTalk;
   }
 
   function openDialogue() {
     if (!nearbyNpc || isBlocking()) return;
+    const characterId = getNpcCharacterId(nearbyNpc.name);
+    if (characterId && characterProfiles[characterId]) {
+      characterAction = { marker: nearbyNpc, characterId };
+      selectedChoiceIndex = 0;
+      dialoguePanel.hidden = false;
+      prompt.hidden = true;
+      onDialogueOpen(nearbyNpc);
+      renderCharacterActions();
+      return;
+    }
     const dialogueId = nearbyNpc.properties.dialogueId;
     if (typeof dialogueId !== "string") return;
     progress = startDialogue(dialogueId, gameSession.getState().flags);
@@ -93,6 +126,25 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
     prompt.hidden = true;
     onDialogueOpen(nearbyNpc);
     renderDialogue();
+  }
+
+  function renderCharacterActions() {
+    if (!characterAction) return;
+    const profile = characterProfiles[characterAction.characterId];
+    dialogueSpeaker.textContent = profile.name;
+    dialogueText.textContent = `${profile.name}にどうする？`;
+    dialogueChoices.replaceChildren();
+    dialogueNext.hidden = true;
+    CHARACTER_ACTIONS.forEach((action, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.characterAction = action.id;
+      button.className = index === selectedChoiceIndex ? "selected" : "";
+      button.innerHTML = `<span>${index + 1}</span>${action.label}`;
+      button.addEventListener("click", () => chooseCharacterAction(action.id));
+      dialogueChoices.append(button);
+    });
+    dialogueChoices.querySelector(".selected")?.focus({ preventScroll: true });
   }
 
   function renderDialogue() {
@@ -128,6 +180,10 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
   }
 
   function advance() {
+    if (characterAction) {
+      chooseCharacterAction(CHARACTER_ACTIONS[selectedChoiceIndex].id);
+      return;
+    }
     if (!progress) return;
     const node = getDialogueNode(progress);
     if (node.choices?.length) {
@@ -137,12 +193,21 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
     applyTransition(advanceDialogue(progress));
   }
 
+  function chooseCharacterAction(actionId) {
+    if (!characterAction) return;
+    const selection = characterAction;
+    closeDialogue();
+    if (actionId === "battle") onBattle(selection.marker, selection.characterId);
+    else if (actionId === "switch") onSwitch(selection.marker, selection.characterId);
+  }
+
   function choose(choiceId) {
     if (progress) applyTransition(selectDialogueChoice(progress, choiceId));
   }
 
   function closeDialogue() {
     progress = null;
+    characterAction = null;
     dialoguePanel.hidden = true;
     updateNearbyNpc();
     talkButton.focus({ preventScroll: true });
@@ -150,6 +215,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
 
   function openStatus() {
     if (!isMapVisible() || isBlocking()) return;
+    updatePlayerProfile(characterProfiles[gameSession.getState().controlledCharacterId]);
     statusPanel.hidden = false;
     prompt.hidden = true;
     statusPanel.querySelector('[data-map-action="close-status"]').focus({ preventScroll: true });
@@ -162,6 +228,11 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
   }
 
   function moveChoice(delta) {
+    if (characterAction) {
+      selectedChoiceIndex = (selectedChoiceIndex + delta + CHARACTER_ACTIONS.length) % CHARACTER_ACTIONS.length;
+      renderCharacterActions();
+      return;
+    }
     if (!progress) return;
     const choices = getDialogueNode(progress).choices ?? [];
     if (!choices.length) return;
@@ -203,6 +274,18 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
   closeStatusButtons.forEach((button) => button.addEventListener("click", closeStatus));
   window.addEventListener("keydown", onKeyDown, true);
 
+  function updatePlayerProfile(profile) {
+    if (!profile) return;
+    const image = root.querySelector(".map-status-portrait img");
+    image.src = profile.images.idle;
+    image.alt = profile.name;
+    root.querySelector(".map-status-profile small").textContent = profile.subtitle;
+    root.querySelector("#map-status-title").textContent = profile.name;
+    root.querySelector(".map-status-profile p").textContent = `${profile.name}のプロフィールと現在の基本能力。`;
+    root.querySelector(".map-status-profile strong").textContent = profile.abilitiesLabel;
+    for (const [key] of STAT_LABELS) root.querySelector(`[data-map-stat="${key}"]`).textContent = profile.stats[key];
+  }
+
   return {
     isBlocking,
     updateNearbyNpc,
@@ -211,6 +294,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
         mode: dialoguePanel.hidden ? (statusPanel.hidden ? "map" : "status") : "dialogue",
         nearbyNpc: nearbyNpc?.name ?? null,
         dialogueNodeId: progress?.nodeId ?? null,
+        characterActionId: characterAction?.characterId ?? null,
       };
     },
     destroy() {

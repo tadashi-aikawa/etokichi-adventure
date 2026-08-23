@@ -1122,6 +1122,8 @@ button { font: inherit; }
   visibility: hidden;
   pointer-events: none;
   transition: opacity .35s, translate .35s, visibility .35s;
+  display: flex;
+  gap: 12px;
 }
 .result-retry.visible { opacity: 1; visibility: visible; translate: -50% 0; pointer-events: auto; }
 .result-retry .primary-button { margin: 0; min-width: 240px; font-size: 16px; box-shadow: 0 9px 30px rgba(240,165,28,.48),0 0 22px rgba(255,224,91,.28),inset 0 2px #fff7c7; animation: retry-ready 1.15s ease-in-out infinite alternate; }
