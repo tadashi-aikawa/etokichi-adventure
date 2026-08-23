@@ -694,9 +694,18 @@ import {
     const gameSession = window.etokichiGameSession;
     const activeBattle = gameSession?.getState().activeBattle;
     if (!activeBattle?.result || activeBattle.returnScene !== "map") return;
+    stopGameLoop();
+    stopEntranceMusic();
+    stopMusic();
+    stopVictoryMusic();
+    ++prebattleIntroToken;
     refs.resultScreen.classList.remove("visible");
     refs.startScreen.classList.remove("visible");
     refs.mapReturnButton.hidden = true;
+    refs.gameShell.classList.add("prebattle");
+    refs.arena.classList.remove("battle-ending", "victory-climax", "victory-hero", "victory-enemy", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "push-camera", "push-camera-hero", "push-camera-enemy");
+    refs.arena.style.removeProperty("--victory-focus-x");
+    refs.effects.replaceChildren();
     state.phase = "map";
     gameSession.leaveBattle();
   }
