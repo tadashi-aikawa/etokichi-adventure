@@ -1,4 +1,5 @@
 import type { MapFacing, MapPosition, WorldFlagValue } from "./game-session.ts";
+import { CHARACTER_IDS, type CharacterId } from "./types.ts";
 import type { MapBody, MapMarker, MapPoint, MapRectangle } from "./tiled-map.ts";
 
 export interface DialogueChoice {
@@ -96,6 +97,30 @@ export const DIALOGUE_DEFINITIONS: Readonly<Record<string, DialogueDefinition>> 
   [PROTOTYPE_GUIDE.id]: PROTOTYPE_GUIDE,
 };
 
+export function createCharacterHomeMarkers(markers: readonly MapMarker[]): Record<CharacterId, MapMarker> {
+  const entries = markers
+    .filter((marker) => marker.kind === "npc")
+    .map((marker) => [marker.properties.characterId, marker] as const);
+  const result = {} as Record<CharacterId, MapMarker>;
+  for (const [characterId, marker] of entries) {
+    if (!isCharacterId(characterId)) throw new Error(`${marker.name}のcharacterIdが不正です`);
+    if (result[characterId]) throw new Error(`${characterId}のホーム地点が重複しています`);
+    result[characterId] = marker;
+  }
+  const missingCharacterId = CHARACTER_IDS.find((characterId) => !result[characterId]);
+  if (missingCharacterId) throw new Error(`${missingCharacterId}のホーム地点がありません`);
+  return result;
+}
+
+export function getVisibleCharacterHomeMarkers(
+  homeMarkers: Readonly<Record<CharacterId, MapMarker>>,
+  controlledCharacterId: CharacterId,
+): MapMarker[] {
+  return CHARACTER_IDS.filter((characterId) => characterId !== controlledCharacterId).map(
+    (characterId) => homeMarkers[characterId],
+  );
+}
+
 export function findFacingNpc(
   player: MapPosition,
   markers: readonly MapMarker[],
@@ -189,4 +214,8 @@ function facingVector(facing: MapFacing): { x: number; y: number } {
     case "right":
       return { x: 1, y: 0 };
   }
+}
+
+function isCharacterId(value: unknown): value is CharacterId {
+  return typeof value === "string" && CHARACTER_IDS.some((characterId) => characterId === value);
 }

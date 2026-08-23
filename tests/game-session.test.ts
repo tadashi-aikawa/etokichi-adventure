@@ -63,21 +63,16 @@ describe("ゲームセッション", () => {
     expect(parseWorldState(session.serialize())).toEqual(session.getState());
   });
 
-  it("操作キャラクターと広場の会話相手を入れ替える", () => {
+  it("操作キャラクターをキャラクターIDで変更する", () => {
     const session = createGameSession();
     session.enterMap();
 
     session.swapControlledCharacter("sutekichi");
-    expect(session.getState()).toMatchObject({
-      controlledCharacterId: "sutekichi",
-      mapActors: { sutekichi: "etokichi" },
-    });
+    expect(session.getState().controlledCharacterId).toBe("sutekichi");
+    expect(() => session.swapControlledCharacter("sutekichi")).toThrow("sutekichiはすでに操作中です");
 
-    session.swapControlledCharacter("sutekichi");
-    expect(session.getState()).toMatchObject({
-      controlledCharacterId: "etokichi",
-      mapActors: { sutekichi: "sutekichi" },
-    });
+    session.swapControlledCharacter("etokichi");
+    expect(session.getState().controlledCharacterId).toBe("etokichi");
 
     session.swapControlledCharacter("sutekichi");
     session.beginBattle({ encounterId: "switched", opponentId: "etokichi" });
@@ -110,6 +105,11 @@ describe("ゲームセッション", () => {
     });
 
     expect(() => parseWorldState(serialized)).toThrow("ワールド状態の形式が不正です");
+  });
+
+  it("旧バージョンのワールド状態を拒否する", () => {
+    const state = createInitialWorldState();
+    expect(() => parseWorldState(JSON.stringify({ ...state, version: 1 }))).toThrow("ワールド状態の形式が不正です");
   });
 
   it("バトルシーンと進行中エンカウントが食い違う復元データを拒否する", () => {

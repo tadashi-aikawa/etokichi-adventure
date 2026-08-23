@@ -24,10 +24,10 @@ const CHARACTER_ACTIONS = [
 export function createMapInterface({
   arena,
   gameSession,
-  map,
   playerProfile,
   portraitUrl,
   characterProfiles,
+  getNpcMarkers,
   getNpcCharacterId,
   onDialogueOpen = () => {},
   onModeChange = () => {},
@@ -96,7 +96,9 @@ export function createMapInterface({
   }
 
   function updateNearbyNpc() {
-    nearbyNpc = isMapVisible() && !isBlocking() ? findFacingNpc(gameSession.getState().player, map.markers) : null;
+    nearbyNpc = isMapVisible() && !isBlocking()
+      ? findFacingNpc(gameSession.getState().player, getNpcMarkers())
+      : null;
     const canTalk = Boolean(nearbyNpc);
     if (nearbyNpc) {
       const characterId = getNpcCharacterId(nearbyNpc.name);

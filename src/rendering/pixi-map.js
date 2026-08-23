@@ -9,7 +9,12 @@ import TATSUO_MAP_SHEET_URL from "../../assets/map-characters/tatsuo/walk.webp?u
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
 import { createCharacterProfiles } from "../game/characters.ts";
-import { createNpcCollisions, getFacingToward } from "../game/map-interaction.ts";
+import {
+  createCharacterHomeMarkers,
+  createNpcCollisions,
+  getFacingToward,
+  getVisibleCharacterHomeMarkers,
+} from "../game/map-interaction.ts";
 import { getMapCharacterFrame, MAP_CHARACTER_COLUMNS, MAP_CHARACTER_ROWS } from "../game/map-character-animation.ts";
 import { calculateMapCamera, getMapBodyDepth, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
 import { createMapInterface } from "./map-interface.js";
@@ -52,8 +57,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     loadCharacterSheets(),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
-  const npcCollisions = createNpcCollisions(map.markers, NPC_BODY);
-  const collisions = [...map.collisions, ...npcCollisions];
+  const characterHomes = createCharacterHomeMarkers(map.markers);
   const root = new Container({ label: "map-scene" });
   const backdrop = new Graphics();
   const world = new Container({ label: map.id });
@@ -64,7 +68,14 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
   const player = createMapCharacterActor(characterSheets.etokichi, { label: "map-player", ...MAP_CHARACTER_VISUALS.etokichi });
-  const npcSystem = createNpcSystem(map, characterSheets, NPC_BODY, gameSession.getState().mapActors);
+  const npcSystem = createNpcSystem(
+    characterHomes,
+    characterSheets,
+    NPC_BODY,
+    gameSession.getState().controlledCharacterId,
+  );
+  let npcCollisions = createNpcCollisions(npcSystem.getVisibleMarkers(), NPC_BODY);
+  let collisions = [...map.collisions, ...npcCollisions];
   actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
   world.addChild(groundLayer, actorLayer);
   root.addChild(backdrop, world);
@@ -82,10 +93,10 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const mapInterface = createMapInterface({
     arena,
     gameSession,
-    map,
     playerProfile: characterProfiles.etokichi,
     portraitUrl: characterProfiles.etokichi.images.idle,
     characterProfiles,
+    getNpcMarkers: () => npcSystem.getVisibleMarkers(),
     getNpcCharacterId: (name) => npcSystem.getCharacterId(name),
     onDialogueOpen(marker) {
       npcSystem.setFacing(marker.name, getFacingToward(marker, gameSession.getState().player));
@@ -95,8 +106,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
       const controlsAvailable = isMapScene() && mode === "map";
       mobileControls.setState({ visible: controlsAvailable, enabled: controlsAvailable });
     },
-    onSwitch(marker) {
-      gameSession.swapControlledCharacter(marker.name);
+    onSwitch(_marker, characterId) {
+      gameSession.swapControlledCharacter(characterId);
     },
     onBattle(_marker, opponentId) {
       const state = gameSession.getState();
@@ -138,8 +149,10 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     if (playerCharacterId !== state.controlledCharacterId) {
       playerCharacterId = state.controlledCharacterId;
       player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
+      npcSystem.syncControlledCharacter(playerCharacterId);
+      npcCollisions = createNpcCollisions(npcSystem.getVisibleMarkers(), NPC_BODY);
+      collisions = [...map.collisions, ...npcCollisions];
     }
-    npcSystem.syncCharacters(state.mapActors);
     player.root.position.set(state.player.x, state.player.y);
     player.root.zIndex = getMapBodyDepth(state.player, PLAYER_BODY);
     if (facing !== state.player.facing) {
@@ -232,6 +245,13 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
         worldPosition: { x: world.x, y: world.y },
         collisionCount: collisions.length,
         npcCollisionCount: npcCollisions.length,
+        visibleNpcCharacterIds: npcSystem.getVisibleCharacterIds(),
+        characterHomes: Object.fromEntries(
+          Object.entries(characterHomes).map(([characterId, marker]) => [
+            characterId,
+            { x: marker.x, y: marker.y },
+          ]),
+        ),
         npcFacings: npcSystem.getFacings(),
         markerCount: map.markers.length,
         interface: mapInterface.getDebugState(),
@@ -362,13 +382,14 @@ async function loadCharacterSheets() {
   return Object.fromEntries(entries);
 }
 
-function createNpcSystem(map, characterSheets, body, initialAssignments) {
+function createNpcSystem(characterHomes, characterSheets, body, controlledCharacterId) {
   const actors = new Map();
   const characterIds = new Map();
   const facings = new Map();
   const roots = [];
-  for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
-    const characterId = initialAssignments[marker.name] ?? marker.properties.characterId;
+  let currentControlledCharacterId = controlledCharacterId;
+  for (const marker of Object.values(characterHomes)) {
+    const characterId = marker.properties.characterId;
     const sheetTexture = characterSheets[characterId];
     const visual = MAP_CHARACTER_VISUALS[characterId];
     if (!sheetTexture || !visual) throw new Error(`${marker.name}のcharacterIdが不正です`);
@@ -376,6 +397,7 @@ function createNpcSystem(map, characterSheets, body, initialAssignments) {
     npc.setMotion("down", 0, false);
     npc.root.position.set(marker.x, marker.y);
     npc.root.zIndex = getMapBodyDepth(marker, body);
+    npc.root.visible = characterId !== controlledCharacterId;
     actors.set(marker.name, npc);
     characterIds.set(marker.name, characterId);
     facings.set(marker.name, "down");
@@ -383,6 +405,14 @@ function createNpcSystem(map, characterSheets, body, initialAssignments) {
   }
   return {
     roots,
+    getVisibleMarkers() {
+      return getVisibleCharacterHomeMarkers(characterHomes, currentControlledCharacterId);
+    },
+    getVisibleCharacterIds() {
+      return [...characterIds.entries()]
+        .filter(([name]) => actors.get(name)?.root.visible)
+        .map(([, characterId]) => characterId);
+    },
     getFacings() {
       return Object.fromEntries(facings);
     },
@@ -392,15 +422,11 @@ function createNpcSystem(map, characterSheets, body, initialAssignments) {
       actor.setMotion(facing, 0, false);
       facings.set(name, facing);
     },
-    syncCharacters(assignments) {
-      for (const [name, characterId] of Object.entries(assignments)) {
-        if (characterIds.get(name) === characterId) continue;
+    syncControlledCharacter(nextControlledCharacterId) {
+      currentControlledCharacterId = nextControlledCharacterId;
+      for (const [name, characterId] of characterIds) {
         const actor = actors.get(name);
-        const sheetTexture = characterSheets[characterId];
-        const visual = MAP_CHARACTER_VISUALS[characterId];
-        if (!actor || !sheetTexture || !visual) throw new Error(`${name}のキャラクター割当が不正です`);
-        actor.setCharacter(sheetTexture, visual);
-        characterIds.set(name, characterId);
+        if (actor) actor.root.visible = characterId !== nextControlledCharacterId;
       }
     },
     getCharacterId(name) {

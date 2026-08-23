@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import type { MapPosition } from "../src/game/game-session.ts";
 import {
   advanceDialogue,
+  createCharacterHomeMarkers,
   createNpcCollisions,
   findFacingNpc,
   getFacingToward,
   getDialogueNode,
+  getVisibleCharacterHomeMarkers,
   selectDialogueChoice,
   startDialogue,
 } from "../src/game/map-interaction.ts";
 import type { MapMarker } from "../src/game/tiled-map.ts";
+import { CHARACTER_IDS } from "../src/game/types.ts";
 
 const player: MapPosition = { mapId: "test", x: 100, y: 100, facing: "up" };
 const markers: MapMarker[] = [
@@ -46,6 +49,32 @@ const markers: MapMarker[] = [
 ];
 
 describe("マップ会話", () => {
+  it("操作中キャラクター以外のホーム地点をNPCとして返す", () => {
+    const homes = CHARACTER_IDS.map(
+      (characterId, index): MapMarker => ({
+        id: index + 10,
+        name: characterId,
+        kind: "npc",
+        x: 100 + index * 80,
+        y: 200,
+        width: 0,
+        height: 0,
+        properties: { characterId, dialogueId: "prototype-guide" },
+      }),
+    );
+    const homeMarkers = createCharacterHomeMarkers(homes);
+
+    expect(getVisibleCharacterHomeMarkers(homeMarkers, "sutekichi").map((marker) => marker.name)).toEqual(
+      CHARACTER_IDS.filter((characterId) => characterId !== "sutekichi"),
+    );
+    expect(() => createCharacterHomeMarkers(homes.slice(1))).toThrow("etokichiのホーム地点がありません");
+    const etokichiHome = homes[0];
+    if (!etokichiHome) throw new Error("エトキチのテスト用ホーム地点がありません");
+    expect(() =>
+      createCharacterHomeMarkers([...homes, { ...etokichiHome, id: 99, name: "duplicate-etokichi" }]),
+    ).toThrow("etokichiのホーム地点が重複しています");
+  });
+
   it("プレイヤー正面の範囲内にいるNPCだけを会話対象にする", () => {
     expect(findFacingNpc(player, markers)?.name).toBe("front");
     expect(findFacingNpc({ ...player, facing: "down" }, markers)?.name).toBe("behind");

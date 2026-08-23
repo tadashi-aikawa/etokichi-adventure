@@ -1,6 +1,6 @@
 import { CHARACTER_IDS, type CharacterId } from "./types.ts";
 
-export const WORLD_STATE_VERSION = 1 as const;
+export const WORLD_STATE_VERSION = 2 as const;
 
 export type AppScene = "title" | "map" | "battle";
 export type MapFacing = "up" | "down" | "left" | "right";
@@ -35,7 +35,6 @@ export interface WorldState {
   scene: AppScene;
   player: MapPosition;
   controlledCharacterId: CharacterId;
-  mapActors: Record<string, CharacterId>;
   flags: Record<string, WorldFlagValue>;
   activeBattle: ActiveBattle | null;
   lastBattle: BattleResult | null;
@@ -57,7 +56,7 @@ export interface GameSession {
   getState(): WorldState;
   enterMap(position?: Partial<MapPosition>): WorldState;
   updatePlayer(position: Partial<Omit<MapPosition, "mapId">>): WorldState;
-  swapControlledCharacter(actorSlot: string): WorldState;
+  swapControlledCharacter(characterId: CharacterId): WorldState;
   setFlag(key: string, value: WorldFlagValue): WorldState;
   beginBattle(request: BattleRequest): WorldState;
   resolveBattle(resolution: BattleResolution): WorldState;
@@ -69,17 +68,9 @@ export interface GameSession {
 
 const INITIAL_POSITION: MapPosition = {
   mapId: "prototype-plaza",
-  x: 480,
-  y: 360,
+  x: 736,
+  y: 512,
   facing: "down",
-};
-
-const INITIAL_MAP_ACTORS: Record<string, CharacterId> = {
-  kuroboshi: "kuroboshi",
-  sutekichi: "sutekichi",
-  salarymanEtokichi: "salarymanEtokichi",
-  tatsuo: "tatsuo",
-  aster: "aster",
 };
 
 export function createInitialWorldState(): WorldState {
@@ -88,7 +79,6 @@ export function createInitialWorldState(): WorldState {
     scene: "title",
     player: { ...INITIAL_POSITION },
     controlledCharacterId: "etokichi",
-    mapActors: { ...INITIAL_MAP_ACTORS },
     flags: {},
     activeBattle: null,
     lastBattle: null,
@@ -126,14 +116,13 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
         ...state,
         player: { ...state.player, ...position },
       }),
-    swapControlledCharacter: (actorSlot) => {
+    swapControlledCharacter: (characterId) => {
       if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外では操作キャラクターを変更できません");
-      const nextCharacterId = state.mapActors[actorSlot];
-      if (!nextCharacterId) throw new Error(`${actorSlot}に操作可能なキャラクターがいません`);
+      if (!isCharacterId(characterId)) throw new Error(`${characterId}は操作可能なキャラクターではありません`);
+      if (characterId === state.controlledCharacterId) throw new Error(`${characterId}はすでに操作中です`);
       return publish({
         ...state,
-        controlledCharacterId: nextCharacterId,
-        mapActors: { ...state.mapActors, [actorSlot]: state.controlledCharacterId },
+        controlledCharacterId: characterId,
       });
     },
     setFlag: (key, value) =>
@@ -200,7 +189,6 @@ function cloneWorldState(state: WorldState): WorldState {
   return {
     ...state,
     player: { ...state.player },
-    mapActors: { ...state.mapActors },
     flags: { ...state.flags },
     activeBattle: state.activeBattle
       ? { ...state.activeBattle, result: state.activeBattle.result ? { ...state.activeBattle.result } : null }
@@ -215,11 +203,8 @@ function isWorldState(value: unknown): value is WorldState {
     !isScene(value.scene) ||
     !isMapPosition(value.player) ||
     !isCharacterId(value.controlledCharacterId) ||
-    !isMapActorRecord(value.mapActors) ||
     !isFlagRecord(value.flags)
   )
-    return false;
-  if (new Set([value.controlledCharacterId, ...Object.values(value.mapActors)]).size !== CHARACTER_IDS.length)
     return false;
   if (value.activeBattle !== null && !isActiveBattle(value.activeBattle)) return false;
   if ((value.scene === "battle") !== (value.activeBattle !== null)) return false;
@@ -270,11 +255,6 @@ function isBattleResult(value: unknown): value is BattleResult {
 function isFlagRecord(value: unknown): value is Record<string, WorldFlagValue> {
   if (!isRecord(value)) return false;
   return Object.values(value).every((entry) => ["boolean", "number", "string"].includes(typeof entry));
-}
-
-function isMapActorRecord(value: unknown): value is Record<string, CharacterId> {
-  if (!isRecord(value) || Object.keys(value).length !== CHARACTER_IDS.length - 1) return false;
-  return Object.values(value).every(isCharacterId);
 }
 
 function isScene(value: unknown): value is AppScene {
