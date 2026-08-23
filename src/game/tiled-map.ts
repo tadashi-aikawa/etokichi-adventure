@@ -39,6 +39,7 @@ export interface ParsedTileset {
   tileHeight: number;
   columns: number;
   tileCount: number;
+  depthYByLocalId: Record<number, number>;
 }
 
 export interface ParsedTiledMap {
@@ -97,6 +98,7 @@ export function parseTiledMap(mapValue: unknown, tilesetValue: unknown): ParsedT
     tileHeight: positiveInteger(tileset.tileheight, "タイルセットのタイル高さ"),
     columns: positiveInteger(tileset.columns, "タイルセット列数"),
     tileCount: positiveInteger(tileset.tilecount, "タイル数"),
+    depthYByLocalId: parseTileDepths(tileset.tiles, tileHeight),
   };
   if (parsedTileset.tileWidth !== tileWidth || parsedTileset.tileHeight !== tileHeight) {
     throw new Error("マップとタイルセットのタイル寸法が一致しません");
@@ -149,6 +151,22 @@ export function parseTiledMap(mapValue: unknown, tilesetValue: unknown): ParsedT
     markers,
     tileset: parsedTileset,
   };
+}
+
+function parseTileDepths(value: unknown, tileHeight: number): Record<number, number> {
+  if (value === undefined) return {};
+  const result: Record<number, number> = {};
+  for (const tileValue of array(value, "タイルセットのtiles")) {
+    const tile = record(tileValue, "タイル定義");
+    const id = integer(tile.id, "タイルID");
+    const depthY = parseProperties(tile.properties).depthY;
+    if (depthY === undefined) continue;
+    if (typeof depthY !== "number" || depthY < 0 || depthY > tileHeight) {
+      throw new Error(`タイル${id}のdepthYは0以上タイル高以下の数値で指定してください`);
+    }
+    result[id] = depthY;
+  }
+  return result;
 }
 
 export function moveMapBody(

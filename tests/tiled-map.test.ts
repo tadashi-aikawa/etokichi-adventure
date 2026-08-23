@@ -7,6 +7,7 @@ const tileset = {
   imageheight: 64,
   imagewidth: 128,
   name: "test-tiles",
+  tiles: [{ id: 1, properties: [{ name: "depthY", type: "int", value: 36 }] }],
   tilecount: 2,
   tileheight: 64,
   tilewidth: 64,
@@ -60,7 +61,7 @@ describe("Tiledマップ", () => {
         { id: 2, kind: "npc", name: "guide", properties: { dialogueId: "guide" } },
         { id: 3, kind: "entrance", name: "south" },
       ],
-      tileset: { firstGid: 1, image: "tiles.svg", columns: 2, tileCount: 2 },
+      tileset: { firstGid: 1, image: "tiles.svg", columns: 2, tileCount: 2, depthYByLocalId: { 1: 36 } },
     });
   });
 
@@ -74,6 +75,14 @@ describe("Tiledマップ", () => {
     const missingCollision = structuredClone(map);
     missingCollision.layers = missingCollision.layers.filter((layer) => layer.name !== "collision");
     expect(() => parseTiledMap(missingCollision, tileset)).toThrow("collision objectgroupレイヤーが必要です");
+  });
+
+  it("タイル内の描画基準が範囲外なら拒否する", () => {
+    const invalidTileset = structuredClone(tileset);
+    const depthProperty = invalidTileset.tiles[0]?.properties[0];
+    if (!depthProperty) throw new Error("テスト用のdepthYプロパティがありません");
+    depthProperty.value = 65;
+    expect(() => parseTiledMap(map, invalidTileset)).toThrow("depthYは0以上タイル高以下");
   });
 
   it("X・Yを別々に衝突解決して壁沿いに移動できる", () => {

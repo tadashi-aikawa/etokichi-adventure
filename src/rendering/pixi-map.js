@@ -209,32 +209,33 @@ function createTileLayer(map, name, tileTextures) {
   if (!definition) return layer;
   layer.alpha = definition.opacity;
   layer.visible = definition.visible;
-  layer.addChild(...createTileSprites(map, definition, tileTextures));
+  layer.addChild(...createTileEntries(map, definition, tileTextures).map(({ sprite }) => sprite));
   return layer;
 }
 
 function createDepthTileSprites(map, name, tileTextures) {
   const definition = map.tileLayers.find((layer) => layer.name === name);
   if (!definition) return [];
-  return createTileSprites(map, definition, tileTextures).map((sprite) => {
+  return createTileEntries(map, definition, tileTextures).map(({ localId, sprite }) => {
     sprite.alpha = definition.opacity;
     sprite.visible = definition.visible;
-    sprite.zIndex = sprite.y + map.tileHeight;
+    sprite.zIndex = sprite.y + (map.tileset.depthYByLocalId[localId] ?? map.tileHeight);
     return sprite;
   });
 }
 
-function createTileSprites(map, definition, tileTextures) {
-  const sprites = [];
+function createTileEntries(map, definition, tileTextures) {
+  const entries = [];
   definition.data.forEach((gid, index) => {
     if (gid === 0) return;
-    const texture = tileTextures[gid - map.tileset.firstGid];
+    const localId = gid - map.tileset.firstGid;
+    const texture = tileTextures[localId];
     if (!texture) throw new Error(`${definition.name}のGID ${gid} に対応するテクスチャがありません`);
     const sprite = new Sprite({ texture, roundPixels: true });
     sprite.position.set(index % map.width * map.tileWidth, Math.floor(index / map.width) * map.tileHeight);
-    sprites.push(sprite);
+    entries.push({ localId, sprite });
   });
-  return sprites;
+  return entries;
 }
 
 function createMapCharacterActor(sheetTexture, options) {

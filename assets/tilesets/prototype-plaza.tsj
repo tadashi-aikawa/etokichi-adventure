@@ -8,6 +8,10 @@
   "spacing": 0,
   "tilecount": 8,
   "tileheight": 64,
+  "tiles": [
+    {"id":6,"properties":[{"name":"depthY","type":"int","value":62}]},
+    {"id":7,"properties":[{"name":"depthY","type":"int","value":36}]}
+  ],
   "tilewidth": 64,
   "type": "tileset",
   "version": "1.10",
