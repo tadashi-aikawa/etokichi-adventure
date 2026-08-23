@@ -1,8 +1,10 @@
 import { Container, Graphics, Polygon, Rectangle, Text } from "pixi.js";
 
-const MOBILE_LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 500px)";
+export const MOBILE_LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 500px)";
 
 const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+
+export const getMobileControlRailWidth = (width) => clamp(width * .145, 100, 140);
 
 function createControlButton({ label, kind = "direction", accent = 0x5f4a80, onPress, onRelease }) {
   const root = new Container();
@@ -219,7 +221,7 @@ export function createMobileControlSystem() {
     width = nextWidth;
     height = nextHeight;
     root.hitArea = new Rectangle(0, 0, width, height);
-    const railWidth = clamp(width * .145, 100, 140);
+    const railWidth = getMobileControlRailWidth(width);
     const directionSize = clamp(height * .105, 36, 44);
     const dpadStep = directionSize * .96;
     const bottomPadding = clamp(height * .045, 14, 22);
@@ -333,6 +335,11 @@ export function createMobileControlSystem() {
           Object.entries(handlerSets[mode]).map(([name, handler]) => [name, typeof handler === "function"]),
         ),
       };
+    },
+    getPlayfield() {
+      if (!mediaQuery.matches) return { x: 0, y: 0, width, height };
+      const railWidth = getMobileControlRailWidth(width);
+      return { x: railWidth, y: 0, width: Math.max(1, width - railWidth * 2), height };
     },
     destroy() {
       releaseAll();

@@ -1384,20 +1384,28 @@ button { font: inherit; }
     user-select: none;
   }
 
-  .map-hud { left: max(10px,env(safe-area-inset-left)); right: max(10px,env(safe-area-inset-right)); top: 8px; }
+  .map-hud {
+    left: calc(clamp(100px,14.5vw,140px) + max(8px,env(safe-area-inset-left)));
+    right: calc(clamp(100px,14.5vw,140px) + max(8px,env(safe-area-inset-right)));
+    top: 8px;
+  }
   .map-hud > div { padding: 6px 10px; }
   .map-hud strong { font-size: 13px; }
   .map-hud p { display: none; }
+  .map-interface {
+    left: clamp(100px,14.5vw,140px);
+    right: clamp(100px,14.5vw,140px);
+  }
   .map-action-buttons { display: none; }
   .map-interaction-prompt { bottom: 48px; padding: 5px 10px; font-size: 9px; }
   .map-interaction-prompt kbd { width: 19px; height: 19px; }
-  .map-dialogue-copy { left: max(12px,env(safe-area-inset-left)); right: max(12px,env(safe-area-inset-right)); bottom: max(8px,env(safe-area-inset-bottom)); min-height: 112px; padding: 15px 22px 10px; }
-  .map-dialogue-speaker { margin: -27px 0 6px -6px; padding: 5px 15px; font-size: 11px; }
-  .map-dialogue-text { min-height: 30px; font-size: 11px; line-height: 1.55; }
-  .map-dialogue-next { margin-top: 5px; padding: 5px 10px; font-size: 9px; }
-  .map-dialogue-choices { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; margin-top: 6px; }
-  .map-dialogue-choices button { padding: 5px 9px; font-size: 9px; }
-  .map-dialogue-choices button span { width: 17px; height: 17px; margin-right: 5px; }
+  .map-dialogue-copy { left: 10px; right: 10px; bottom: max(8px,env(safe-area-inset-bottom)); min-height: 156px; padding: 21px 20px 13px; }
+  .map-dialogue-speaker { margin: -34px 0 8px -6px; padding: 7px 17px; font-size: clamp(13px,3.8vh,16px); }
+  .map-dialogue-text { min-height: 32px; font-size: clamp(15px,4.2vh,18px); line-height: 1.5; }
+  .map-dialogue-next { margin-top: 7px; padding: 7px 13px; font-size: clamp(11px,3.2vh,13px); }
+  .map-dialogue-choices { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 8px; }
+  .map-dialogue-choices button { padding: 7px 11px; font-size: clamp(12px,3.5vh,15px); }
+  .map-dialogue-choices button span { width: 21px; height: 21px; margin-right: 7px; }
   .map-status-panel { padding: 6px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); }
   .map-status-card { width: min(900px,100%); max-height: 100%; }
   .map-status-card header { padding: 6px 12px 4px; }

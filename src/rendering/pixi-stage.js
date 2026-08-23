@@ -12,7 +12,7 @@ import {
 import "pixi.js/browser";
 import BACKGROUND_URL from "../../assets/backgrounds/cosmic-ranch-colosseum.webp?url";
 import { getFighterRenderSize } from "../game/actors.ts";
-import { createMobileControlSystem } from "./pixi-controls.js";
+import { createMobileControlSystem, MOBILE_LANDSCAPE_QUERY } from "./pixi-controls.js";
 import { createEffectSystem } from "./pixi-effects.js";
 import { createFighterSystem } from "./pixi-fighters.js";
 import { createMapSystem } from "./pixi-map.js";
@@ -22,8 +22,6 @@ const STAR_COUNT = 150;
 const PROJECTION_EPSILON = .001;
 const BACKGROUND_CAMERA_PARALLAX = .18;
 const BACKGROUND_COVER_PADDING = 12;
-const MOBILE_LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 500px)";
-
 const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
 
 function interpolateKeyframes(progress, keyframes) {
@@ -255,7 +253,6 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       arena,
       stage: app.stage,
       ticker: app.ticker,
-      getScreen: () => ({ width: app.screen.width, height: app.screen.height }),
       gameSession: window.etokichiGameSession,
       mobileControls,
     });

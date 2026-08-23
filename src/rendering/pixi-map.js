@@ -56,7 +56,7 @@ const MAP_KEYS = new Map([
   ["KeyD", "right"],
 ]);
 
-export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession, mobileControls }) {
+export async function createMapSystem({ arena, stage, ticker, gameSession, mobileControls }) {
   const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
   const [atlasTexture, characterSheets, propTextures] = await Promise.all([
     Assets.load(TILESET_IMAGE_URL),
@@ -66,6 +66,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const tileTextures = createTileTextures(map, atlasTexture);
   const characterHomes = createCharacterHomeMarkers(map.markers);
   const root = new Container({ label: "map-scene" });
+  const viewportMask = new Graphics({ label: "map-viewport-mask" });
   const backdrop = new Graphics();
   const world = new Container({ label: map.id });
   world.scale.set(MAP_SCALE);
@@ -88,6 +89,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   world.addChild(groundLayer, propLayer, actorLayer);
   root.addChild(backdrop, world);
   stage.addChildAt(root, 0);
+  stage.addChildAt(viewportMask, 1);
+  root.mask = viewportMask;
 
   const pressed = new Set();
   const characterProfiles = createCharacterProfiles((source) => window.etokichiAssetUrl?.(source) ?? source);
@@ -112,7 +115,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     onModeChange(mode) {
       pressed.clear();
       const controlsAvailable = isMapScene() && mode === "map";
-      mobileControls.setState({ visible: controlsAvailable, enabled: controlsAvailable });
+      mobileControls.setState({ visible: isMapScene(), enabled: controlsAvailable });
     },
     onSwitch(_marker, characterId) {
       gameSession.swapControlledCharacter(characterId);
@@ -226,12 +229,16 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   function applyCamera(target) {
     const worldViewport = { width: viewport.width / MAP_SCALE, height: viewport.height / MAP_SCALE };
     const camera = calculateMapCamera(target, worldViewport, { width: map.pixelWidth, height: map.pixelHeight });
-    world.position.set(viewport.width / 2 - camera.x * MAP_SCALE, viewport.height / 2 - camera.y * MAP_SCALE);
+    world.position.set(
+      viewport.x + viewport.width / 2 - camera.x * MAP_SCALE,
+      viewport.y + viewport.height / 2 - camera.y * MAP_SCALE,
+    );
   }
 
   function layout() {
-    viewport = getScreen();
-    backdrop.clear().rect(0, 0, viewport.width, viewport.height).fill(map.backgroundColor);
+    viewport = mobileControls.getPlayfield();
+    viewportMask.clear().rect(viewport.x, viewport.y, viewport.width, viewport.height).fill({ color: 0xffffff });
+    backdrop.clear().rect(viewport.x, viewport.y, viewport.width, viewport.height).fill(map.backgroundColor);
     syncScene(gameSession.getState());
   }
 
@@ -277,6 +284,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
       mapInterface.destroy();
+      root.mask = null;
+      viewportMask.destroy();
       root.destroy({ children: true, texture: true });
     },
   };
