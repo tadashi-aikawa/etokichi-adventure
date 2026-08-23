@@ -1612,10 +1612,6 @@ import {
       }, 500);
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
-        refs.arena.classList.add("aster-evil-eye-mode");
-      }, 1120);
-      setTimeout(() => {
-        if (state.phase !== "battle" || token !== state[tokenKey]) return;
         createAsterTechniqueEffect("asterEvilEye", side);
         sound("asterEvilEyeFire");
       }, 1250);
@@ -1645,7 +1641,7 @@ import {
       if (token !== state[tokenKey]) return;
       actor.classList.remove("attack-light", "dark-orbit-sequence", "black-meteor-sequence", "meteor-claw-sequence", "crescent-horn-sequence", "sutekichi-star-touch-sequence", "sutekichi-halo-skip-sequence", "sutekichi-stella-search-sequence", "sutekichi-comet-sequence", "sutekichi-nap-sequence", "business-card-strike-sequence", "closing-time-dash-sequence", "angel-wink-sequence", "approval-meteor-sequence", "tatsuo-slap-sequence", "tatsuo-restraint-sequence", "tatsuo-roar-sequence", "tatsuo-press-sequence", "aster-death-energy-sequence", "aster-evil-eye-sequence", "aster-migration-sequence", "aster-tail-sweep-sequence", "technique-recoil");
       target.classList.remove("tatsuo-pinned");
-      refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode", "approval-meteor-mode", "aster-evil-eye-mode");
+      refs.arena.classList.remove("black-meteor-mode", "sutekichi-comet-mode", "approval-meteor-mode");
       if (state.phase === "battle") transitionTechniqueSprite(actorSprite, images.battleIdle, 240);
     }, technique.duration);
   }
@@ -2503,7 +2499,7 @@ import {
     refs.enemy.classList.remove(...sharedTechniqueClasses);
     refs.hero.classList.remove("status-petrified");
     refs.enemy.classList.remove("status-petrified");
-    refs.arena.classList.remove("sutekichi-comet-mode", "aster-evil-eye-mode");
+    refs.arena.classList.remove("sutekichi-comet-mode");
     refs.arena.classList.remove("special-mode", "pentagram-nova-mode", "pentagram-nova-missed", "nova-hit-pulse", "black-meteor-mode", "approval-meteor-mode", "camera-hero", "camera-enemy", "camera-track-release", "camera-face-closeup", "camera-aster-evil-eye-closeup", "camera-aster-death-energy-closeup", "push-camera", "push-camera-hero", "push-camera-enemy", "impact-freeze", "physical-hit-hero", "physical-hit-enemy", "status-camera", "status-camera-hero", "status-camera-enemy");
     refs.arena.classList.add("battle-ending");
     updateUI();
