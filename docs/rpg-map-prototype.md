@@ -68,3 +68,25 @@ map ─────────────┴───────────�
 ## プロトタイプ用マップ素材
 
 `prototype-plaza.tsj`は`prototype-plaza.svg`を64px×8タイルのアトラスとして参照する。SVGは原本兼配信用で、ViteがベースURLを解決する。量産段階でラスター素材へ移行する場合も、TSJの`image`と寸法を更新し、TMJのGIDとレイヤー規約は維持する。
+
+## マップ専用キャラクター素材
+
+バトル用の大きなポーズ画像は流用せず、`assets/map-characters/<ID>/`へマップ専用素材を置く。
+
+- `source/walk.png`: 編集・再変換用のRGBA原本
+- `walk.webp`: PixiJSが読む配信用WebP。縮小表示を前提に品質88、アルファ品質100とする
+- シートは3列×4行。幅は3、高さは4で割り切れること
+- 行は上から`down / left / right / up`
+- 列は左から`左足前 / ニュートラル / 右足前`
+- 停止時は中央列、歩行時は`左足前 → 中央 → 右足前 → 中央`を繰り返す
+- 各セルで足元・キャラクター寸法を揃え、背景は実アルファ透過にする
+
+配信用WebPは原本PNGから次のように作る。
+
+```sh
+magick assets/map-characters/<ID>/source/walk.png \
+  -quality 88 -define webp:alpha-quality=100 \
+  assets/map-characters/<ID>/walk.webp
+```
+
+追加後は`src/rendering/pixi-map.js`へURLと表示寸法を登録する。フレーム幅・高さは画像寸法から計算し、3列×4行で割り切れなければ起動時にエラーとする。

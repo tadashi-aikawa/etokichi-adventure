@@ -16,6 +16,7 @@ DOMのみでゲームを描画するバックエンドはありません。PixiJ
 | `src/main.js` | WebGPU/WebGLの選択、PixiJS初期化、ゲーム本体の起動 |
 | `game.js` | ゲーム進行、入力、AI、画面遷移、DOM製UI、GPU描画への指示 |
 | `src/game/game-session.ts` | タイトル・マップ・バトルをまたぐワールド状態とシーン遷移 |
+| `src/game/map-character-animation.ts` | 4方向×3フレームのマップ歩行アニメーション選択 |
 | `src/game/tiled-map.ts` | Tiled TMJ/TSJの検証、衝突解決、追従カメラ計算 |
 | `src/rendering/pixi-stage.js` | PixiJSレンダラー、アリーナ、カメラ、描画システムの統合 |
 | `src/rendering/pixi-map.js` | マップのタイル・NPC・入口・プレイヤー描画とPC移動入力 |
@@ -71,6 +72,7 @@ pnpm check
 - その他のキャラクター: `assets/enemies/<ID>/`または`assets/characters/<ID>/`
 - 背景: `assets/backgrounds/`
 - BGM・SE素材: `assets/audio/`
+- マップ専用キャラクター: `assets/map-characters/<ID>/`
 
 キャラクター設定から参照する画像は`src/actor-assets.ts`を経由させ、開発サーバーとGitHub Pagesのどちらでも同じURL解決経路を使います。
 
