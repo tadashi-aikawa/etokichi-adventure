@@ -1,7 +1,11 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import MAP_SOURCE from "../../assets/maps/prototype-plaza.tmj?raw";
 import ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/etokichi/walk.webp?url";
-import GUIDE_MAP_SHEET_URL from "../../assets/map-characters/guide/walk.webp?url";
+import ASTER_MAP_SHEET_URL from "../../assets/map-characters/aster/walk.webp?url";
+import KUROBOSHI_MAP_SHEET_URL from "../../assets/map-characters/kuroboshi/walk.webp?url";
+import SALARYMAN_ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/salarymanEtokichi/walk.webp?url";
+import SUTEKICHI_MAP_SHEET_URL from "../../assets/map-characters/sutekichi/walk.webp?url";
+import TATSUO_MAP_SHEET_URL from "../../assets/map-characters/tatsuo/walk.webp?url";
 import ETOKICHI_PORTRAIT_URL from "../../assets/etokichi/idle.webp?url";
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
@@ -12,9 +16,25 @@ import { calculateMapCamera, getMapBodyDepth, moveMapBody, parseTiledMap } from 
 import { createMapInterface } from "./map-interface.js";
 
 const PLAYER_BODY = { width: 34, height: 18, offsetY: 25 };
-const NPC_BODY = { width: 46, height: 40, offsetY: 20 };
+const NPC_BODY = { width: 68, height: 42, offsetY: 20 };
 const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
+const MAP_CHARACTER_VISUALS = {
+  etokichi: { width: 123, height: 92 },
+  kuroboshi: { width: 104, height: 104 },
+  sutekichi: { width: 96, height: 96 },
+  salarymanEtokichi: { width: 72, height: 108 },
+  tatsuo: { width: 112, height: 112 },
+  aster: { width: 104, height: 104 },
+};
+const MAP_CHARACTER_SHEET_URLS = {
+  etokichi: ETOKICHI_MAP_SHEET_URL,
+  kuroboshi: KUROBOSHI_MAP_SHEET_URL,
+  sutekichi: SUTEKICHI_MAP_SHEET_URL,
+  salarymanEtokichi: SALARYMAN_ETOKICHI_MAP_SHEET_URL,
+  tatsuo: TATSUO_MAP_SHEET_URL,
+  aster: ASTER_MAP_SHEET_URL,
+};
 const MAP_KEYS = new Map([
   ["ArrowUp", "up"],
   ["KeyW", "up"],
@@ -28,10 +48,9 @@ const MAP_KEYS = new Map([
 
 export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession }) {
   const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
-  const [atlasTexture, etokichiSheet, guideSheet] = await Promise.all([
+  const [atlasTexture, characterSheets] = await Promise.all([
     Assets.load(TILESET_IMAGE_URL),
-    Assets.load(ETOKICHI_MAP_SHEET_URL),
-    Assets.load(GUIDE_MAP_SHEET_URL),
+    loadCharacterSheets(),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
   const npcCollisions = createNpcCollisions(map.markers, NPC_BODY);
@@ -45,8 +64,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   actorLayer.sortableChildren = true;
   const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
-  const player = createMapCharacterActor(etokichiSheet, { label: "map-player", width: 123, height: 92 });
-  const npcSystem = createNpcSystem(map, guideSheet, NPC_BODY);
+  const player = createMapCharacterActor(characterSheets.etokichi, { label: "map-player", ...MAP_CHARACTER_VISUALS.etokichi });
+  const npcSystem = createNpcSystem(map, characterSheets, NPC_BODY);
   actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
   world.addChild(groundLayer, actorLayer);
   root.addChild(backdrop, world);
@@ -277,12 +296,23 @@ function createCharacterFrames(sheetTexture, label) {
   }));
 }
 
-function createNpcSystem(map, sheetTexture, body) {
+async function loadCharacterSheets() {
+  const entries = await Promise.all(
+    Object.entries(MAP_CHARACTER_SHEET_URLS).map(async ([characterId, url]) => [characterId, await Assets.load(url)]),
+  );
+  return Object.fromEntries(entries);
+}
+
+function createNpcSystem(map, characterSheets, body) {
   const actors = new Map();
   const facings = new Map();
   const roots = [];
   for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
-    const npc = createMapCharacterActor(sheetTexture, { label: `npc-${marker.name}`, width: 82, height: 82 });
+    const characterId = marker.properties.characterId;
+    const sheetTexture = characterSheets[characterId];
+    const visual = MAP_CHARACTER_VISUALS[characterId];
+    if (!sheetTexture || !visual) throw new Error(`${marker.name}のcharacterIdが不正です`);
+    const npc = createMapCharacterActor(sheetTexture, { label: `npc-${marker.name}`, ...visual });
     npc.setMotion("down", 0, false);
     npc.root.position.set(marker.x, marker.y);
     npc.root.zIndex = getMapBodyDepth(marker, body);

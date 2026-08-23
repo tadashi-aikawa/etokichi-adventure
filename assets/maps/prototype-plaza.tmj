@@ -92,15 +92,82 @@
         {
           "height":0,
           "id":9,
-          "name":"guide",
+          "name":"kuroboshi",
           "point":true,
-          "properties":[{"name":"dialogueId","type":"string","value":"prototype-guide"}],
+          "properties":[
+            {"name":"characterId","type":"string","value":"kuroboshi"},
+            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+          ],
           "rotation":0,
           "type":"npc",
           "visible":true,
           "width":0,
-          "x":736,
-          "y":704
+          "x":576,
+          "y":480
+        },
+        {
+          "height":0,
+          "id":14,
+          "name":"sutekichi",
+          "point":true,
+          "properties":[
+            {"name":"characterId","type":"string","value":"sutekichi"},
+            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+          ],
+          "rotation":0,
+          "type":"npc",
+          "visible":true,
+          "width":0,
+          "x":768,
+          "y":480
+        },
+        {
+          "height":0,
+          "id":15,
+          "name":"salarymanEtokichi",
+          "point":true,
+          "properties":[
+            {"name":"characterId","type":"string","value":"salarymanEtokichi"},
+            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+          ],
+          "rotation":0,
+          "type":"npc",
+          "visible":true,
+          "width":0,
+          "x":544,
+          "y":720
+        },
+        {
+          "height":0,
+          "id":16,
+          "name":"tatsuo",
+          "point":true,
+          "properties":[
+            {"name":"characterId","type":"string","value":"tatsuo"},
+            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+          ],
+          "rotation":0,
+          "type":"npc",
+          "visible":true,
+          "width":0,
+          "x":768,
+          "y":720
+        },
+        {
+          "height":0,
+          "id":17,
+          "name":"aster",
+          "point":true,
+          "properties":[
+            {"name":"characterId","type":"string","value":"aster"},
+            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+          ],
+          "rotation":0,
+          "type":"npc",
+          "visible":true,
+          "width":0,
+          "x":992,
+          "y":720
         }
       ],
       "opacity": 1,
@@ -125,7 +192,7 @@
     }
   ],
   "nextlayerid": 6,
-  "nextobjectid": 14,
+  "nextobjectid": 18,
   "orientation": "orthogonal",
   "properties": [{"name":"mapId","type":"string","value":"prototype-plaza"}],
   "renderorder": "right-down",
