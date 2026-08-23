@@ -1698,8 +1698,9 @@ button { font: inherit; }
     grid-row: 3;
     grid-template-columns: repeat(4,minmax(0,1fr));
     gap: 3px;
-    margin: 0;
   }
+  .hero-technique-panel .technique-grid { margin: 0 0 0 12%; }
+  .enemy-technique-grid { margin: 0 12% 0 0; }
   .technique-stack {
     min-width: 0;
     padding-top: 8px;
