@@ -30,6 +30,7 @@ export function createMapInterface({
   characterProfiles,
   getNpcCharacterId,
   onDialogueOpen = () => {},
+  onModeChange = () => {},
   onBattle = () => {},
   onSwitch = () => {},
 }) {
@@ -113,6 +114,7 @@ export function createMapInterface({
       selectedChoiceIndex = 0;
       dialoguePanel.hidden = false;
       prompt.hidden = true;
+      onModeChange("dialogue");
       onDialogueOpen(nearbyNpc);
       renderCharacterActions();
       return;
@@ -124,6 +126,7 @@ export function createMapInterface({
     selectedChoiceIndex = 0;
     dialoguePanel.hidden = false;
     prompt.hidden = true;
+    onModeChange("dialogue");
     onDialogueOpen(nearbyNpc);
     renderDialogue();
   }
@@ -210,6 +213,7 @@ export function createMapInterface({
     characterAction = null;
     dialoguePanel.hidden = true;
     updateNearbyNpc();
+    onModeChange("map");
     talkButton.focus({ preventScroll: true });
   }
 
@@ -218,12 +222,14 @@ export function createMapInterface({
     updatePlayerProfile(characterProfiles[gameSession.getState().controlledCharacterId]);
     statusPanel.hidden = false;
     prompt.hidden = true;
+    onModeChange("status");
     statusPanel.querySelector('[data-map-action="close-status"]').focus({ preventScroll: true });
   }
 
   function closeStatus() {
     statusPanel.hidden = true;
     updateNearbyNpc();
+    onModeChange("map");
     statusButton.focus({ preventScroll: true });
   }
 
@@ -289,6 +295,8 @@ export function createMapInterface({
   return {
     isBlocking,
     updateNearbyNpc,
+    openDialogue,
+    openStatus,
     getDebugState() {
       return {
         mode: dialoguePanel.hidden ? (statusPanel.hidden ? "map" : "status") : "dialogue",

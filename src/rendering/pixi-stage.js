@@ -257,6 +257,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       ticker: app.ticker,
       getScreen: () => ({ width: app.screen.width, height: app.screen.height }),
       gameSession: window.etokichiGameSession,
+      mobileControls,
     });
   } catch (error) {
     app.destroy();
@@ -266,7 +267,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     const mapVisible = state.scene === "map";
     sceneRoot.visible = !mapVisible;
     playfieldMask.visible = !mapVisible;
-    if (mapVisible) mobileControls.setState({ visible: false });
+    mobileControls.setMode(mapVisible ? "map" : "battle");
+    mobileControls.setState({ visible: mapVisible, enabled: mapVisible });
   };
   const unsubscribeGameScene = window.etokichiGameSession.subscribe(syncGameScene);
   syncGameScene(window.etokichiGameSession.getState());
@@ -621,7 +623,9 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     actorShadows.visible = !prebattle;
     fighterSystem.setVisible(!prebattle);
     effectLayer.visible = !prebattle;
-    mobileControls.setState({ visible: !prebattle });
+    if (window.etokichiGameSession.getState().scene !== "map") {
+      mobileControls.setState({ visible: !prebattle });
+    }
     background.tint = prebattle ? 0xa89dbd : 0xc9bfdc;
     vignette.alpha = prebattle ? .84 : .72;
     layoutSceneViewport();
@@ -728,6 +732,9 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     getMapDebugState() {
       return mapSystem.getDebugState();
     },
+    getMobileControlDebugState() {
+      return mobileControls.getDebugState();
+    },
     setProjection(nextProjection) {
       for (const key of Object.keys(targetProjection)) {
         const value = nextProjection[key];
@@ -735,10 +742,12 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       }
     },
     setMobileControlHandlers(handlers) {
-      mobileControls.setHandlers(handlers);
+      mobileControls.setHandlers(handlers, "battle");
     },
     setMobileControlState(state) {
-      mobileControls.setState(state);
+      if (window.etokichiGameSession.getState().scene !== "map") {
+        mobileControls.setState(state);
+      }
     },
     destroy() {
       resizeObserver.disconnect();

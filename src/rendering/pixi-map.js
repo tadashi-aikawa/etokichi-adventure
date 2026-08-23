@@ -45,7 +45,7 @@ const MAP_KEYS = new Map([
   ["KeyD", "right"],
 ]);
 
-export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession }) {
+export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession, mobileControls }) {
   const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
   const [atlasTexture, characterSheets] = await Promise.all([
     Assets.load(TILESET_IMAGE_URL),
@@ -76,6 +76,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   let viewport = { width: 1, height: 1 };
   let facing = gameSession.getState().player.facing;
   let playerCharacterId = gameSession.getState().controlledCharacterId;
+  const isMapScene = () => gameSession.getState().scene === "map";
   player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
   player.setMotion(facing, 0, false);
   const mapInterface = createMapInterface({
@@ -88,6 +89,11 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     getNpcCharacterId: (name) => npcSystem.getCharacterId(name),
     onDialogueOpen(marker) {
       npcSystem.setFacing(marker.name, getFacingToward(marker, gameSession.getState().player));
+    },
+    onModeChange(mode) {
+      pressed.clear();
+      const controlsAvailable = isMapScene() && mode === "map";
+      mobileControls.setState({ visible: controlsAvailable, enabled: controlsAvailable });
     },
     onSwitch(marker) {
       gameSession.swapControlledCharacter(marker.name);
@@ -106,7 +112,25 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     },
   });
 
-  const isMapScene = () => gameSession.getState().scene === "map";
+  function setMobileDirection(direction, active) {
+    if (!isMapScene()) return;
+    if (mapInterface.isBlocking()) {
+      pressed.delete(direction);
+      return;
+    }
+    if (active) pressed.add(direction);
+    else pressed.delete(direction);
+  }
+
+  mobileControls.setHandlers({
+    moveLeft: (active) => setMobileDirection("left", active),
+    moveRight: (active) => setMobileDirection("right", active),
+    moveUp: (active) => setMobileDirection("up", active),
+    moveDown: (active) => setMobileDirection("down", active),
+    action: () => mapInterface.openDialogue(),
+    menu: () => mapInterface.openStatus(),
+  }, "map");
+
   const syncScene = (state) => {
     root.visible = state.scene === "map";
     if (!root.visible) pressed.clear();

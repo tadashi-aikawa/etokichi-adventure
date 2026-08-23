@@ -28,6 +28,12 @@ function createControlButton({ label, kind = "direction", accent = 0x5f4a80, onP
   let width = 44;
   let height = 44;
 
+  function updateCaptionSize() {
+    caption.style.fontSize = kind === "attack"
+      ? caption.text.length > 1 ? clamp(width * .19, 11, 14) : clamp(width * .3, 18, 23)
+      : kind === "direction" ? clamp(width * .34, 14, 18) : clamp(width * .17, 8, 10);
+  }
+
   function draw() {
     background.clear();
     const fill = kind === "attack"
@@ -86,10 +92,12 @@ function createControlButton({ label, kind = "direction", accent = 0x5f4a80, onP
       height = nextHeight;
       root.position.set(x, y);
       root.hitArea = nextHitArea ?? new Rectangle(-width / 2, -height / 2, width, height);
-      caption.style.fontSize = kind === "attack"
-        ? clamp(width * .3, 18, 23)
-        : kind === "direction" ? clamp(width * .34, 14, 18) : clamp(width * .19, 8, 11);
+      updateCaptionSize();
       draw();
+    },
+    setLabel(nextLabel) {
+      caption.text = nextLabel;
+      updateCaptionSize();
     },
     setEnabled(nextEnabled) {
       if (enabled === nextEnabled) return;
@@ -118,29 +126,76 @@ export function createMobileControlSystem() {
   root.eventMode = "static";
   root.visible = false;
 
-  const handlers = {
-    moveLeft: null,
-    moveRight: null,
-    cycleUp: null,
-    cycleDown: null,
-    attack: null,
-    push: null,
+  const handlerSets = {
+    battle: {
+      moveLeft: null,
+      moveRight: null,
+      cycleUp: null,
+      cycleDown: null,
+      attack: null,
+      push: null,
+    },
+    map: {
+      moveLeft: null,
+      moveRight: null,
+      moveUp: null,
+      moveDown: null,
+      action: null,
+      menu: null,
+    },
+  };
+  let mode = "battle";
+  let lastInput = null;
+  const invoke = (name, callback, ...args) => {
+    lastInput = name;
+    callback?.(...args);
   };
   const buttons = {
     left: createControlButton({
       label: "◀",
-      onPress: () => handlers.moveLeft?.(true),
-      onRelease: () => handlers.moveLeft?.(false),
+      onPress: () => invoke("left", handlerSets[mode].moveLeft, true),
+      onRelease: () => invoke("left-release", handlerSets[mode].moveLeft, false),
     }),
     right: createControlButton({
       label: "▶",
-      onPress: () => handlers.moveRight?.(true),
-      onRelease: () => handlers.moveRight?.(false),
+      onPress: () => invoke("right", handlerSets[mode].moveRight, true),
+      onRelease: () => invoke("right-release", handlerSets[mode].moveRight, false),
     }),
-    up: createControlButton({ label: "▲", onPress: () => handlers.cycleUp?.() }),
-    down: createControlButton({ label: "▼", onPress: () => handlers.cycleDown?.() }),
-    attack: createControlButton({ label: "技", kind: "attack", onPress: () => handlers.attack?.() }),
-    push: createControlButton({ label: "PUSH", kind: "action", accent: 0x332348, onPress: () => handlers.push?.() }),
+    up: createControlButton({
+      label: "▲",
+      onPress: () => mode === "map"
+        ? invoke("up", handlerSets.map.moveUp, true)
+        : invoke("cycle-up", handlerSets.battle.cycleUp),
+      onRelease: () => { if (mode === "map") invoke("up-release", handlerSets.map.moveUp, false); },
+    }),
+    down: createControlButton({
+      label: "▼",
+      onPress: () => mode === "map"
+        ? invoke("down", handlerSets.map.moveDown, true)
+        : invoke("cycle-down", handlerSets.battle.cycleDown),
+      onRelease: () => { if (mode === "map") invoke("down-release", handlerSets.map.moveDown, false); },
+    }),
+    attack: createControlButton({
+      label: "技",
+      kind: "attack",
+      onPress: () => {
+        if (mode === "battle") invoke("attack", handlerSets.battle.attack);
+      },
+      onRelease: () => {
+        if (mode === "map") setTimeout(() => invoke("action", handlerSets.map.action), 0);
+      },
+    }),
+    push: createControlButton({
+      label: "PUSH",
+      kind: "action",
+      accent: 0x332348,
+      onPress: () => {
+        if (mode === "battle") invoke("push", handlerSets.battle.push);
+      },
+      onRelease: () => {
+        if (mode === "map") setTimeout(() => invoke("menu", handlerSets.map.menu), 0);
+      },
+    }),
   };
   controls.addChild(...Object.values(buttons).map((button) => button.root));
 
@@ -250,13 +305,34 @@ export function createMobileControlSystem() {
   return {
     root,
     layout,
-    setHandlers(nextHandlers) {
-      Object.assign(handlers, nextHandlers);
+    setHandlers(nextHandlers, targetMode = "battle") {
+      Object.assign(handlerSets[targetMode], nextHandlers);
+    },
+    setMode(nextMode) {
+      if (mode === nextMode) return;
+      releaseAll();
+      mode = nextMode;
+      buttons.attack.setLabel(mode === "map" ? "決定" : "技");
+      buttons.push.setLabel(mode === "map" ? "メニュー" : "PUSH");
+      syncVisibility();
     },
     setState({ visible = requestedVisible, enabled: nextEnabled = enabled }) {
       requestedVisible = visible;
       enabled = nextEnabled;
       syncVisibility();
+    },
+    getDebugState() {
+      return {
+        visible: root.visible,
+        requestedVisible,
+        enabled,
+        mode,
+        mobileLandscape: mediaQuery.matches,
+        lastInput,
+        activeHandlers: Object.fromEntries(
+          Object.entries(handlerSets[mode]).map(([name, handler]) => [name, typeof handler === "function"]),
+        ),
+      };
     },
     destroy() {
       releaseAll();

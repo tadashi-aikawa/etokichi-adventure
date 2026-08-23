@@ -1388,9 +1388,7 @@ button { font: inherit; }
   .map-hud > div { padding: 6px 10px; }
   .map-hud strong { font-size: 13px; }
   .map-hud p { display: none; }
-  .map-action-buttons { right: max(12px,env(safe-area-inset-right)); bottom: max(10px,env(safe-area-inset-bottom)); gap: 5px; }
-  .map-action-buttons button { min-width: 94px; padding: 6px 9px; font-size: 9px; }
-  .map-action-buttons button span { width: 16px; height: 16px; }
+  .map-action-buttons { display: none; }
   .map-interaction-prompt { bottom: 48px; padding: 5px 10px; font-size: 9px; }
   .map-interaction-prompt kbd { width: 19px; height: 19px; }
   .map-dialogue-copy { left: max(12px,env(safe-area-inset-left)); right: max(12px,env(safe-area-inset-right)); bottom: max(8px,env(safe-area-inset-bottom)); min-height: 112px; padding: 15px 22px 10px; }
