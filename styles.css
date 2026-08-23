@@ -65,6 +65,15 @@ button { font: inherit; }
 }
 
 .pixi-stage { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.map-hud { display: none; position: absolute; z-index: 12; left: clamp(14px,2vw,28px); right: clamp(14px,2vw,28px); top: clamp(12px,2vw,24px); align-items: start; justify-content: space-between; gap: 16px; pointer-events: none; }
+.map-hud > div { padding: 10px 16px 11px; border: 1px solid rgba(255,246,181,.58); border-radius: 8px 18px 18px 8px; background: linear-gradient(105deg,rgba(24,45,37,.94),rgba(30,75,56,.75)); box-shadow: 0 8px 28px rgba(10,35,27,.32); }
+.map-hud small { display: block; color: #ffe68b; font: 800 8px "Orbitron",sans-serif; letter-spacing: .18em; }
+.map-hud strong { display: block; margin-top: 2px; font-size: clamp(15px,2vw,21px); }
+.map-hud p { margin: 0; padding: 8px 12px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; color: #f4ffe8; font-size: 12px; font-weight: 800; background: rgba(16,46,36,.72); }
+.map-hud kbd { padding: 1px 5px; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; color: #ffe68b; font: inherit; }
+[data-game-scene="map"] .map-hud { display: flex; }
+[data-game-scene="map"] .arena { background: #173f35; }
+[data-game-scene="map"] .arena > :is(.hud,.combatant,.announcement,.effects,.combat-status,.result-retry) { visibility: hidden; }
 .combatant .sprite { visibility: hidden; animation: none !important; transition: none !important; }
 .combatant { animation: none !important; }
 .arena.shake { animation: none !important; }
@@ -552,7 +561,10 @@ button { font: inherit; }
 .title-hero i { position: absolute; z-index: 3; left: 50%; top: 48%; width: 17px; height: 17px; border-radius: 50%; background: #fffde1; box-shadow: 0 0 9px white,0 0 19px #ffe25e; animation: title-star-orbit 2.4s linear infinite; }
 .title-hero i:nth-child(2) { animation-delay: -.8s; animation-duration: 3.1s; }
 .title-hero i:nth-child(3) { animation-delay: -1.6s; animation-duration: 3.7s; }
-.title-card .primary-button { z-index: 4; min-width: min(320px,72vw); margin-top: -9px; padding: 16px 34px; font-size: clamp(16px,2vw,22px); box-shadow: 0 10px 30px rgba(240,165,28,.45),0 0 28px rgba(255,222,76,.26),inset 0 2px #fffbd2; animation: title-start-button 1.05s ease-in-out infinite alternate; }
+.title-actions { z-index: 4; display: grid; justify-items: center; gap: 9px; margin-top: -9px; }
+.title-card .primary-button { min-width: min(320px,72vw); margin-top: 0; padding: 16px 34px; font-size: clamp(16px,2vw,22px); box-shadow: 0 10px 30px rgba(240,165,28,.45),0 0 28px rgba(255,222,76,.26),inset 0 2px #fffbd2; animation: title-start-button 1.05s ease-in-out infinite alternate; }
+.secondary-button { min-width: min(240px,64vw); padding: 8px 22px; border: 1px solid rgba(226,213,255,.55); border-radius: 999px; color: #eee6ff; font-size: 12px; font-weight: 900; cursor: pointer; background: rgba(35,20,73,.72); box-shadow: 0 6px 20px rgba(15,7,40,.3); }
+.secondary-button:hover { filter: brightness(1.16); }
 .title-card > small { margin-top: 12px; color: #b8a8db; font: 800 10px "Orbitron",sans-serif; letter-spacing: .35em; }
 .title-screen.leaving .title-card { animation: title-card-leave .62s ease-in forwards; }
 @keyframes title-aura { from { opacity: .65; transform: scale(.92); } to { opacity: 1; transform: scale(1.08); } }

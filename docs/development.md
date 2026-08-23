@@ -16,12 +16,15 @@ DOMのみでゲームを描画するバックエンドはありません。PixiJ
 | `src/main.js` | WebGPU/WebGLの選択、PixiJS初期化、ゲーム本体の起動 |
 | `game.js` | ゲーム進行、入力、AI、画面遷移、DOM製UI、GPU描画への指示 |
 | `src/game/game-session.ts` | タイトル・マップ・バトルをまたぐワールド状態とシーン遷移 |
+| `src/game/tiled-map.ts` | Tiled TMJ/TSJの検証、衝突解決、追従カメラ計算 |
 | `src/rendering/pixi-stage.js` | PixiJSレンダラー、アリーナ、カメラ、描画システムの統合 |
+| `src/rendering/pixi-map.js` | マップのタイル・NPC・入口・プレイヤー描画とPC移動入力 |
 | `src/rendering/pixi-controls.js` | スマートフォン横画面の十字キー、技、PUSHの描画とPointer Events入力 |
 | `src/rendering/pixi-fighters.js` | キャラクター画像、動作、状態オーラ、陣営反転 |
 | `src/rendering/pixi-effects.js` | 技・命中・状態変化・勝利演出のGPUエフェクト |
 | `src/game/` | キャラクター定義、戦闘計算、アニメーション計画などの純粋なTypeScriptロジック |
 | `src/actor-assets.ts` | Viteで配信するキャラクター画像URLの解決 |
+| `assets/maps/` / `assets/tilesets/` | Tiledの正規マップデータ、外部タイルセット、タイル画像 |
 | `index.html` / `styles.css` | HUD、操作、選択画面、文字演出の構造と見た目 |
 | `tests/` | `src/game/` のユニットテスト |
 
@@ -70,3 +73,5 @@ pnpm check
 - BGM・SE素材: `assets/audio/`
 
 キャラクター設定から参照する画像は`src/actor-assets.ts`を経由させ、開発サーバーとGitHub Pagesのどちらでも同じURL解決経路を使います。
+
+マップの追加・レイヤー名・カスタムプロパティ・タイル素材の規約は[`rpg-map-prototype.md`](rpg-map-prototype.md#tiledデータ規約)を参照してください。

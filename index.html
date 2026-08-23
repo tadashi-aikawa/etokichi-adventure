@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#120b2e" />
-    <title>エトキチの大冒険 | Battle Trial</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23120b2e'/%3E%3Cpath d='M32 7l6 18 19 1-15 11 5 19-15-11-15 11 5-19L7 26l19-1z' fill='%23ffd85a'/%3E%3C/svg%3E" />
+    <title>エトキチの大冒険 | RPG Prototype</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -49,6 +50,14 @@
           </article>
         </div>
 
+        <div id="map-hud" class="map-hud" aria-label="マップ情報">
+          <div>
+            <small>PROTOTYPE AREA</small>
+            <strong>プロトタイプ広場</strong>
+          </div>
+          <p><kbd>WASD</kbd> / <kbd>矢印</kbd> で移動</p>
+        </div>
+
         <div id="announcement" class="announcement" aria-live="polite"></div>
         <div id="effects" class="effects" aria-hidden="true"></div>
         <div id="hero-combat-status" class="combat-status" aria-live="polite"></div>
@@ -72,8 +81,11 @@
               <i></i><i></i><i></i>
               <img src="assets/etokichi/idle.webp" alt="" />
             </div>
-            <button id="game-start-button" class="primary-button">ゲーム開始</button>
-            <small>BATTLE TRIAL</small>
+            <div class="title-actions">
+              <button id="game-start-button" class="primary-button">冒険をはじめる</button>
+              <button id="battle-trial-button" class="secondary-button" type="button">バトル試作を開く</button>
+            </div>
+            <small>RPG MAP PROTOTYPE</small>
           </div>
         </div>
 

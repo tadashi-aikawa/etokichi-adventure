@@ -15,6 +15,7 @@ import { getFighterRenderSize } from "../game/actors.ts";
 import { createMobileControlSystem } from "./pixi-controls.js";
 import { createEffectSystem } from "./pixi-effects.js";
 import { createFighterSystem } from "./pixi-fighters.js";
+import { createMapSystem } from "./pixi-map.js";
 
 const PARTICLE_COUNT = 64;
 const STAR_COUNT = 150;
@@ -248,6 +249,26 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   });
   const mobileControls = createMobileControlSystem();
   app.stage.addChild(mobileControls.root);
+  let mapSystem;
+  try {
+    mapSystem = await createMapSystem({
+      stage: app.stage,
+      ticker: app.ticker,
+      getScreen: () => ({ width: app.screen.width, height: app.screen.height }),
+      gameSession: window.etokichiGameSession,
+    });
+  } catch (error) {
+    app.destroy();
+    throw error;
+  }
+  const syncGameScene = (state) => {
+    const mapVisible = state.scene === "map";
+    sceneRoot.visible = !mapVisible;
+    playfieldMask.visible = !mapVisible;
+    if (mapVisible) mobileControls.setState({ visible: false });
+  };
+  const unsubscribeGameScene = window.etokichiGameSession.subscribe(syncGameScene);
+  syncGameScene(window.etokichiGameSession.getState());
 
   const camera = {
     mode: null,
@@ -559,6 +580,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     drawStars();
     drawFloor();
     mobileControls.layout(width, height);
+    mapSystem.layout();
     layoutSceneViewport();
   }
 
@@ -702,6 +724,9 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     getActorPoint(side, xRatio, yRatio) {
       return fighterSystem.getScreenPoint(side, xRatio, yRatio);
     },
+    getMapDebugState() {
+      return mapSystem.getDebugState();
+    },
     setProjection(nextProjection) {
       for (const key of Object.keys(targetProjection)) {
         const value = nextProjection[key];
@@ -723,6 +748,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       effectSystem.clear();
       fighterSystem.destroy();
       mobileControls.destroy();
+      unsubscribeGameScene();
+      mapSystem.destroy();
       app.destroy();
     },
   };

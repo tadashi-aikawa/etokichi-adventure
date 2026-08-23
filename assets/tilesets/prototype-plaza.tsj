@@ -1,0 +1,15 @@
+{
+  "columns": 4,
+  "image": "prototype-plaza.svg",
+  "imageheight": 128,
+  "imagewidth": 256,
+  "margin": 0,
+  "name": "prototype-plaza",
+  "spacing": 0,
+  "tilecount": 8,
+  "tileheight": 64,
+  "tilewidth": 64,
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.2"
+}

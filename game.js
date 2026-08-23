@@ -88,6 +88,7 @@ import {
     prebattleEnemyAbilities: $("#prebattle-enemy-abilities"),
     prebattleStatRows: $$("[data-fighter][data-stat]"),
     gameStartButton: $("#game-start-button"),
+    battleTrialButton: $("#battle-trial-button"),
     enemyName: $("#enemy-name"),
     enemySubtitle: $("#enemy-subtitle"),
     heroName: $("#hero-name"),
@@ -486,6 +487,10 @@ import {
   function bindControls() {
     refs.gameStartButton.addEventListener("click", () => {
       requestGameFullscreen();
+      enterMapFromTitle();
+    });
+    refs.battleTrialButton.addEventListener("click", () => {
+      requestGameFullscreen();
       leaveTitleScreen();
     });
     refs.characterOptions.forEach((option) => option.addEventListener("click", () => {
@@ -505,6 +510,7 @@ import {
     refs.enemyTechniqueCycleButtons.forEach((button) => button.addEventListener("click", () => cycleEnemyTechniqueAtRange(Number(button.dataset.enemyCycleRange), Number(button.dataset.enemyTechCycle))));
 
     window.addEventListener("keydown", (event) => {
+      if (window.etokichiGameSession?.getState().scene === "map") return;
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space"].includes(event.code)) event.preventDefault();
       if (event.repeat && !["ArrowLeft", "ArrowRight", "KeyA", "KeyD"].includes(event.code)) return;
       if (["ArrowLeft", "KeyA"].includes(event.code)) keys.left = true;
@@ -514,7 +520,7 @@ import {
       if (event.code === "Space") useCurrentTechnique();
       if (["ShiftLeft", "ShiftRight", "KeyS"].includes(event.code)) pushEnemy();
       if (/^Digit[1-4]$/.test(event.code)) usePlayerTechnique(getSelectedTechnique(Number(event.code.at(-1)) - 1));
-      if (event.code === "Enter" && state.phase === "title") leaveTitleScreen();
+      if (event.code === "Enter" && state.phase === "title") enterMapFromTitle();
       else if (event.code === "Enter" && state.phase === "opponentSelect") confirmOpponentSelection();
       else if (event.code === "Enter" && ["ready", "result"].includes(state.phase)) startBattle();
     });
@@ -573,6 +579,7 @@ import {
     if (state.phase !== "title") return;
     state.phase = "titleTransition";
     refs.gameStartButton.disabled = true;
+    refs.battleTrialButton.disabled = true;
     refs.titleScreen.classList.add("leaving");
     armEntranceMusic();
     setTimeout(() => {
@@ -580,6 +587,20 @@ import {
       refs.titleScreen.classList.remove("visible", "leaving");
       state.phase = "opponentSelect";
       refs.opponentSelectScreen.classList.add("visible");
+    }, 620);
+  }
+
+  function enterMapFromTitle() {
+    if (state.phase !== "title") return;
+    state.phase = "titleTransition";
+    refs.gameStartButton.disabled = true;
+    refs.battleTrialButton.disabled = true;
+    refs.titleScreen.classList.add("leaving");
+    setTimeout(() => {
+      if (state.phase !== "titleTransition") return;
+      refs.titleScreen.classList.remove("visible", "leaving");
+      state.phase = "map";
+      window.etokichiGameSession?.enterMap();
     }, 620);
   }
 
