@@ -1,5 +1,7 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import MAP_SOURCE from "../../assets/maps/prototype-plaza.tmj?raw";
+import GUILD_MAP_PROP_URL from "../../assets/maps/props/prototype-guild.svg?url";
+import POND_MAP_PROP_URL from "../../assets/maps/props/prototype-pond.svg?url";
 import ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/etokichi/walk.webp?url";
 import ASTER_MAP_SHEET_URL from "../../assets/map-characters/aster/walk.webp?url";
 import KUROBOSHI_MAP_SHEET_URL from "../../assets/map-characters/kuroboshi/walk.webp?url";
@@ -39,6 +41,10 @@ const MAP_CHARACTER_SHEET_URLS = {
   tatsuo: TATSUO_MAP_SHEET_URL,
   aster: ASTER_MAP_SHEET_URL,
 };
+const MAP_PROP_URLS = {
+  guild: GUILD_MAP_PROP_URL,
+  pond: POND_MAP_PROP_URL,
+};
 const MAP_KEYS = new Map([
   ["ArrowUp", "up"],
   ["KeyW", "up"],
@@ -52,9 +58,10 @@ const MAP_KEYS = new Map([
 
 export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession, mobileControls }) {
   const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
-  const [atlasTexture, characterSheets] = await Promise.all([
+  const [atlasTexture, characterSheets, propTextures] = await Promise.all([
     Assets.load(TILESET_IMAGE_URL),
     loadCharacterSheets(),
+    loadMapPropTextures(),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
   const characterHomes = createCharacterHomeMarkers(map.markers);
@@ -63,6 +70,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const world = new Container({ label: map.id });
   world.scale.set(MAP_SCALE);
   const groundLayer = createTileLayer(map, "ground", tileTextures);
+  const propLayer = createMapPropLayer(map, propTextures);
   const actorLayer = new Container({ label: "map-actors" });
   actorLayer.sortableChildren = true;
   const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
@@ -77,7 +85,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   let npcCollisions = createNpcCollisions(npcSystem.getVisibleMarkers(), NPC_BODY);
   let collisions = [...map.collisions, ...npcCollisions];
   actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
-  world.addChild(groundLayer, actorLayer);
+  world.addChild(groundLayer, propLayer, actorLayer);
   root.addChild(backdrop, world);
   stage.addChildAt(root, 0);
 
@@ -254,6 +262,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
         ),
         npcFacings: npcSystem.getFacings(),
         markerCount: map.markers.length,
+        propCount: map.props.length,
         interface: mapInterface.getDebugState(),
       };
     },
@@ -380,6 +389,26 @@ async function loadCharacterSheets() {
     Object.entries(MAP_CHARACTER_SHEET_URLS).map(async ([characterId, url]) => [characterId, await Assets.load(url)]),
   );
   return Object.fromEntries(entries);
+}
+
+async function loadMapPropTextures() {
+  const entries = await Promise.all(
+    Object.entries(MAP_PROP_URLS).map(async ([assetId, url]) => [assetId, await Assets.load(url)]),
+  );
+  return Object.fromEntries(entries);
+}
+
+function createMapPropLayer(map, propTextures) {
+  const layer = new Container({ label: "map-props" });
+  for (const prop of map.props) {
+    const texture = propTextures[prop.assetId];
+    if (!texture) throw new Error(`${prop.name}のassetId ${prop.assetId} に対応する画像がありません`);
+    const sprite = new Sprite({ texture, roundPixels: true });
+    sprite.position.set(prop.x, prop.y);
+    sprite.setSize(prop.width, prop.height);
+    layer.addChild(sprite);
+  }
+  return layer;
 }
 
 function createNpcSystem(characterHomes, characterSheets, body, controlledCharacterId) {

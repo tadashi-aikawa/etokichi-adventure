@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="256" viewBox="0 0 320 256">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#f0d39a"/><stop offset="1" stop-color="#c99a5e"/></linearGradient>
+    <linearGradient id="roof" x2="0" y2="1"><stop stop-color="#c96b59"/><stop offset=".58" stop-color="#9f4e4e"/><stop offset="1" stop-color="#703948"/></linearGradient>
+    <linearGradient id="door" x2="0" y2="1"><stop stop-color="#77452f"/><stop offset="1" stop-color="#4b2c28"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="160" cy="232" rx="134" ry="17" fill="#17392f" opacity=".35" filter="url(#shadow)"/>
+  <path d="M47 112h226v116H47z" fill="url(#wall)" stroke="#6f4a35" stroke-width="6"/>
+  <path d="M47 141h226M72 141v87m176-87v87" fill="none" stroke="#9c6a42" stroke-width="5" opacity=".8"/>
+  <path d="M23 116L74 30h172l51 86-18 21H40z" fill="url(#roof)" stroke="#572f3d" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M54 104h212M67 83h186M82 61h156" fill="none" stroke="#e69a75" stroke-width="5" opacity=".7"/>
+  <path d="M74 30l23 106m149-106l-23 106M136 30l-7 106m55-106l7 106" fill="none" stroke="#6e3844" stroke-width="4" opacity=".75"/>
+  <path d="M127 228v-65c0-14 11-25 25-25h16c14 0 25 11 25 25v65z" fill="url(#door)" stroke="#4a2b27" stroke-width="6"/>
+  <path d="M160 141v84" stroke="#a96b43" stroke-width="4"/><circle cx="178" cy="184" r="4" fill="#f3cf61"/>
+  <g fill="#7abed1" stroke="#593f35" stroke-width="5">
+    <rect x="70" y="158" width="40" height="39" rx="5"/><rect x="210" y="158" width="40" height="39" rx="5"/>
+  </g>
+  <path d="M90 160v35m-18-18h36m122-17v35m-18-18h36" stroke="#e8f6ed" stroke-width="3" opacity=".8"/>
+  <g transform="translate(160 106)">
+    <path d="M0-39l9 25h27L14 2l8 26L0 12l-22 16 8-26-22-16H-9z" fill="#ffe06f" stroke="#674431" stroke-width="6" stroke-linejoin="round"/>
+    <circle r="7" fill="#fff5bd"/>
+  </g>
+  <path d="M87 213h29v20H80zM204 213h29l7 20h-36z" fill="#846044" stroke="#5d432f" stroke-width="4"/>
+  <path d="M101 211v-28m118 28v-28" stroke="#5b3b2d" stroke-width="5"/>
+  <path d="M83 174h36l-5 22H88zM201 174h36l-5 22h-26z" fill="#51684a" stroke="#3e4937" stroke-width="4"/>
+</svg>

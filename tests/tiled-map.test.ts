@@ -36,6 +36,22 @@ const map = {
       ],
       type: "objectgroup",
     },
+    {
+      name: "props",
+      objects: [
+        {
+          height: 48,
+          id: 4,
+          name: "pond",
+          properties: [{ name: "assetId", type: "string", value: "pond" }],
+          type: "prop",
+          width: 64,
+          x: 32,
+          y: 40,
+        },
+      ],
+      type: "objectgroup",
+    },
     { name: "entrances", objects: [{ height: 0, id: 3, name: "south", width: 0, x: 64, y: 112 }], type: "objectgroup" },
   ],
   orientation: "orthogonal",
@@ -61,6 +77,7 @@ describe("Tiledマップ", () => {
         { id: 2, kind: "npc", name: "guide", properties: { dialogueId: "guide" } },
         { id: 3, kind: "entrance", name: "south" },
       ],
+      props: [{ id: 4, name: "pond", assetId: "pond", x: 32, y: 40, width: 64, height: 48 }],
       tileset: { firstGid: 1, image: "tiles.svg", columns: 2, tileCount: 2, depthYByLocalId: { 1: 36 } },
     });
   });

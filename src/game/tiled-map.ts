@@ -29,6 +29,12 @@ export interface MapMarker extends MapRectangle {
   properties: Record<string, boolean | number | string>;
 }
 
+export interface MapProp extends MapRectangle {
+  id: number;
+  name: string;
+  assetId: string;
+}
+
 export interface ParsedTileset {
   firstGid: number;
   name: string;
@@ -54,6 +60,7 @@ export interface ParsedTiledMap {
   tileLayers: MapTileLayer[];
   collisions: MapRectangle[];
   markers: MapMarker[];
+  props: MapProp[];
   tileset: ParsedTileset;
 }
 
@@ -136,6 +143,7 @@ export function parseTiledMap(mapValue: unknown, tilesetValue: unknown): ParsedT
   });
 
   const markers = [...parseMarkerLayer(layers, "actors", "npc"), ...parseMarkerLayer(layers, "entrances", "entrance")];
+  const props = parsePropLayer(layers);
 
   return {
     id,
@@ -149,6 +157,7 @@ export function parseTiledMap(mapValue: unknown, tilesetValue: unknown): ParsedT
     tileLayers,
     collisions,
     markers,
+    props,
     tileset: parsedTileset,
   };
 }
@@ -243,6 +252,27 @@ function parseMarkerLayer(layers: Record<string, unknown>[], layerName: string, 
       width: typeof object.width === "number" ? object.width : 0,
       height: typeof object.height === "number" ? object.height : 0,
       properties: parseProperties(object.properties),
+    };
+  });
+}
+
+function parsePropLayer(layers: Record<string, unknown>[]): MapProp[] {
+  const layer = layers.find((candidate) => candidate.name === "props" && candidate.type === "objectgroup");
+  if (!layer) return [];
+  return array(layer.objects, "propsのobjects").map((value) => {
+    const object = record(value, "propsオブジェクト");
+    const properties = parseProperties(object.properties);
+    if (object.type !== "prop" || typeof properties.assetId !== "string") {
+      throw new Error("propsオブジェクトにはprop型と文字列のassetIdが必要です");
+    }
+    return {
+      id: positiveInteger(object.id, "propsのID"),
+      name: stringValue(object.name, "propsの名前"),
+      assetId: properties.assetId,
+      x: finiteNumber(object.x, "propsのX"),
+      y: finiteNumber(object.y, "propsのY"),
+      width: positiveNumber(object.width, "propsの幅"),
+      height: positiveNumber(object.height, "propsの高さ"),
     };
   });
 }
