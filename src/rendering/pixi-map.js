@@ -19,12 +19,12 @@ const NPC_BODY = { width: 68, height: 42, offsetY: 20 };
 const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
 const MAP_CHARACTER_VISUALS = {
-  etokichi: { width: 123, height: 92 },
-  kuroboshi: { width: 112, height: 84 },
-  sutekichi: { width: 114, height: 85 },
-  salarymanEtokichi: { width: 118, height: 88 },
-  tatsuo: { width: 107, height: 80 },
-  aster: { width: 113, height: 85 },
+  etokichi: { width: 123, height: 92, footRatio: 270 / 313 },
+  kuroboshi: { width: 112, height: 84, footRatio: 303 / 313 },
+  sutekichi: { width: 114, height: 85, footRatio: 303 / 313 },
+  salarymanEtokichi: { width: 118, height: 88, footRatio: 303 / 313 },
+  tatsuo: { width: 107, height: 80, footRatio: 303 / 313 },
+  aster: { width: 113, height: 85, footRatio: 303 / 313 },
 };
 const MAP_CHARACTER_SHEET_URLS = {
   etokichi: ETOKICHI_MAP_SHEET_URL,
@@ -284,10 +284,11 @@ function createTileEntries(map, definition, tileTextures) {
 function createMapCharacterActor(sheetTexture, options) {
   let frames = createCharacterFrames(sheetTexture, options.label);
   const root = new Container({ label: options.label });
-  const shadow = new Graphics().ellipse(0, 18, 22, 8).fill({ color: 0x102e25, alpha: .35 });
+  const shadow = new Graphics().ellipse(0, 0, 22, 8).fill({ color: 0x102e25, alpha: .35 });
   const sprite = new Sprite({ texture: frames[1], roundPixels: true });
   sprite.anchor.set(.5);
   sprite.setSize(options.width, options.height);
+  shadow.y = getMapCharacterFootY(options);
   root.addChild(shadow, sprite);
   let frameIndex = 1;
   return {
@@ -298,6 +299,7 @@ function createMapCharacterActor(sheetTexture, options) {
     setCharacter(nextSheetTexture, visual) {
       frames = createCharacterFrames(nextSheetTexture, options.label);
       sprite.setSize(visual.width, visual.height);
+      shadow.y = getMapCharacterFootY(visual);
       sprite.texture = frames[frameIndex];
     },
     setMotion(facing, elapsedSeconds, moving) {
@@ -305,6 +307,10 @@ function createMapCharacterActor(sheetTexture, options) {
       sprite.texture = frames[frameIndex];
     },
   };
+}
+
+function getMapCharacterFootY(visual) {
+  return (visual.footRatio - .5) * visual.height;
 }
 
 function createCharacterFrames(sheetTexture, label) {
