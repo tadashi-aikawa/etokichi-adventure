@@ -1,0 +1,112 @@
+import { describe, expect, it, vi } from "vitest";
+import { createGameSession, createInitialWorldState, parseWorldState } from "../src/game/game-session.ts";
+
+describe("ゲームセッション", () => {
+  it("タイトル・マップ・バトルをワールド状態として遷移する", () => {
+    const session = createGameSession();
+
+    expect(session.getState().scene).toBe("title");
+    session.enterMap({ mapId: "test-map", x: 128, y: 96, facing: "right" });
+    session.setFlag("talkedToGuide", true);
+    session.beginBattle({ encounterId: "guide-battle", opponentId: "kuroboshi" });
+
+    expect(session.getState()).toMatchObject({
+      scene: "battle",
+      player: { mapId: "test-map", x: 128, y: 96, facing: "right" },
+      flags: { talkedToGuide: true },
+      activeBattle: { encounterId: "guide-battle", returnScene: "map", result: null },
+    });
+
+    session.resolveBattle({ outcome: "win", reason: "ko" });
+    session.leaveBattle();
+
+    expect(session.getState()).toMatchObject({
+      scene: "map",
+      player: { mapId: "test-map", x: 128, y: 96, facing: "right" },
+      flags: { talkedToGuide: true },
+      activeBattle: null,
+      lastBattle: { encounterId: "guide-battle", opponentId: "kuroboshi", outcome: "win", reason: "ko" },
+    });
+  });
+
+  it("再戦時は同じエンカウントを維持して結果だけを戻す", () => {
+    const session = createGameSession();
+    session.beginBattle({ encounterId: "trial", opponentId: "sutekichi", returnScene: "title" });
+    session.resolveBattle({ outcome: "loss", reason: "time" });
+    session.restartBattle();
+
+    expect(session.getState()).toMatchObject({
+      scene: "battle",
+      activeBattle: { encounterId: "trial", opponentId: "sutekichi", returnScene: "title", result: null },
+      lastBattle: { encounterId: "trial", outcome: "loss" },
+    });
+  });
+
+  it("直列化した状態を同じ内容で復元できる", () => {
+    const session = createGameSession();
+    session.enterMap({ x: 220, y: 180, facing: "up" });
+    session.setFlag("route", "north");
+
+    expect(parseWorldState(session.serialize())).toEqual(session.getState());
+  });
+
+  it("不正な状態や未解決バトルの退出を拒否する", () => {
+    const session = createGameSession();
+    expect(() => parseWorldState('{"version":1,"scene":"map"}')).toThrow("ワールド状態の形式が不正です");
+    expect(() => session.leaveBattle()).toThrow("未解決のバトルからは退出できません");
+    session.beginBattle({ encounterId: "trial", opponentId: "aster" });
+    expect(() => session.enterMap()).toThrow("進行中のバトルからは直接マップへ移れません");
+    expect(() => session.beginBattle({ encounterId: "duplicate", opponentId: "tatsuo" })).toThrow(
+      "進行中のバトルがあります",
+    );
+  });
+
+  it("未知のキャラクターIDを含む復元データを拒否する", () => {
+    const state = createInitialWorldState();
+    const serialized = JSON.stringify({
+      ...state,
+      scene: "battle",
+      activeBattle: {
+        encounterId: "unknown",
+        opponentId: "unknown-character",
+        returnScene: "map",
+        result: null,
+      },
+    });
+
+    expect(() => parseWorldState(serialized)).toThrow("ワールド状態の形式が不正です");
+  });
+
+  it("バトルシーンと進行中エンカウントが食い違う復元データを拒否する", () => {
+    const state = createInitialWorldState();
+    const serialized = JSON.stringify({
+      ...state,
+      scene: "map",
+      activeBattle: {
+        encounterId: "hidden-battle",
+        opponentId: "kuroboshi",
+        returnScene: "map",
+        result: null,
+      },
+    });
+
+    expect(() => parseWorldState(serialized)).toThrow("ワールド状態の形式が不正です");
+  });
+
+  it("購読者へ外部から変更できないスナップショットを通知する", () => {
+    const session = createGameSession(createInitialWorldState());
+    const listener = vi.fn();
+    const unsubscribe = session.subscribe(listener);
+
+    session.updatePlayer({ x: 720 });
+    const notifiedState = listener.mock.calls[0]?.[0];
+    expect(notifiedState).toBeDefined();
+    if (!notifiedState) throw new Error("ゲームセッションから状態が通知されていません");
+    notifiedState.player.x = -1;
+    expect(session.getState().player.x).toBe(720);
+
+    unsubscribe();
+    session.updatePlayer({ y: 420 });
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});

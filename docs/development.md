@@ -15,6 +15,7 @@ DOMのみでゲームを描画するバックエンドはありません。PixiJ
 | --- | --- |
 | `src/main.js` | WebGPU/WebGLの選択、PixiJS初期化、ゲーム本体の起動 |
 | `game.js` | ゲーム進行、入力、AI、画面遷移、DOM製UI、GPU描画への指示 |
+| `src/game/game-session.ts` | タイトル・マップ・バトルをまたぐワールド状態とシーン遷移 |
 | `src/rendering/pixi-stage.js` | PixiJSレンダラー、アリーナ、カメラ、描画システムの統合 |
 | `src/rendering/pixi-controls.js` | スマートフォン横画面の十字キー、技、PUSHの描画とPointer Events入力 |
 | `src/rendering/pixi-fighters.js` | キャラクター画像、動作、状態オーラ、陣営反転 |
@@ -25,6 +26,12 @@ DOMのみでゲームを描画するバックエンドはありません。PixiJ
 | `tests/` | `src/game/` のユニットテスト |
 
 `#hero-sprite`と`#enemy-sprite`は画面には表示しませんが、削除しないでください。`game.js`が`src`とclassを更新し、`pixi-fighters.js`がMutationObserverで変更を受け取るための状態同期インターフェースです。
+
+## ゲーム全体とバトルの状態境界
+
+`src/game/game-session.ts`の`WorldState`は、シーンをまたいで残す情報だけを管理します。マップID・座標・向き、会話フラグ、進行中のエンカウント、直近のバトル結果が対象です。JSONへ直列化できますが、プロトタイプでは永続ストレージへ保存しません。
+
+`game.js`の`state`は、ライフ・ガッツ・技演出・操作ロック・時間制状態など試合中だけ必要な情報です。アニメーション時刻を含むため`WorldState`へ入れず、バトル開始時に作り直します。マップ機能の設計と実装順序は[`rpg-map-prototype.md`](rpg-map-prototype.md)を参照してください。
 
 ## 描画バックエンド
 

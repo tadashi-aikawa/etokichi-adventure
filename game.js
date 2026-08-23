@@ -600,6 +600,7 @@ import {
 
   function startBattle() {
     if (["title", "titleTransition", "opponentSelect", "intro"].includes(state.phase)) return;
+    syncGameSessionForBattleStart();
     stopGameLoop();
     hiddenBattleAt = 0;
     hiddenActiveSpecials = null;
@@ -640,6 +641,21 @@ import {
       updateUI();
       startGameLoop(battleStartedAt);
     }, 950);
+  }
+
+  function syncGameSessionForBattleStart() {
+    const gameSession = window.etokichiGameSession;
+    if (!gameSession) return;
+    const worldState = gameSession.getState();
+    if (worldState.scene !== "battle") {
+      gameSession.beginBattle({
+        encounterId: "battle-trial",
+        opponentId: selectedEnemyId,
+        returnScene: worldState.scene === "map" ? "map" : "title",
+      });
+      return;
+    }
+    if (worldState.activeBattle?.result) gameSession.restartBattle();
   }
 
   function startGameLoop(now = performance.now()) {
@@ -2539,6 +2555,13 @@ import {
     let heroWon;
     if (reason === "ko") heroWon = attacker === "hero";
     else heroWon = state.heroHp / HERO_MAX_HP >= state.enemyHp / ENEMY_MAX_HP;
+    const activeBattle = window.etokichiGameSession?.getState().activeBattle;
+    if (activeBattle && !activeBattle.result) {
+      window.etokichiGameSession.resolveBattle({
+        outcome: heroWon ? "win" : "loss",
+        reason,
+      });
+    }
 
     announce(reason === "ko" ? "K.O.!" : "TIME UP");
     setTimeout(() => {

@@ -1,4 +1,5 @@
 import { resolveActorUrl } from "./actor-assets.ts";
+import { createGameSession } from "./game/game-session.ts";
 import { createPixiStage } from "./rendering/pixi-stage.js";
 
 const requestedRenderer = new URLSearchParams(window.location.search).get("renderer");
@@ -6,6 +7,11 @@ const preference = requestedRenderer === "webgl" || requestedRenderer === "webgp
   ? requestedRenderer
   : "auto";
 window.etokichiAssetUrl = resolveActorUrl;
+window.etokichiGameSession = createGameSession();
+document.documentElement.dataset.gameScene = window.etokichiGameSession.getState().scene;
+window.etokichiGameSession.subscribe((state) => {
+  document.documentElement.dataset.gameScene = state.scene;
+});
 document.documentElement.dataset.renderer = "initializing";
 
 try {

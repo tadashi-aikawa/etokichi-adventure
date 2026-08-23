@@ -1,6 +1,7 @@
 export type Side = "hero" | "enemy";
 export type Facing = "left" | "right";
-export type CharacterId = "etokichi" | "kuroboshi" | "sutekichi" | "salarymanEtokichi" | "tatsuo" | "aster";
+export const CHARACTER_IDS = ["etokichi", "kuroboshi", "sutekichi", "salarymanEtokichi", "tatsuo", "aster"] as const;
+export type CharacterId = (typeof CHARACTER_IDS)[number];
 export type AttackStat = "power" | "intelligence";
 export type TechniqueKind = "strike" | "shot" | "special" | "super" | "support";
 
