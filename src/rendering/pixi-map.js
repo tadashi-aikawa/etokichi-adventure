@@ -8,11 +8,11 @@ import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
 import { createCharacterProfiles } from "../game/characters.ts";
 import { createNpcCollisions, getFacingToward } from "../game/map-interaction.ts";
 import { getMapCharacterFrame, MAP_CHARACTER_COLUMNS, MAP_CHARACTER_ROWS } from "../game/map-character-animation.ts";
-import { calculateMapCamera, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
+import { calculateMapCamera, getMapBodyDepth, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
 import { createMapInterface } from "./map-interface.js";
 
-const PLAYER_BODY = { width: 34, height: 38 };
-const NPC_BODY = { width: 46, height: 40 };
+const PLAYER_BODY = { width: 34, height: 18, offsetY: 25 };
+const NPC_BODY = { width: 46, height: 40, offsetY: 20 };
 const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
 const MAP_KEYS = new Map([
@@ -42,12 +42,13 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   world.scale.set(MAP_SCALE);
   const groundLayer = createTileLayer(map, "ground", tileTextures);
   const actorLayer = new Container({ label: "map-actors" });
-  const foregroundLayer = createTileLayer(map, "foreground", tileTextures);
+  actorLayer.sortableChildren = true;
+  const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
   const player = createMapCharacterActor(etokichiSheet, { label: "map-player", width: 123, height: 92 });
-  const npcSystem = createNpcSystem(map, guideSheet);
-  actorLayer.addChild(entranceLayer, npcSystem.root, player.root);
-  world.addChild(groundLayer, actorLayer, foregroundLayer);
+  const npcSystem = createNpcSystem(map, guideSheet, NPC_BODY);
+  actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
+  world.addChild(groundLayer, actorLayer);
   root.addChild(backdrop, world);
   stage.addChildAt(root, 0);
 
@@ -73,6 +74,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     if (!root.visible) pressed.clear();
     if (state.player.mapId !== map.id) return;
     player.root.position.set(state.player.x, state.player.y);
+    player.root.zIndex = getMapBodyDepth(state.player, PLAYER_BODY);
     if (facing !== state.player.facing) {
       facing = state.player.facing;
     }
@@ -207,15 +209,32 @@ function createTileLayer(map, name, tileTextures) {
   if (!definition) return layer;
   layer.alpha = definition.opacity;
   layer.visible = definition.visible;
+  layer.addChild(...createTileSprites(map, definition, tileTextures));
+  return layer;
+}
+
+function createDepthTileSprites(map, name, tileTextures) {
+  const definition = map.tileLayers.find((layer) => layer.name === name);
+  if (!definition) return [];
+  return createTileSprites(map, definition, tileTextures).map((sprite) => {
+    sprite.alpha = definition.opacity;
+    sprite.visible = definition.visible;
+    sprite.zIndex = sprite.y + map.tileHeight;
+    return sprite;
+  });
+}
+
+function createTileSprites(map, definition, tileTextures) {
+  const sprites = [];
   definition.data.forEach((gid, index) => {
     if (gid === 0) return;
     const texture = tileTextures[gid - map.tileset.firstGid];
-    if (!texture) throw new Error(`${name}のGID ${gid} に対応するテクスチャがありません`);
+    if (!texture) throw new Error(`${definition.name}のGID ${gid} に対応するテクスチャがありません`);
     const sprite = new Sprite({ texture, roundPixels: true });
     sprite.position.set(index % map.width * map.tileWidth, Math.floor(index / map.width) * map.tileHeight);
-    layer.addChild(sprite);
+    sprites.push(sprite);
   });
-  return layer;
+  return sprites;
 }
 
 function createMapCharacterActor(sheetTexture, options) {
@@ -257,20 +276,21 @@ function createCharacterFrames(sheetTexture, label) {
   }));
 }
 
-function createNpcSystem(map, sheetTexture) {
-  const root = new Container({ label: "map-npcs" });
+function createNpcSystem(map, sheetTexture, body) {
   const actors = new Map();
   const facings = new Map();
+  const roots = [];
   for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
     const npc = createMapCharacterActor(sheetTexture, { label: `npc-${marker.name}`, width: 82, height: 82 });
     npc.setMotion("down", 0, false);
     npc.root.position.set(marker.x, marker.y);
+    npc.root.zIndex = getMapBodyDepth(marker, body);
     actors.set(marker.name, npc);
     facings.set(marker.name, "down");
-    root.addChild(npc.root);
+    roots.push(npc.root);
   }
   return {
-    root,
+    roots,
     getFacings() {
       return Object.fromEntries(facings);
     },

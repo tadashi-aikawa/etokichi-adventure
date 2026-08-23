@@ -11,6 +11,8 @@ export interface MapRectangle extends MapPoint {
 export interface MapBody {
   width: number;
   height: number;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 export interface MapTileLayer {
@@ -158,27 +160,43 @@ export function moveMapBody(
 ): MapPoint {
   const halfWidth = body.width / 2;
   const halfHeight = body.height / 2;
-  let x = clamp(position.x + delta.x, halfWidth, world.width - halfWidth);
+  const offsetX = body.offsetX ?? 0;
+  const offsetY = body.offsetY ?? 0;
+  let x = clamp(position.x + delta.x, halfWidth - offsetX, world.width - halfWidth - offsetX);
   let y = position.y;
 
   for (const collision of collisions) {
-    if (!intersects({ x: x - halfWidth, y: y - halfHeight, width: body.width, height: body.height }, collision)) {
+    if (
+      !intersects(
+        { x: x + offsetX - halfWidth, y: y + offsetY - halfHeight, width: body.width, height: body.height },
+        collision,
+      )
+    ) {
       continue;
     }
-    if (delta.x > 0) x = collision.x - halfWidth;
-    else if (delta.x < 0) x = collision.x + collision.width + halfWidth;
+    if (delta.x > 0) x = collision.x - halfWidth - offsetX;
+    else if (delta.x < 0) x = collision.x + collision.width + halfWidth - offsetX;
   }
 
-  y = clamp(position.y + delta.y, halfHeight, world.height - halfHeight);
+  y = clamp(position.y + delta.y, halfHeight - offsetY, world.height - halfHeight - offsetY);
   for (const collision of collisions) {
-    if (!intersects({ x: x - halfWidth, y: y - halfHeight, width: body.width, height: body.height }, collision)) {
+    if (
+      !intersects(
+        { x: x + offsetX - halfWidth, y: y + offsetY - halfHeight, width: body.width, height: body.height },
+        collision,
+      )
+    ) {
       continue;
     }
-    if (delta.y > 0) y = collision.y - halfHeight;
-    else if (delta.y < 0) y = collision.y + collision.height + halfHeight;
+    if (delta.y > 0) y = collision.y - halfHeight - offsetY;
+    else if (delta.y < 0) y = collision.y + collision.height + halfHeight - offsetY;
   }
 
   return { x, y };
+}
+
+export function getMapBodyDepth(position: MapPoint, body: MapBody): number {
+  return position.y + (body.offsetY ?? 0) + body.height / 2;
 }
 
 export function calculateMapCamera(target: MapPoint, viewport: MapBody, world: MapBody): MapPoint {

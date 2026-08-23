@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMapCamera, moveMapBody, parseTiledMap } from "../src/game/tiled-map.ts";
+import { calculateMapCamera, getMapBodyDepth, moveMapBody, parseTiledMap } from "../src/game/tiled-map.ts";
 
 const tileset = {
   columns: 2,
@@ -86,6 +86,17 @@ describe("Tiledマップ", () => {
     );
 
     expect(next).toEqual({ x: 40, y: 55 });
+  });
+
+  it("見た目の足元へずらした当たり判定で障害物の手前に止まる", () => {
+    const body = { width: 20, height: 10, offsetY: 15 };
+    const next = moveMapBody({ x: 100, y: 60 }, { x: 0, y: 40 }, body, [{ x: 50, y: 100, width: 100, height: 40 }], {
+      width: 200,
+      height: 200,
+    });
+
+    expect(next).toEqual({ x: 100, y: 80 });
+    expect(getMapBodyDepth(next, body)).toBe(100);
   });
 
   it("マップ端でカメラを止め、画面より小さい軸は中央へ置く", () => {

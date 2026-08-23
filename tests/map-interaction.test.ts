@@ -53,10 +53,10 @@ describe("マップ会話", () => {
   });
 
   it("NPCの中心座標からキャラクター同士の衝突矩形を作る", () => {
-    expect(createNpcCollisions(markers, { width: 46, height: 40 })).toEqual([
-      { x: 81, y: 10, width: 46, height: 40 },
-      { x: 77, y: 130, width: 46, height: 40 },
-      { x: 157, y: 50, width: 46, height: 40 },
+    expect(createNpcCollisions(markers, { width: 46, height: 40, offsetY: 20 })).toEqual([
+      { x: 81, y: 30, width: 46, height: 40 },
+      { x: 77, y: 150, width: 46, height: 40 },
+      { x: 157, y: 70, width: 46, height: 40 },
     ]);
   });
 

@@ -74,7 +74,9 @@
         {"height":256,"id":5,"name":"guild-house","rotation":0,"type":"collision","visible":true,"width":320,"x":128,"y":128},
         {"height":256,"id":6,"name":"pond","rotation":0,"type":"collision","visible":true,"width":384,"x":896,"y":128},
         {"height":192,"id":7,"name":"west-grove","rotation":0,"type":"collision","visible":true,"width":320,"x":128,"y":768},
-        {"height":64,"id":8,"name":"east-trees","rotation":0,"type":"collision","visible":true,"width":256,"x":1088,"y":640}
+        {"height":64,"id":8,"name":"east-trees","rotation":0,"type":"collision","visible":true,"width":256,"x":1088,"y":640},
+        {"height":128,"id":12,"name":"northwest-grove","rotation":0,"type":"collision","visible":true,"width":320,"x":128,"y":576},
+        {"height":64,"id":13,"name":"southeast-trees","rotation":0,"type":"collision","visible":true,"width":256,"x":1088,"y":768}
       ],
       "opacity": 1,
       "type": "objectgroup",
@@ -123,7 +125,7 @@
     }
   ],
   "nextlayerid": 6,
-  "nextobjectid": 12,
+  "nextobjectid": 14,
   "orientation": "orthogonal",
   "properties": [{"name":"mapId","type":"string","value":"prototype-plaza"}],
   "renderorder": "right-down",
