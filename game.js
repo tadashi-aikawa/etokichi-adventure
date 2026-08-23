@@ -1,5 +1,5 @@
 import { getImageFacing, getPresentationScaleCompensation, getPresentationYOffsetRatio, getWalkFrame, shouldMirror } from "./src/game/actors.ts";
-import { SUTEKICHI_COMET_WAVES } from "./src/game/animation-plan.ts";
+import { createSutekichiCometWavePlan } from "./src/game/animation-plan.ts";
 import { createCharacterProfiles } from "./src/game/characters.ts";
 import {
   applyCharmEvasionPenalty,
@@ -1312,6 +1312,8 @@ import {
       : technique.animation === "asterDeathEnergy" ? "aster-death-energy" : false;
     startCamera(side, technique.duration, technique.cameraReleaseDelay, technique.animation === "angelWink" ? "face" : asterCloseupMode);
     const token = ++state[tokenKey];
+    let discoveryCometWillHit = null;
+    let discoveryCometMissFeedbackShown = false;
     actor.classList.remove("moving-forward", "moving-back");
     const animationClasses = {
       darkOrbit: "dark-orbit-sequence",
@@ -1460,21 +1462,33 @@ import {
       }, 300);
     } else if (technique.animation === "sutekichiDiscoveryComet") {
       refs.arena.classList.add("sutekichi-comet-mode");
+      // 1発目から回避を見せつつ、ダメージや特殊状態の解決時刻は従来どおり保つため、命中結果だけ先に固定する。
+      const hitChance = serenityAttack ? 99 : calculateHitChance(technique, actionGuts, defenderActionGuts, isHero);
+      discoveryCometWillHit = Math.random() * 100 < hitChance;
       setTimeout(() => {
         if (state.phase !== "battle" || token !== state[tokenKey]) return;
         transitionTechniqueSprite(actorSprite, images.discoveryCometCast, 240);
         createSutekichiCometCharge(side);
       }, 300);
-      SUTEKICHI_COMET_WAVES.forEach(({ launchDelay, impactDelay }, index) => {
+      createSutekichiCometWavePlan(discoveryCometWillHit).forEach((wave, index) => {
+        const { launchDelay, impactDelay, missesTarget, showImpact, triggerDodge, isFinal } = wave;
         setTimeout(() => {
           if (state.phase !== "battle" || token !== state[tokenKey]) return;
-          createSutekichiComet(side, index, impactDelay - launchDelay);
+          createSutekichiComet(side, index, impactDelay - launchDelay, missesTarget);
           sound("sutekichiCometFall");
         }, launchDelay);
         setTimeout(() => {
           if (state.phase !== "battle" || token !== state[tokenKey]) return;
-          createSutekichiCometImpact(side, index, index === SUTEKICHI_COMET_WAVES.length - 1);
-          sound("sutekichiCometImpact");
+          if (showImpact) {
+            createSutekichiCometImpact(side, index, isFinal);
+            sound("sutekichiCometImpact");
+          } else if (triggerDodge) {
+            const defender = isHero ? "enemy" : "hero";
+            playDodge(target, defender);
+            popStatus(target, "MISS");
+            sound("miss");
+            discoveryCometMissFeedbackShown = true;
+          }
         }, impactDelay);
       });
     } else if (technique.animation === "sutekichiNap") {
@@ -1635,7 +1649,15 @@ import {
         return;
       }
       if (technique.animation === "sutekichiNap") resolveRecoveryTechnique(side, technique, actionGuts);
-      else resolveHit(side, technique, actionGuts, defenderActionGuts, serenityAttack);
+      else resolveHit(
+        side,
+        technique,
+        actionGuts,
+        defenderActionGuts,
+        serenityAttack,
+        discoveryCometWillHit,
+        discoveryCometMissFeedbackShown,
+      );
     }, impactDelay);
     setTimeout(() => {
       if (token !== state[tokenKey]) return;
@@ -1646,7 +1668,15 @@ import {
     }, technique.duration);
   }
 
-  function resolveHit(attacker, technique, actionGuts, defenderActionGuts, serenityAttack = false, forcedHit = null) {
+  function resolveHit(
+    attacker,
+    technique,
+    actionGuts,
+    defenderActionGuts,
+    serenityAttack = false,
+    forcedHit = null,
+    missFeedbackAlreadyShown = false,
+  ) {
     try {
     const heroAttacks = attacker === "hero";
     const defender = heroAttacks ? "enemy" : "hero";
@@ -1659,11 +1689,13 @@ import {
       resetHitStreak(attacker);
       recordDodge(defender);
       resetReceivedHitStreak(defender);
-      playDodge(target, defender);
+      if (!missFeedbackAlreadyShown) playDodge(target, defender);
       if (technique.closesDistance) applyTechniqueClosing(attacker);
       if (technique.animation === "throwKiss") createKissMissBreak(attacker);
-      popStatus(target, "MISS");
-      sound("miss");
+      if (!missFeedbackAlreadyShown) {
+        popStatus(target, "MISS");
+        sound("miss");
+      }
       checkEaseTrigger(defender, "dodge");
       return { hit: false, critical: false, damage: 0, gutsDamage: 0 };
     }
@@ -3110,8 +3142,8 @@ import {
     spawnEffect("sutekichiCometCharge", { side });
   }
 
-  function createSutekichiComet(side, index = 0, duration = 575) {
-    spawnEffect("sutekichiComet", { side, index, duration });
+  function createSutekichiComet(side, index = 0, duration = 575, miss = false) {
+    spawnEffect("sutekichiComet", { side, index, duration, miss });
   }
 
   function createSutekichiCometImpact(side, index = 0, isFinal = false) {

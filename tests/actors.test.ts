@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createTechniqueAnimationPlan, getFighterDepth, SUTEKICHI_COMET_WAVES } from "../src/game/animation-plan.ts";
+import {
+  createSutekichiCometWavePlan,
+  createTechniqueAnimationPlan,
+  getFighterDepth,
+  SUTEKICHI_COMET_WAVES,
+} from "../src/game/animation-plan.ts";
 import {
   createBattleActor,
   getFighterRenderSize,
@@ -103,6 +108,19 @@ describe("敵味方に依存しないキャラクターモデル", () => {
     expect(SUTEKICHI_COMET_WAVES.map(({ launchDelay, impactDelay }) => impactDelay - launchDelay)).toEqual(
       Array(6).fill(575),
     );
+  });
+
+  it("ディスカバリー・コメットの回避時は1発目から回避し、6発すべてが外れる", () => {
+    const missedWaves = createSutekichiCometWavePlan(false);
+    expect(missedWaves).toHaveLength(6);
+    expect(missedWaves.map(({ missesTarget }) => missesTarget)).toEqual(Array(6).fill(true));
+    expect(missedWaves.map(({ showImpact }) => showImpact)).toEqual(Array(6).fill(false));
+    expect(missedWaves.map(({ triggerDodge }) => triggerDodge)).toEqual([true, false, false, false, false, false]);
+
+    const hitWaves = createSutekichiCometWavePlan(true);
+    expect(hitWaves.map(({ missesTarget }) => missesTarget)).toEqual(Array(6).fill(false));
+    expect(hitWaves.map(({ showImpact }) => showImpact)).toEqual(Array(6).fill(true));
+    expect(hitWaves.at(-1)?.isFinal).toBe(true);
   });
 
   it("相手陣営を対称に解決する", () => {

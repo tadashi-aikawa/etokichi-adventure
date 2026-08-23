@@ -20,6 +20,16 @@ export const SUTEKICHI_COMET_WAVES = [
   { launchDelay: 2050, impactDelay: 2625 },
 ] as const;
 
+export function createSutekichiCometWavePlan(hit: boolean) {
+  return SUTEKICHI_COMET_WAVES.map((wave, index) => ({
+    ...wave,
+    missesTarget: !hit,
+    showImpact: hit,
+    triggerDodge: !hit && index === 0,
+    isFinal: index === SUTEKICHI_COMET_WAVES.length - 1,
+  }));
+}
+
 const FOREGROUND_ACTION_CLASSES = new Set([
   "attack-light",
   "casting",

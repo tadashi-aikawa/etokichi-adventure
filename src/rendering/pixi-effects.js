@@ -1290,7 +1290,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiComet(side = "enemy", index = 0, duration = 575) {
+  function makeSutekichiComet(side = "enemy", index = 0, duration = 575, miss = false) {
     const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const tail = new Graphics().poly([-300, -30, -15, -50, 0, 0, -15, 50, -300, 30, -225, 0]).fill({ color: COLORS.cyan, alpha: .38 });
@@ -1299,7 +1299,11 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     container.addChild(glow(COLORS.gold, 210, .72), tail, tailCore, head);
     const screen = getScreen();
     const targetRatios = [[.34, .38], [.64, .44], [.43, .51], [.61, .58], [.37, .65], [.52, .72]];
-    const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
+    const missXRatios = targetSide === "enemy"
+      ? [-.18, .06, -.1, .14, -.02, .2]
+      : [1.18, .94, 1.1, .86, 1.02, .8];
+    const [hitXRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
+    const xRatio = miss ? (missXRatios[index] ?? missXRatios[1]) : hitXRatio;
     const target = point(targetSide, xRatio, yRatio);
     const start = {
       x: screen.width * (side === "hero" ? .04 + index * .022 : .96 - index * .022),
@@ -1879,7 +1883,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     sutekichiHaloSkip: (options) => makeSutekichiHaloSkip(options.side),
     sutekichiStellaSearch: (options) => makeSutekichiStellaSearch(options.side),
     sutekichiCometCharge: (options) => makeSutekichiCometCharge(options.side),
-    sutekichiComet: (options) => makeSutekichiComet(options.side, options.index, options.duration),
+    sutekichiComet: (options) => makeSutekichiComet(options.side, options.index, options.duration, options.miss),
     sutekichiCometImpact: (options) => {
       if (options.isFinal) makeScreenFlash(0xfff4c6, 700);
       return makeSutekichiCometImpact(options.side, options.index);
