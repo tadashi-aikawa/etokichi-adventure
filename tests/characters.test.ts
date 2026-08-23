@@ -29,6 +29,12 @@ describe("キャラクター定義", () => {
     }
   });
 
+  it("全キャラクターに固有の説明文を持たせる", () => {
+    const descriptions = Object.values(profiles).map(({ description }) => description);
+    expect(descriptions.every((description) => description.length >= 40)).toBe(true);
+    expect(new Set(descriptions).size).toBe(Object.keys(profiles).length);
+  });
+
   it("全攻撃技の命中値を新しい戦闘計算向けに調整している", () => {
     const attackAccuracies = Object.fromEntries(
       Object.values(profiles).flatMap((profile) =>

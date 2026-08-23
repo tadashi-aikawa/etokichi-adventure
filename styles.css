@@ -93,22 +93,51 @@ button { font: inherit; }
 .map-dialogue-choices button { padding: 10px 15px; border: 1px solid rgba(255,255,255,.34); border-radius: 8px; color: #efffe9; text-align: left; font-size: 14px; font-weight: 800; cursor: pointer; background: rgba(5,30,22,.48); }
 .map-dialogue-choices button span { display: inline-grid; width: 22px; height: 22px; margin-right: 9px; place-items: center; border-radius: 50%; color: #fff3a5; background: rgba(255,231,107,.13); }
 .map-dialogue-choices button:is(:hover,:focus-visible,.selected) { outline: 0; border-color: #ffe474; color: #fff8bd; background: rgba(75,106,43,.74); box-shadow: 0 0 0 2px rgba(255,228,116,.13); }
-.map-status-panel { position: absolute; inset: 0; display: grid; padding: clamp(18px,4vw,50px); place-items: center; pointer-events: auto; background: radial-gradient(circle at 45% 45%,rgba(61,108,81,.4),rgba(5,24,19,.88)); backdrop-filter: blur(8px); }
-.map-status-card { width: min(850px,94vw); overflow: hidden; border: 2px solid rgba(255,238,152,.78); border-radius: 14px 36px 18px 36px; color: #f3fff0; background: linear-gradient(135deg,rgba(13,48,37,.98),rgba(23,75,54,.98)); box-shadow: 0 28px 90px rgba(3,20,14,.65),inset 0 1px rgba(255,255,255,.16); }
-.map-status-card header { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px 11px; border-bottom: 1px solid rgba(255,255,255,.18); }
-.map-status-card header p { margin: 0; color: #ffe478; font: 800 10px "Orbitron",sans-serif; letter-spacing: .22em; }
-.map-status-card header button { width: 33px; height: 33px; border: 1px solid rgba(255,255,255,.4); border-radius: 50%; color: white; font-size: 19px; cursor: pointer; background: rgba(0,0,0,.2); }
-.map-status-main { display: grid; grid-template-columns: minmax(190px,.72fr) minmax(220px,1fr) minmax(260px,1.15fr); gap: clamp(18px,3vw,34px); align-items: center; padding: clamp(20px,3.5vw,38px); }
-.map-status-portrait { align-self: stretch; min-height: 280px; overflow: hidden; border-radius: 10px 26px; background: radial-gradient(circle at 50% 44%,rgba(255,235,127,.4),rgba(5,31,23,.7) 69%); }
-.map-status-portrait img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 12px rgba(0,0,0,.35)); }
-.map-status-profile small { color: #ffe478; font: 800 9px "Orbitron",sans-serif; letter-spacing: .16em; }
-.map-status-profile h2 { margin: 5px 0 13px; font-size: clamp(30px,4.2vw,50px); line-height: 1; }
-.map-status-profile p { margin: 0 0 20px; color: #d8eedc; font-size: 13px; line-height: 1.8; }
-.map-status-profile strong { display: inline-block; padding: 7px 11px; border: 1px solid rgba(255,228,120,.4); border-radius: 7px; color: #fff1a5; font-size: 11px; background: rgba(69,47,7,.25); }
-.map-status-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 0; }
-.map-status-stats div { padding: 10px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 7px 14px; background: rgba(3,27,19,.38); }
-.map-status-stats dt { color: #b7d5c1; font-size: 10px; font-weight: 800; }
-.map-status-stats dd { margin: 2px 0 0; color: #fff3a3; font: 800 clamp(19px,2.4vw,27px) "Orbitron",sans-serif; }
+.map-status-panel { position: absolute; inset: 0; display: grid; padding: clamp(12px,2.5vw,34px); place-items: center; pointer-events: auto; background: radial-gradient(circle at 42% 44%,rgba(61,108,81,.44),rgba(5,24,19,.9)); backdrop-filter: blur(8px); }
+.map-status-card { width: min(1040px,96vw); height: min(680px,calc(100dvh - 36px)); min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0,1fr) auto; border: 2px solid rgba(255,238,152,.78); border-radius: 14px 36px 18px 36px; color: #f3fff0; background: linear-gradient(135deg,rgba(13,48,37,.98),rgba(23,75,54,.98)); box-shadow: 0 28px 90px rgba(3,20,14,.65),inset 0 1px rgba(255,255,255,.16); }
+.map-status-card header { position: relative; z-index: 4; display: grid; grid-template-columns: minmax(0,1fr) auto 33px; gap: 20px; align-items: center; padding: 11px 20px 9px; border-bottom: 1px solid rgba(255,255,255,.18); background: rgba(4,30,22,.72); }
+.map-status-title { min-width: 0; display: grid; grid-template-columns: auto minmax(0,1fr); column-gap: 12px; align-items: baseline; }
+.map-status-title p { margin: 0; color: #ffe478; font: 800 9px "Orbitron",sans-serif; letter-spacing: .22em; }
+.map-status-title small { overflow: hidden; color: #a8c7b2; font: 700 7px "Orbitron",sans-serif; letter-spacing: .16em; white-space: nowrap; text-overflow: ellipsis; }
+.map-status-title h2 { grid-column: 1 / -1; overflow: hidden; margin: 2px 0 0; font-size: clamp(22px,3vw,36px); line-height: 1; white-space: nowrap; text-overflow: ellipsis; }
+.map-status-tabs { display: flex; overflow: hidden; border: 1px solid rgba(255,232,139,.32); border-radius: 999px; background: rgba(0,0,0,.2); }
+.map-status-tabs button { min-width: 72px; padding: 7px 17px; border: 0; color: #a9c4b2; font-size: 11px; font-weight: 900; cursor: pointer; background: transparent; }
+.map-status-tabs button[aria-selected="true"] { color: #342600; background: linear-gradient(#fff3a0,#e9bd38); box-shadow: 0 0 18px rgba(255,218,85,.24); }
+.map-status-close { width: 33px; height: 33px; padding: 0; border: 1px solid rgba(255,255,255,.4); border-radius: 50%; color: white; font-size: 19px; cursor: pointer; background: rgba(0,0,0,.2); }
+.map-status-main { position: relative; isolation: isolate; min-height: 0; overflow: hidden; background: radial-gradient(circle at 29% 42%,rgba(255,231,113,.34),transparent 31%),linear-gradient(105deg,rgba(3,31,23,.24),rgba(3,38,27,.86) 72%); }
+.map-status-main::before { position: absolute; z-index: -1; inset: 0; content: ""; opacity: .32; background-image: radial-gradient(circle,#fff2a1 0 1px,transparent 1.5px),radial-gradient(circle,#a9ffd4 0 1px,transparent 1.5px); background-position: 4px 7px,27px 22px; background-size: 44px 38px,57px 49px; mask-image: linear-gradient(90deg,#000,transparent 78%); }
+.map-status-main::after { position: absolute; z-index: 0; inset: 0; content: ""; pointer-events: none; background: linear-gradient(90deg,transparent 22%,rgba(3,31,23,.24) 48%,rgba(3,28,20,.78) 78%,rgba(3,27,19,.94)); }
+.map-status-portrait { position: absolute; z-index: 0; left: -2%; bottom: -9%; width: 66%; height: 116%; object-fit: contain; object-position: left bottom; filter: drop-shadow(0 22px 16px rgba(0,0,0,.48)); animation: map-status-float 2.4s ease-in-out infinite; }
+@keyframes map-status-float { 0%,100% { translate: 0 3px; } 50% { translate: 0 -5px; } }
+.map-status-view { position: relative; z-index: 2; width: 100%; height: 100%; min-height: 0; }
+.map-status-abilities { display: grid; grid-template-columns: minmax(250px,.86fr) minmax(350px,1.14fr); gap: clamp(16px,2.5vw,36px); align-items: stretch; padding: clamp(18px,3vw,36px); }
+.map-status-profile { align-self: end; padding: 15px 17px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px 22px 10px 22px; background: rgba(2,25,18,.68); box-shadow: 0 12px 28px rgba(0,0,0,.22); backdrop-filter: blur(3px); }
+.map-status-profile p { margin: 0 0 12px; color: #d8eedc; font-size: 12px; line-height: 1.75; }
+.map-status-profile strong { display: inline-block; padding: 6px 10px; border: 1px solid rgba(255,228,120,.4); border-radius: 7px; color: #fff1a5; font-size: 10px; background: rgba(69,47,7,.32); }
+.map-status-stats { align-self: center; display: grid; gap: 8px; margin: 0; }
+.map-status-stats div { position: relative; isolation: isolate; overflow: hidden; min-height: 53px; display: flex; align-items: center; padding: 8px 15px; border: 1px solid rgba(255,255,255,.15); border-radius: 9px 18px 9px 18px; background: rgba(2,24,17,.56); box-shadow: inset 0 1px rgba(255,255,255,.04),0 7px 18px rgba(0,0,0,.12); backdrop-filter: blur(3px); }
+.map-status-stats div::before { position: absolute; z-index: -1; inset: 0 auto 0 0; width: var(--stat-level,0%); content: ""; background: linear-gradient(90deg,rgba(239,171,31,.76),rgba(255,230,111,.28)); border-right: 1px solid rgba(255,239,155,.64); box-shadow: 10px 0 18px rgba(255,197,46,.14); animation: map-status-bar-grow .65s cubic-bezier(.18,.78,.2,1) both; transform-origin: left; }
+@keyframes map-status-bar-grow { from { scale: 0 1; } to { scale: 1 1; } }
+.map-status-stats dt { color: #e4f5e7; font-size: 11px; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
+.map-status-stats dd { margin-left: auto; color: #fff5ad; font: 900 clamp(21px,2.4vw,29px) "Orbitron",sans-serif; text-shadow: 0 2px 7px rgba(0,0,0,.8); }
+.map-status-techniques { display: grid; grid-template-rows: auto minmax(0,1fr); gap: 10px; width: min(790px,80%); margin-left: auto; padding: clamp(15px,2.4vw,30px); }
+.map-technique-guide { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; }
+.map-technique-guide strong { color: #fff2a0; font-size: 20px; }
+.map-technique-guide span { color: #b4cdbb; font-size: 9px; }
+.map-technique-list { min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; align-content: start; margin: 0; padding: 0 3px 0 0; list-style: none; scrollbar-color: rgba(255,228,112,.55) rgba(0,0,0,.18); }
+.map-technique-list li { min-width: 0; padding: 10px 11px; border: 1px solid rgba(255,255,255,.15); border-radius: 9px 17px 9px 17px; background: rgba(2,24,17,.72); box-shadow: 0 8px 20px rgba(0,0,0,.18); backdrop-filter: blur(4px); }
+.map-technique-heading { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 8px; align-items: end; }
+.map-technique-heading > span { grid-column: 1 / -1; color: #9ec3aa; font-size: 7px; font-weight: 800; }
+.map-technique-heading > strong { overflow: hidden; color: #f5fff4; font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.map-technique-heading > b { display: flex; align-items: baseline; gap: 3px; color: #ffe77e; font: 900 15px "Orbitron",sans-serif; }
+.map-technique-heading > b small { color: #9eb7a5; font-size: 6px; }
+.map-technique-list dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; margin: 8px 0 0; }
+.map-technique-list dl div { min-width: 0; padding: 4px 3px; border-radius: 5px 9px; text-align: center; background: rgba(255,255,255,.055); }
+.map-technique-list dt { overflow: hidden; color: #9eb7a5; font-size: 6px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.map-technique-list dd { margin: 1px 0 0; color: #cbd8cd; font: 900 14px "Orbitron",sans-serif; }
+.map-technique-list dd[data-rank^="S"] { color: #ffe66f; text-shadow: 0 0 10px rgba(255,217,84,.35); }
+.map-technique-list dd[data-rank="A"] { color: #a8ffd1; }
+.map-technique-list dd[data-rank="E"] { color: #899b8d; }
 .map-status-card footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 15px; border-top: 1px solid rgba(255,255,255,.15); background: rgba(2,24,17,.2); }
 .map-status-card footer span { color: #b8d1bf; font-size: 10px; }
 .map-status-card footer kbd { color: #ffea86; }
@@ -1407,20 +1436,36 @@ button { font: inherit; }
   .map-dialogue-choices button { padding: 7px 11px; font-size: clamp(12px,3.5vh,15px); }
   .map-dialogue-choices button span { width: 21px; height: 21px; margin-right: 7px; }
   .map-status-panel { padding: 6px max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); }
-  .map-status-card { width: min(900px,100%); max-height: 100%; }
-  .map-status-card header { padding: 6px 12px 4px; }
-  .map-status-card header p { font-size: 7px; }
-  .map-status-card header button { width: 25px; height: 25px; font-size: 14px; }
-  .map-status-main { grid-template-columns: minmax(120px,.6fr) minmax(170px,.9fr) minmax(230px,1.2fr); gap: 12px; padding: 7px 15px; }
-  .map-status-portrait { min-height: 0; height: min(250px,63vh); }
-  .map-status-profile small { font-size: 6px; }
-  .map-status-profile h2 { margin: 3px 0 7px; font-size: clamp(23px,8vh,35px); }
-  .map-status-profile p { margin: 0 0 8px; font-size: 8px; line-height: 1.45; }
-  .map-status-profile strong { padding: 4px 7px; font-size: 7px; }
-  .map-status-stats { gap: 4px; }
-  .map-status-stats div { padding: 5px 8px; }
+  .map-status-card { width: min(900px,100%); height: 100%; max-height: 100%; border-radius: 10px 20px 10px 20px; }
+  .map-status-card header { grid-template-columns: minmax(0,1fr) auto 25px; gap: 8px; padding: 4px 10px; }
+  .map-status-title { display: flex; gap: 7px; align-items: baseline; }
+  .map-status-title p { flex: 0 0 auto; font-size: 6px; }
+  .map-status-title small { display: none; }
+  .map-status-title h2 { min-width: 0; margin: 0; font-size: clamp(15px,5vh,20px); }
+  .map-status-tabs button { min-width: 44px; padding: 4px 10px; font-size: 8px; }
+  .map-status-close { width: 25px; height: 25px; font-size: 14px; }
+  .map-status-portrait { left: -3%; bottom: -12%; width: 59%; height: 119%; }
+  .map-status-abilities { grid-template-columns: minmax(175px,.75fr) minmax(275px,1.25fr); gap: 10px; padding: 6px 12px; }
+  .map-status-profile { padding: 7px 9px; border-radius: 7px 14px; }
+  .map-status-profile p { margin: 0 0 5px; font-size: 7px; line-height: 1.45; }
+  .map-status-profile strong { padding: 3px 6px; font-size: 6px; }
+  .map-status-stats { gap: 3px; }
+  .map-status-stats div { min-height: 0; padding: 3px 8px; border-radius: 5px 10px; }
   .map-status-stats dt { font-size: 7px; }
-  .map-status-stats dd { font-size: clamp(14px,4.5vh,21px); }
+  .map-status-stats dd { font-size: clamp(13px,4.5vh,18px); }
+  .map-status-techniques { gap: 4px; width: 84%; padding: 5px 11px 5px 8px; }
+  .map-technique-guide strong { font-size: 12px; }
+  .map-technique-guide span { font-size: 6px; }
+  .map-technique-list { gap: 4px; }
+  .map-technique-list li { padding: 4px 6px; border-radius: 5px 10px; }
+  .map-technique-heading > span { font-size: 5px; }
+  .map-technique-heading > strong { font-size: 8px; }
+  .map-technique-heading > b { font-size: 10px; }
+  .map-technique-heading > b small { font-size: 4px; }
+  .map-technique-list dl { gap: 2px; margin-top: 3px; }
+  .map-technique-list dl div { padding: 2px; }
+  .map-technique-list dt { font-size: 4px; }
+  .map-technique-list dd { font-size: 9px; }
   .map-status-card footer { padding: 5px 12px 7px; }
   .map-status-card footer span { font-size: 7px; }
   .map-status-card footer button { padding: 5px 14px; font-size: 8px; }

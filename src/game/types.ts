@@ -88,6 +88,7 @@ export interface CharacterProfile {
   visualScale?: number;
   name: string;
   subtitle: string;
+  description: string;
   abilitiesLabel: string;
   images: CharacterImages;
   introPoseKeys: readonly string[];

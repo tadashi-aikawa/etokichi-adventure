@@ -577,6 +577,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       baseFacing: "right",
       name: "エトキチ",
       subtitle: "GALAXY TRAIL",
+      description: "星の力を信じて進む、好奇心旺盛な冒険者。ちからとかしこさを使い分け、逆境ほど真価を発揮する。",
       abilitiesLabel: "底力・根性・余裕・明鏡止水・覚醒",
       images: {
         idle: asset("assets/etokichi/idle.webp"),
@@ -608,6 +609,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       baseFacing: "left",
       name: "クロボシ",
       subtitle: "VOID METEOR",
+      description: "負けず嫌いで一直線な黒星のライバル。高い耐久力で攻撃を受け止め、嫉妬を力に変えて押し返す。",
       abilitiesLabel: "本気・余裕・嫉妬",
       images: {
         idle: asset("assets/enemies/kuroboshi/idle.webp"),
@@ -632,6 +634,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       baseFacing: "left",
       name: "ステキチ",
       subtitle: "STELLAR GUIDE",
+      description: "星の兆しを読む、身軽な案内役。すばやいガッツ回復と高い回避で翻弄し、ひらめきから好機をつかむ。",
       abilitiesLabel: "ひらめき・余裕",
       images: {
         idle: asset("assets/enemies/sutekichi/idle.webp"),
@@ -663,6 +666,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       visualScale: 1.2,
       name: "サラリーマンエトキチ",
       subtitle: "STELLAR BUSINESS",
+      description: "銀河の職場を駆ける仕事人。正確な技と知恵でペースを握り、定時への執念で一気に間合いを詰める。",
       abilitiesLabel: "ひらめき・余裕・ゾーン",
       images: {
         idle: asset("assets/characters/salaryman-etokichi/idle.webp"),
@@ -690,6 +694,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       visualScale: 1.08,
       name: "タツヲ",
       subtitle: "SOFT PURSUER",
+      description: "大きな体と長い腕で仲間を守る重量級。攻撃を耐えて追いすがり、逃げ場ごと相手を押さえ込む。",
       abilitiesLabel: "本気・追跡・快感",
       images: {
         idle: asset("assets/characters/tatsuo/idle.webp"),
@@ -721,6 +726,7 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       visualScale: 1.05,
       name: "アステール",
       subtitle: "ORDERED ORACLE",
+      description: "魔眼と死の気配をまとう神秘的な策士。高いかしこさと命中で相手を封じ、生命力まで奪い取る。",
       abilitiesLabel: "余裕・本気",
       images: {
         idle: asset("assets/characters/aster/idle.webp"),
