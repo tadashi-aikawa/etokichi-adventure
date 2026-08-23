@@ -2,10 +2,13 @@ import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js
 import MAP_SOURCE from "../../assets/maps/prototype-plaza.tmj?raw";
 import ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/etokichi/walk.webp?url";
 import GUIDE_MAP_SHEET_URL from "../../assets/map-characters/guide/walk.webp?url";
+import ETOKICHI_PORTRAIT_URL from "../../assets/etokichi/idle.webp?url";
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
+import { createCharacterProfiles } from "../game/characters.ts";
 import { getMapCharacterFrame, MAP_CHARACTER_COLUMNS, MAP_CHARACTER_ROWS } from "../game/map-character-animation.ts";
 import { calculateMapCamera, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
+import { createMapInterface } from "./map-interface.js";
 
 const PLAYER_BODY = { width: 34, height: 38 };
 const MOVE_SPEED = 230;
@@ -21,7 +24,7 @@ const MAP_KEYS = new Map([
   ["KeyD", "right"],
 ]);
 
-export async function createMapSystem({ stage, ticker, getScreen, gameSession }) {
+export async function createMapSystem({ arena, stage, ticker, getScreen, gameSession }) {
   const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
   const [atlasTexture, etokichiSheet, guideSheet] = await Promise.all([
     Assets.load(TILESET_IMAGE_URL),
@@ -49,6 +52,13 @@ export async function createMapSystem({ stage, ticker, getScreen, gameSession })
   let viewport = { width: 1, height: 1 };
   let facing = gameSession.getState().player.facing;
   player.setMotion(facing, 0, false);
+  const mapInterface = createMapInterface({
+    arena,
+    gameSession,
+    map,
+    playerProfile: createCharacterProfiles((source) => source).etokichi,
+    portraitUrl: ETOKICHI_PORTRAIT_URL,
+  });
 
   const isMapScene = () => gameSession.getState().scene === "map";
   const syncScene = (state) => {
@@ -61,6 +71,7 @@ export async function createMapSystem({ stage, ticker, getScreen, gameSession })
     }
     player.setMotion(facing, elapsed, false);
     applyCamera(state.player);
+    mapInterface.updateNearbyNpc();
   };
 
   const onKeyDown = (event) => {
@@ -82,6 +93,11 @@ export async function createMapSystem({ stage, ticker, getScreen, gameSession })
     if (!root.visible) return;
     const deltaSeconds = Math.min(frame.deltaMS, 50) / 1000;
     elapsed += deltaSeconds;
+    if (mapInterface.isBlocking()) {
+      pressed.clear();
+      player.setMotion(facing, elapsed, false);
+      return;
+    }
     const horizontal = Number(pressed.has("right")) - Number(pressed.has("left"));
     const vertical = Number(pressed.has("down")) - Number(pressed.has("up"));
     if (horizontal === 0 && vertical === 0) {
@@ -140,6 +156,7 @@ export async function createMapSystem({ stage, ticker, getScreen, gameSession })
         worldPosition: { x: world.x, y: world.y },
         collisionCount: map.collisions.length,
         markerCount: map.markers.length,
+        interface: mapInterface.getDebugState(),
       };
     },
     setVisible(visible) {
@@ -152,6 +169,7 @@ export async function createMapSystem({ stage, ticker, getScreen, gameSession })
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
+      mapInterface.destroy();
       root.destroy({ children: true, texture: true });
     },
   };

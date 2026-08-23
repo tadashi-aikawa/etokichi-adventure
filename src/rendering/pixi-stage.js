@@ -252,6 +252,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
   let mapSystem;
   try {
     mapSystem = await createMapSystem({
+      arena,
       stage: app.stage,
       ticker: app.ticker,
       getScreen: () => ({ width: app.screen.width, height: app.screen.height }),
