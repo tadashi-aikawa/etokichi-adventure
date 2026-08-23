@@ -20,11 +20,11 @@ const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
 const MAP_CHARACTER_VISUALS = {
   etokichi: { width: 123, height: 92 },
-  kuroboshi: { width: 104, height: 104 },
-  sutekichi: { width: 96, height: 96 },
-  salarymanEtokichi: { width: 72, height: 108 },
-  tatsuo: { width: 112, height: 112 },
-  aster: { width: 104, height: 104 },
+  kuroboshi: { width: 112, height: 84 },
+  sutekichi: { width: 114, height: 85 },
+  salarymanEtokichi: { width: 118, height: 88 },
+  tatsuo: { width: 107, height: 80 },
+  aster: { width: 113, height: 85 },
 };
 const MAP_CHARACTER_SHEET_URLS = {
   etokichi: ETOKICHI_MAP_SHEET_URL,

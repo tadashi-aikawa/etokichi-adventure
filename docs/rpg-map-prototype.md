@@ -94,7 +94,7 @@ magick assets/map-characters/<ID>/source/walk.png \
   assets/map-characters/<ID>/walk.webp
 ```
 
-追加後は`src/rendering/pixi-map.js`の`MAP_CHARACTER_SHEET_URLS`へURL、`MAP_CHARACTER_VISUALS`へ表示寸法を登録する。TiledのNPCマーカーには既存の`dialogueId`に加えて、素材と戦闘プロフィールを結び付ける文字列`characterId`を設定する。フレーム幅・高さは画像寸法から計算し、3列×4行で割り切れなければ起動時にエラーとする。
+追加後は`src/rendering/pixi-map.js`の`MAP_CHARACTER_SHEET_URLS`へURL、`MAP_CHARACTER_VISUALS`へ表示寸法を登録する。表示寸法は元セルと同じ縦横比を保ち、正面中央フレームの不透明部分が既存キャラクターと同程度の高さになるよう調整する。TiledのNPCマーカーには既存の`dialogueId`に加えて、素材と戦闘プロフィールを結び付ける文字列`characterId`を設定する。フレーム幅・高さは画像寸法から計算し、3列×4行で割り切れなければ起動時にエラーとする。
 
 ## 会話イベント規約
 
