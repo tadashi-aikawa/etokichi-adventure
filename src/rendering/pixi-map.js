@@ -6,11 +6,13 @@ import ETOKICHI_PORTRAIT_URL from "../../assets/etokichi/idle.webp?url";
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
 import { createCharacterProfiles } from "../game/characters.ts";
+import { createNpcCollisions, getFacingToward } from "../game/map-interaction.ts";
 import { getMapCharacterFrame, MAP_CHARACTER_COLUMNS, MAP_CHARACTER_ROWS } from "../game/map-character-animation.ts";
 import { calculateMapCamera, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
 import { createMapInterface } from "./map-interface.js";
 
 const PLAYER_BODY = { width: 34, height: 38 };
+const NPC_BODY = { width: 46, height: 40 };
 const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
 const MAP_KEYS = new Map([
@@ -32,6 +34,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     Assets.load(GUIDE_MAP_SHEET_URL),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
+  const npcCollisions = createNpcCollisions(map.markers, NPC_BODY);
+  const collisions = [...map.collisions, ...npcCollisions];
   const root = new Container({ label: "map-scene" });
   const backdrop = new Graphics();
   const world = new Container({ label: map.id });
@@ -41,8 +45,8 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
   const foregroundLayer = createTileLayer(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
   const player = createMapCharacterActor(etokichiSheet, { label: "map-player", width: 123, height: 92 });
-  const npcLayer = createNpcLayer(map, guideSheet);
-  actorLayer.addChild(entranceLayer, npcLayer, player.root);
+  const npcSystem = createNpcSystem(map, guideSheet);
+  actorLayer.addChild(entranceLayer, npcSystem.root, player.root);
   world.addChild(groundLayer, actorLayer, foregroundLayer);
   root.addChild(backdrop, world);
   stage.addChildAt(root, 0);
@@ -58,6 +62,9 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
     map,
     playerProfile: createCharacterProfiles((source) => source).etokichi,
     portraitUrl: ETOKICHI_PORTRAIT_URL,
+    onDialogueOpen(marker) {
+      npcSystem.setFacing(marker.name, getFacingToward(marker, gameSession.getState().player));
+    },
   });
 
   const isMapScene = () => gameSession.getState().scene === "map";
@@ -118,7 +125,7 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
         y: vertical / magnitude * MOVE_SPEED * deltaSeconds,
       },
       PLAYER_BODY,
-      map.collisions,
+      collisions,
       { width: map.pixelWidth, height: map.pixelHeight },
     );
     gameSession.updatePlayer({ ...next, facing: nextFacing });
@@ -154,7 +161,9 @@ export async function createMapSystem({ arena, stage, ticker, getScreen, gameSes
         player: { ...state.player },
         playerFrame: player.getFrameIndex(),
         worldPosition: { x: world.x, y: world.y },
-        collisionCount: map.collisions.length,
+        collisionCount: collisions.length,
+        npcCollisionCount: npcCollisions.length,
+        npcFacings: npcSystem.getFacings(),
         markerCount: map.markers.length,
         interface: mapInterface.getDebugState(),
       };
@@ -248,15 +257,30 @@ function createCharacterFrames(sheetTexture, label) {
   }));
 }
 
-function createNpcLayer(map, sheetTexture) {
-  const layer = new Container({ label: "map-npcs" });
+function createNpcSystem(map, sheetTexture) {
+  const root = new Container({ label: "map-npcs" });
+  const actors = new Map();
+  const facings = new Map();
   for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
     const npc = createMapCharacterActor(sheetTexture, { label: `npc-${marker.name}`, width: 82, height: 82 });
     npc.setMotion("down", 0, false);
     npc.root.position.set(marker.x, marker.y);
-    layer.addChild(npc.root);
+    actors.set(marker.name, npc);
+    facings.set(marker.name, "down");
+    root.addChild(npc.root);
   }
-  return layer;
+  return {
+    root,
+    getFacings() {
+      return Object.fromEntries(facings);
+    },
+    setFacing(name, facing) {
+      const actor = actors.get(name);
+      if (!actor) return;
+      actor.setMotion(facing, 0, false);
+      facings.set(name, facing);
+    },
+  };
 }
 
 function createEntranceLayer(map) {

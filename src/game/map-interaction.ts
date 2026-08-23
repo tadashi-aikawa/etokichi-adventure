@@ -1,5 +1,5 @@
 import type { MapFacing, MapPosition, WorldFlagValue } from "./game-session.ts";
-import type { MapMarker } from "./tiled-map.ts";
+import type { MapBody, MapMarker, MapRectangle } from "./tiled-map.ts";
 
 export interface DialogueChoice {
   id: string;
@@ -122,6 +122,24 @@ export function findFacingNpc(
       )
       .sort((left, right) => left.distance - right.distance)[0]?.marker ?? null
   );
+}
+
+export function createNpcCollisions(markers: readonly MapMarker[], body: MapBody): MapRectangle[] {
+  return markers
+    .filter((marker) => marker.kind === "npc")
+    .map((marker) => ({
+      x: marker.x - body.width / 2,
+      y: marker.y - body.height / 2,
+      width: body.width,
+      height: body.height,
+    }));
+}
+
+export function getFacingToward(origin: MapPosition, target: MapPosition): MapFacing {
+  const deltaX = target.x - origin.x;
+  const deltaY = target.y - origin.y;
+  if (Math.abs(deltaX) > Math.abs(deltaY)) return deltaX < 0 ? "left" : "right";
+  return deltaY < 0 ? "up" : "down";
 }
 
 export function startDialogue(

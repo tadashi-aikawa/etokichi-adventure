@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { MapPosition } from "../src/game/game-session.ts";
 import {
   advanceDialogue,
+  createNpcCollisions,
   findFacingNpc,
+  getFacingToward,
   getDialogueNode,
   selectDialogueChoice,
   startDialogue,
@@ -48,6 +50,22 @@ describe("マップ会話", () => {
     expect(findFacingNpc(player, markers)?.name).toBe("front");
     expect(findFacingNpc({ ...player, facing: "down" }, markers)?.name).toBe("behind");
     expect(findFacingNpc({ ...player, x: 300 }, markers)).toBeNull();
+  });
+
+  it("NPCの中心座標からキャラクター同士の衝突矩形を作る", () => {
+    expect(createNpcCollisions(markers, { width: 46, height: 40 })).toEqual([
+      { x: 81, y: 10, width: 46, height: 40 },
+      { x: 77, y: 130, width: 46, height: 40 },
+      { x: 157, y: 50, width: 46, height: 40 },
+    ]);
+  });
+
+  it("NPCから見てプレイヤーがいる方向を優勢な軸で求める", () => {
+    const npc = { ...player, x: 100, y: 100 };
+    expect(getFacingToward(npc, { ...player, x: 160, y: 110 })).toBe("right");
+    expect(getFacingToward(npc, { ...player, x: 40, y: 90 })).toBe("left");
+    expect(getFacingToward(npc, { ...player, x: 110, y: 40 })).toBe("up");
+    expect(getFacingToward(npc, { ...player, x: 90, y: 160 })).toBe("down");
   });
 
   it("複数ページを進め、選択結果と完了フラグを返す", () => {

@@ -15,7 +15,7 @@ const STAT_LABELS = [
   ["intelligence", "かしこさ"],
 ];
 
-export function createMapInterface({ arena, gameSession, map, playerProfile, portraitUrl }) {
+export function createMapInterface({ arena, gameSession, map, playerProfile, portraitUrl, onDialogueOpen = () => {} }) {
   const root = document.createElement("div");
   root.className = "map-interface";
   root.innerHTML = `
@@ -91,6 +91,7 @@ export function createMapInterface({ arena, gameSession, map, playerProfile, por
     selectedChoiceIndex = 0;
     dialoguePanel.hidden = false;
     prompt.hidden = true;
+    onDialogueOpen(nearbyNpc);
     renderDialogue();
   }
 
