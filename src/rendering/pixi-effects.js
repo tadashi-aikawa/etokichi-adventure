@@ -1290,7 +1290,7 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     });
   }
 
-  function makeSutekichiComet(side = "enemy", index = 0) {
+  function makeSutekichiComet(side = "enemy", index = 0, duration = 575) {
     const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
     const tail = new Graphics().poly([-300, -30, -15, -50, 0, 0, -15, 50, -300, 30, -225, 0]).fill({ color: COLORS.cyan, alpha: .38 });
@@ -1298,15 +1298,15 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     const head = drawStar(new Graphics(), 50, COLORS.white);
     container.addChild(glow(COLORS.gold, 210, .72), tail, tailCore, head);
     const screen = getScreen();
-    const targetRatios = [[.38, .4], [.62, .5], [.5, .62]];
+    const targetRatios = [[.34, .38], [.64, .44], [.43, .51], [.61, .58], [.37, .65], [.52, .72]];
     const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
     const target = point(targetSide, xRatio, yRatio);
     const start = {
-      x: screen.width * (side === "hero" ? .04 + index * .045 : .96 - index * .045),
-      y: screen.height * ([.08, .015, .06][index] ?? .03),
+      x: screen.width * (side === "hero" ? .04 + index * .022 : .96 - index * .022),
+      y: screen.height * ([.08, .015, .06, .025, .095, .045][index] ?? .03),
     };
-    const scale = [.82, 1, .9][index] ?? 1;
-    return add(container, 1150, (progress) => {
+    const scale = [.76, .84, .92, 1, 1.08, 1.16][index] ?? 1;
+    return add(container, duration, (progress) => {
       const travel = easeInOut(progress);
       container.position.set(start.x + (target.x - start.x) * travel, start.y + (target.y - start.y) * travel);
       container.rotation = Math.atan2(target.y - start.y, target.x - start.x);
@@ -1318,24 +1318,75 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
   function makeSutekichiCometImpact(side = "enemy", index = 0) {
     const targetSide = side === "hero" ? "enemy" : "hero";
     const container = new Container();
-    const crest = drawStar(new Graphics(), 105, COLORS.gold, .86);
-    const rays = Array.from({ length: 18 }, (_, index) => {
-      const ray = new Graphics().roundRect(25, -3, 110 + index % 4 * 24, 6, 3).fill({ color: index % 3 ? COLORS.cyan : COLORS.white, alpha: .82 });
-      ray.rotation = index * Math.PI * 2 / 18;
+    const impactScale = .68 + index * .16;
+    const outerGlow = glow(COLORS.ember, 420, .62);
+    const innerGlow = glow(COLORS.gold, 280, .8);
+    const core = new Graphics()
+      .circle(0, 0, 74).fill({ color: COLORS.ember, alpha: .8 })
+      .circle(0, 0, 51).fill({ color: COLORS.gold, alpha: .94 })
+      .circle(0, 0, 24).fill({ color: COLORS.white, alpha: 1 });
+    core.blendMode = "add";
+    const fireballs = Array.from({ length: 9 }, (_, fireballIndex) => {
+      const fireball = new Graphics().circle(0, 0, 28 + fireballIndex % 3 * 9).fill({
+        color: fireballIndex % 3 === 0 ? COLORS.ember : fireballIndex % 2 ? COLORS.gold : COLORS.white,
+        alpha: .8,
+      });
+      fireball.blendMode = "add";
+      return fireball;
+    });
+    const rays = Array.from({ length: 20 }, (_, rayIndex) => {
+      const ray = new Graphics().roundRect(28, -3, 105 + rayIndex % 5 * 23, 6, 3).fill({
+        color: rayIndex % 4 === 0 ? COLORS.white : rayIndex % 2 ? COLORS.ember : COLORS.gold,
+        alpha: .88,
+      });
+      ray.rotation = rayIndex * Math.PI * 2 / 20;
       return ray;
     });
-    const ring = new Graphics().circle(0, 0, 72).stroke({ color: COLORS.white, alpha: .94, width: 7 });
-    container.addChild(glow(COLORS.gold, 390, .68), crest, ring, ...rays);
-    const targetRatios = [[.38, .48], [.62, .58], [.5, .68]];
+    const shockwave = new Graphics().circle(0, 0, 64).stroke({ color: COLORS.white, alpha: .96, width: 8 });
+    const fireRing = new Graphics().circle(0, 0, 82).stroke({ color: COLORS.ember, alpha: .88, width: 12 });
+    const fragments = Array.from({ length: 16 }, (_, fragmentIndex) => {
+      const fragment = new Graphics()
+        .rect(-5, -5, 10 + fragmentIndex % 3 * 3, 10 + fragmentIndex % 3 * 3)
+        .fill({ color: fragmentIndex % 3 ? COLORS.gold : COLORS.white, alpha: .92 });
+      fragment.rotation = fragmentIndex * Math.PI / 8;
+      return fragment;
+    });
+    container.addChild(outerGlow, innerGlow, ...fireballs, core, shockwave, fireRing, ...rays, ...fragments);
+    const targetRatios = [[.34, .38], [.64, .44], [.43, .51], [.61, .58], [.37, .65], [.52, .72]];
     const [xRatio, yRatio] = targetRatios[index] ?? targetRatios[1];
-    return add(container, 1250, (progress) => {
+    return add(container, 1050, (progress, elapsed) => {
       container.position.copyFrom(point(targetSide, xRatio, yRatio));
       const burst = easeOut(progress);
-      crest.scale.set(.25 + burst * 1.55);
-      crest.rotation = progress * 1.1;
-      ring.scale.set(.2 + burst * 2.6);
-      rays.forEach((ray) => ray.scale.x = .2 + burst * 1.35);
-      container.alpha = 1 - progress;
+      const fade = 1 - progress;
+      container.scale.set(impactScale);
+      outerGlow.scale.set(.28 + burst * 1.8);
+      outerGlow.alpha = fade * .62;
+      innerGlow.scale.set(.18 + burst * 1.45);
+      innerGlow.alpha = fade * .8;
+      core.scale.set(.18 + Math.sin(Math.min(1, progress * 1.6) * Math.PI) * 1.35);
+      core.alpha = fade;
+      shockwave.scale.set(.12 + burst * 2.5);
+      shockwave.alpha = fade;
+      fireRing.scale.set(.08 + burst * 3.1);
+      fireRing.alpha = fade * .82;
+      rays.forEach((ray, rayIndex) => {
+        ray.scale.x = .12 + burst * (1.25 + rayIndex % 3 * .12);
+        ray.alpha = fade;
+      });
+      fireballs.forEach((fireball, fireballIndex) => {
+        const angle = fireballIndex * Math.PI * 2 / fireballs.length + index * .31;
+        const distance = burst * (34 + fireballIndex % 4 * 13);
+        fireball.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance);
+        fireball.scale.set(.25 + Math.sin(Math.min(1, progress * 1.4) * Math.PI) * (1.1 + fireballIndex % 3 * .12));
+        fireball.alpha = fade * .85;
+      });
+      fragments.forEach((fragment, fragmentIndex) => {
+        const angle = fragmentIndex * Math.PI * 2 / fragments.length + index * .17;
+        const distance = burst * (105 + fragmentIndex % 5 * 18);
+        fragment.position.set(Math.cos(angle) * distance, Math.sin(angle) * distance * .82);
+        fragment.rotation = angle + elapsed * (fragmentIndex % 2 ? -4 : 4.5);
+        fragment.alpha = fade;
+      });
     });
   }
 
@@ -1828,8 +1879,11 @@ export function createEffectSystem({ layer, glowTexture, getActorPoint, getScree
     sutekichiHaloSkip: (options) => makeSutekichiHaloSkip(options.side),
     sutekichiStellaSearch: (options) => makeSutekichiStellaSearch(options.side),
     sutekichiCometCharge: (options) => makeSutekichiCometCharge(options.side),
-    sutekichiComet: (options) => makeSutekichiComet(options.side, options.index),
-    sutekichiCometImpact: (options) => makeSutekichiCometImpact(options.side, options.index),
+    sutekichiComet: (options) => makeSutekichiComet(options.side, options.index, options.duration),
+    sutekichiCometImpact: (options) => {
+      if (options.isFinal) makeScreenFlash(0xfff4c6, 700);
+      return makeSutekichiCometImpact(options.side, options.index);
+    },
     sutekichiNapDream: (options) => makeSutekichiNapDream(options.side),
     sutekichiNapResult: (options) => makeSutekichiNapResult(options.success, options.side),
     businessCardStrike: (options) => makeBusinessCardStrike(options.side),

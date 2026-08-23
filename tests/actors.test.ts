@@ -96,10 +96,13 @@ describe("敵味方に依存しないキャラクターモデル", () => {
     }
   });
 
-  it("ディスカバリー・コメットは時間差で3発着弾する", () => {
-    expect(SUTEKICHI_COMET_WAVES).toHaveLength(3);
-    expect(SUTEKICHI_COMET_WAVES.map(({ launchDelay }) => launchDelay)).toEqual([1050, 1425, 1800]);
-    expect(SUTEKICHI_COMET_WAVES.map(({ impactDelay }) => impactDelay)).toEqual([2150, 2525, 2900]);
+  it("ディスカバリー・コメットは従来の2倍速で6発着弾する", () => {
+    expect(SUTEKICHI_COMET_WAVES).toHaveLength(6);
+    expect(SUTEKICHI_COMET_WAVES.map(({ launchDelay }) => launchDelay)).toEqual([1050, 1250, 1450, 1650, 1850, 2050]);
+    expect(SUTEKICHI_COMET_WAVES.map(({ impactDelay }) => impactDelay)).toEqual([1625, 1825, 2025, 2225, 2425, 2625]);
+    expect(SUTEKICHI_COMET_WAVES.map(({ launchDelay, impactDelay }) => impactDelay - launchDelay)).toEqual(
+      Array(6).fill(575),
+    );
   });
 
   it("相手陣営を対称に解決する", () => {

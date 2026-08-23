@@ -1468,12 +1468,12 @@ import {
       SUTEKICHI_COMET_WAVES.forEach(({ launchDelay, impactDelay }, index) => {
         setTimeout(() => {
           if (state.phase !== "battle" || token !== state[tokenKey]) return;
-          createSutekichiComet(side, index);
+          createSutekichiComet(side, index, impactDelay - launchDelay);
           sound("sutekichiCometFall");
         }, launchDelay);
         setTimeout(() => {
           if (state.phase !== "battle" || token !== state[tokenKey]) return;
-          createSutekichiCometImpact(side, index);
+          createSutekichiCometImpact(side, index, index === SUTEKICHI_COMET_WAVES.length - 1);
           sound("sutekichiCometImpact");
         }, impactDelay);
       });
@@ -3110,12 +3110,12 @@ import {
     spawnEffect("sutekichiCometCharge", { side });
   }
 
-  function createSutekichiComet(side, index = 0) {
-    spawnEffect("sutekichiComet", { side, index });
+  function createSutekichiComet(side, index = 0, duration = 575) {
+    spawnEffect("sutekichiComet", { side, index, duration });
   }
 
-  function createSutekichiCometImpact(side, index = 0) {
-    spawnEffect("sutekichiCometImpact", { side, index });
+  function createSutekichiCometImpact(side, index = 0, isFinal = false) {
+    spawnEffect("sutekichiCometImpact", { side, index, isFinal });
   }
 
   function createSutekichiNapDream(side) {

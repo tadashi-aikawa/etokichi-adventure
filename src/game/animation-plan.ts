@@ -10,10 +10,14 @@ export interface TechniqueAnimationPlan {
   animation: TechniqueDefinition["animation"];
 }
 
+// 飛行時間は従来の1150msから半減し、全体尺を延ばさず6発を見せるため200ms間隔で連射する。
 export const SUTEKICHI_COMET_WAVES = [
-  { launchDelay: 1050, impactDelay: 2150 },
-  { launchDelay: 1425, impactDelay: 2525 },
-  { launchDelay: 1800, impactDelay: 2900 },
+  { launchDelay: 1050, impactDelay: 1625 },
+  { launchDelay: 1250, impactDelay: 1825 },
+  { launchDelay: 1450, impactDelay: 2025 },
+  { launchDelay: 1650, impactDelay: 2225 },
+  { launchDelay: 1850, impactDelay: 2425 },
+  { launchDelay: 2050, impactDelay: 2625 },
 ] as const;
 
 const FOREGROUND_ACTION_CLASSES = new Set([
