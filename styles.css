@@ -112,13 +112,13 @@ button { font: inherit; }
 .map-status-view { position: relative; z-index: 2; width: 100%; height: 100%; min-height: 0; }
 .map-status-abilities { display: grid; grid-template-columns: minmax(250px,.86fr) minmax(350px,1.14fr); gap: clamp(16px,2.5vw,36px); align-items: stretch; padding: clamp(18px,3vw,36px); }
 .map-status-profile { align-self: end; padding: 15px 17px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px 22px 10px 22px; background: rgba(2,25,18,.68); box-shadow: 0 12px 28px rgba(0,0,0,.22); backdrop-filter: blur(3px); }
-.map-status-profile p { margin: 0 0 12px; color: #d8eedc; font-size: 12px; line-height: 1.75; }
-.map-status-profile strong { display: inline-block; padding: 6px 10px; border: 1px solid rgba(255,228,120,.4); border-radius: 7px; color: #fff1a5; font-size: 10px; background: rgba(69,47,7,.32); }
+.map-status-profile p { margin: 0 0 12px; color: #d8eedc; font-size: clamp(14px,1.1vw,16px); line-height: 1.65; }
+.map-status-profile strong { display: inline-block; padding: 6px 10px; border: 1px solid rgba(255,228,120,.4); border-radius: 7px; color: #fff1a5; font-size: clamp(12px,.95vw,14px); background: rgba(69,47,7,.32); }
 .map-status-stats { align-self: center; display: grid; gap: 8px; margin: 0; }
 .map-status-stats div { position: relative; isolation: isolate; overflow: hidden; min-height: 53px; display: flex; align-items: center; padding: 8px 15px; border: 1px solid rgba(255,255,255,.15); border-radius: 9px 18px 9px 18px; background: rgba(2,24,17,.56); box-shadow: inset 0 1px rgba(255,255,255,.04),0 7px 18px rgba(0,0,0,.12); backdrop-filter: blur(3px); }
 .map-status-stats div::before { position: absolute; z-index: -1; inset: 0 auto 0 0; width: var(--stat-level,0%); content: ""; background: linear-gradient(90deg,rgba(239,171,31,.76),rgba(255,230,111,.28)); border-right: 1px solid rgba(255,239,155,.64); box-shadow: 10px 0 18px rgba(255,197,46,.14); animation: map-status-bar-grow .65s cubic-bezier(.18,.78,.2,1) both; transform-origin: left; }
 @keyframes map-status-bar-grow { from { scale: 0 1; } to { scale: 1 1; } }
-.map-status-stats dt { color: #e4f5e7; font-size: 11px; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
+.map-status-stats dt { color: #e4f5e7; font-size: clamp(13px,1vw,15px); font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,.7); }
 .map-status-stats dd { margin-left: auto; color: #fff5ad; font: 900 clamp(21px,2.4vw,29px) "Orbitron",sans-serif; text-shadow: 0 2px 7px rgba(0,0,0,.8); }
 .map-status-techniques { display: grid; grid-template-rows: auto minmax(0,1fr); gap: 10px; width: min(790px,80%); margin-left: auto; padding: clamp(15px,2.4vw,30px); }
 .map-technique-guide { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; }
@@ -1447,11 +1447,11 @@ button { font: inherit; }
   .map-status-portrait { left: -3%; bottom: -12%; width: 59%; height: 119%; }
   .map-status-abilities { grid-template-columns: minmax(175px,.75fr) minmax(275px,1.25fr); gap: 10px; padding: 6px 12px; }
   .map-status-profile { padding: 7px 9px; border-radius: 7px 14px; }
-  .map-status-profile p { margin: 0 0 5px; font-size: 7px; line-height: 1.45; }
-  .map-status-profile strong { padding: 3px 6px; font-size: 6px; }
+  .map-status-profile p { margin: 0 0 5px; font-size: clamp(8px,2.2vh,10px); line-height: 1.4; }
+  .map-status-profile strong { padding: 3px 6px; font-size: clamp(7px,1.9vh,9px); }
   .map-status-stats { gap: 3px; }
   .map-status-stats div { min-height: 0; padding: 3px 8px; border-radius: 5px 10px; }
-  .map-status-stats dt { font-size: 7px; }
+  .map-status-stats dt { font-size: clamp(8px,2.2vh,10px); }
   .map-status-stats dd { font-size: clamp(13px,4.5vh,18px); }
   .map-status-techniques { gap: 4px; width: 84%; padding: 5px 11px 5px 8px; }
   .map-technique-guide strong { font-size: 12px; }
