@@ -81,54 +81,8 @@
               <i></i><i></i><i></i>
               <img src="assets/etokichi/idle.webp" alt="" />
             </div>
-            <div class="title-actions">
-              <button id="game-start-button" class="primary-button">冒険をはじめる</button>
-              <button id="battle-trial-button" class="secondary-button" type="button">バトル試作を開く</button>
-            </div>
+            <button id="game-start-button" class="primary-button">冒険をはじめる</button>
             <small>RPG MAP PROTOTYPE</small>
-          </div>
-        </div>
-
-        <div id="opponent-select-screen" class="overlay opponent-select-screen" aria-labelledby="opponent-select-title">
-          <div class="opponent-select-card">
-            <p class="eyebrow">CHOOSE BOTH FIGHTERS</p>
-            <h2 id="opponent-select-title">キャラクター選択</h2>
-            <p class="opponent-select-guide">自分と相手をそれぞれ選択。同じキャラクター同士でも対戦できます。</p>
-            <div class="fighter-select-groups">
-              <section class="fighter-select-group hero-select-group">
-                <h3>自分 <small>YOU</small></h3>
-                <div class="opponent-grid character-grid" role="radiogroup" aria-label="自分のキャラクター">
-                  <button class="opponent-option character-option selected" type="button" role="radio" aria-checked="true" data-select-side="hero" data-character-id="etokichi"><span class="opponent-portrait"><img src="assets/etokichi/idle.webp" alt="エトキチ" /></span><span class="opponent-copy"><small>BALANCE TYPE</small><strong>エトキチ</strong><em>多彩な星技を操る冒険家</em></span><span class="opponent-ability">底力・根性・余裕・明鏡止水・覚醒</span></button>
-                  <button class="opponent-option character-option" type="button" role="radio" aria-checked="false" data-select-side="hero" data-character-id="kuroboshi"><span class="opponent-portrait kuroboshi-portrait"><img src="assets/enemies/kuroboshi/idle.webp" alt="クロボシ" /></span><span class="opponent-copy"><small>POWER TYPE</small><strong>クロボシ</strong><em>高い攻防で押し切る重量級</em></span><span class="opponent-ability">本気・余裕・嫉妬</span></button>
-                  <button class="opponent-option character-option sutekichi-option" type="button" role="radio" aria-checked="false" data-select-side="hero" data-character-id="sutekichi"><span class="opponent-portrait"><img src="assets/enemies/sutekichi/idle.webp" alt="ステキチ" /></span><span class="opponent-copy"><small>INTELLIGENCE TYPE</small><strong>ステキチ</strong><em>高命中・高回避の星の案内人</em></span><span class="opponent-ability">ひらめき・余裕</span></button>
-                  <button class="opponent-option character-option salaryman-option" type="button" role="radio" aria-checked="false" data-select-side="hero" data-character-id="salarymanEtokichi"><span class="opponent-portrait"><img src="assets/characters/salaryman-etokichi/idle.webp" alt="サラリーマンエトキチ" /></span><span class="opponent-copy"><small>CONTROL TYPE</small><strong>サラリーマンエトキチ</strong><em>知略と魅了で商談を制する星</em></span><span class="opponent-ability">ひらめき・余裕・ゾーン</span></button>
-                  <button class="opponent-option character-option tatsuo-option" type="button" role="radio" aria-checked="false" data-select-side="hero" data-character-id="tatsuo"><span class="opponent-portrait"><img src="assets/characters/tatsuo/idle.webp" alt="タツヲ" /></span><span class="opponent-copy"><small>HEAVY CONTROL</small><strong>タツヲ</strong><em>追って耐えて取り押さえる巨体</em></span><span class="opponent-ability">本気・追跡・快感</span></button>
-                  <button class="opponent-option character-option aster-option" type="button" role="radio" aria-checked="false" data-select-side="hero" data-character-id="aster"><span class="opponent-portrait"><img src="assets/characters/aster/idle.webp" alt="アステール" /></span><span class="opponent-copy"><small>ORACLE TYPE</small><strong>アステール</strong><em>魔眼と吸収術で秩序を執行する蛇神</em></span><span class="opponent-ability">余裕・本気</span></button>
-                </div>
-              </section>
-              <b class="fighter-select-vs">VS</b>
-              <section class="fighter-select-group enemy-select-group">
-                <h3>相手 <small>RIVAL</small></h3>
-                <div class="opponent-grid character-grid" role="radiogroup" aria-label="相手のキャラクター">
-                  <button class="opponent-option character-option" type="button" role="radio" aria-checked="false" data-select-side="enemy" data-character-id="etokichi"><span class="opponent-portrait"><img src="assets/etokichi/idle.webp" alt="エトキチ" /></span><span class="opponent-copy"><small>BALANCE TYPE</small><strong>エトキチ</strong><em>多彩な星技を操る冒険家</em></span><span class="opponent-ability">底力・根性・余裕・明鏡止水・覚醒</span></button>
-                  <button class="opponent-option character-option selected" type="button" role="radio" aria-checked="true" data-select-side="enemy" data-character-id="kuroboshi"><span class="opponent-portrait kuroboshi-portrait"><img src="assets/enemies/kuroboshi/idle.webp" alt="クロボシ" /></span><span class="opponent-copy"><small>POWER TYPE</small><strong>クロボシ</strong><em>高い攻防で押し切る重量級</em></span><span class="opponent-ability">本気・余裕・嫉妬</span></button>
-                  <button class="opponent-option character-option sutekichi-option" type="button" role="radio" aria-checked="false" data-select-side="enemy" data-character-id="sutekichi"><span class="opponent-portrait"><img src="assets/enemies/sutekichi/idle.webp" alt="ステキチ" /></span><span class="opponent-copy"><small>INTELLIGENCE TYPE</small><strong>ステキチ</strong><em>高命中・高回避の星の案内人</em></span><span class="opponent-ability">ひらめき・余裕</span></button>
-                  <button class="opponent-option character-option salaryman-option" type="button" role="radio" aria-checked="false" data-select-side="enemy" data-character-id="salarymanEtokichi"><span class="opponent-portrait"><img src="assets/characters/salaryman-etokichi/idle.webp" alt="サラリーマンエトキチ" /></span><span class="opponent-copy"><small>CONTROL TYPE</small><strong>サラリーマンエトキチ</strong><em>知略と魅了で商談を制する星</em></span><span class="opponent-ability">ひらめき・余裕・ゾーン</span></button>
-                  <button class="opponent-option character-option tatsuo-option" type="button" role="radio" aria-checked="false" data-select-side="enemy" data-character-id="tatsuo"><span class="opponent-portrait"><img src="assets/characters/tatsuo/idle.webp" alt="タツヲ" /></span><span class="opponent-copy"><small>HEAVY CONTROL</small><strong>タツヲ</strong><em>追って耐えて取り押さえる巨体</em></span><span class="opponent-ability">本気・追跡・快感</span></button>
-                  <button class="opponent-option character-option aster-option" type="button" role="radio" aria-checked="false" data-select-side="enemy" data-character-id="aster"><span class="opponent-portrait"><img src="assets/characters/aster/idle.webp" alt="アステール" /></span><span class="opponent-copy"><small>ORACLE TYPE</small><strong>アステール</strong><em>魔眼と吸収術で秩序を執行する蛇神</em></span><span class="opponent-ability">余裕・本気</span></button>
-                </div>
-              </section>
-            </div>
-            <section class="battle-music-select" aria-labelledby="battle-music-select-title">
-              <h3 id="battle-music-select-title">バトルBGM <small>MUSIC</small></h3>
-              <div class="battle-music-grid" role="radiogroup" aria-label="バトルBGM">
-                <button class="battle-music-option selected" type="button" role="radio" aria-checked="true" data-battle-music-id="ceremonial-colosseum"><span>01</span><strong>Ceremonial Colosseum</strong><small>ORIGINAL</small></button>
-                <button class="battle-music-option" type="button" role="radio" aria-checked="false" data-battle-music-id="ceremonial-colosseum-2"><span>02</span><strong>Ceremonial Colosseum II</strong><small>ALTERNATE</small></button>
-                <button class="battle-music-option" type="button" role="radio" aria-checked="false" data-battle-music-id="the-unyielding-titan"><span>03</span><strong>The Unyielding Titan</strong><small>HIGH-RANK BATTLE</small></button>
-              </div>
-            </section>
-            <button id="opponent-confirm-button" class="primary-button" type="button">この組み合わせで戦う</button>
-            <small>両陣営とBGMを選んで対戦へ</small>
           </div>
         </div>
 

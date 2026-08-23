@@ -65,10 +65,6 @@ import {
     announcement: $("#announcement"),
     effects: $("#effects"),
     titleScreen: $("#title-screen"),
-    opponentSelectScreen: $("#opponent-select-screen"),
-    characterOptions: $$(".character-option"),
-    battleMusicOptions: $$(".battle-music-option"),
-    opponentConfirmButton: $("#opponent-confirm-button"),
     startScreen: $("#start-screen"),
     resultScreen: $("#result-screen"),
     techniques: $$(".technique"),
@@ -89,7 +85,6 @@ import {
     prebattleEnemyAbilities: $("#prebattle-enemy-abilities"),
     prebattleStatRows: $$("[data-fighter][data-stat]"),
     gameStartButton: $("#game-start-button"),
-    battleTrialButton: $("#battle-trial-button"),
     enemyName: $("#enemy-name"),
     enemySubtitle: $("#enemy-subtitle"),
     heroName: $("#hero-name"),
@@ -105,7 +100,6 @@ import {
   const CHARACTER_PROFILES = createCharacterProfiles(actorImage);
   let selectedHeroId = "etokichi";
   let selectedEnemyId = "kuroboshi";
-  let selectedBattleMusicId = "ceremonial-colosseum";
   let activeHero = CHARACTER_PROFILES[selectedHeroId];
   let activeEnemy = CHARACTER_PROFILES[selectedEnemyId];
   let HERO_IMAGES = activeHero.images;
@@ -178,16 +172,11 @@ import {
   const BATTLE_MUSIC_VOLUME = .22;
   const VICTORY_MUSIC_VOLUME = .18;
   const SOUND_EFFECT_VOLUME = 2;
-  const BATTLE_MUSIC_TRACKS = {
-    "ceremonial-colosseum": "assets/audio/ceremonial-colosseum.mp3",
-    "ceremonial-colosseum-2": "assets/audio/ceremonial-colosseum-2.mp3",
-    "the-unyielding-titan": "assets/audio/the-unyielding-titan.mp3",
-  };
   const entranceMusic = new Audio(assetUrl("assets/audio/arena-overture-intro.mp3"));
   entranceMusic.loop = false;
   entranceMusic.preload = "auto";
   entranceMusic.volume = 0;
-  const battleMusic = new Audio(assetUrl(BATTLE_MUSIC_TRACKS[selectedBattleMusicId]));
+  const battleMusic = new Audio(assetUrl("assets/audio/ceremonial-colosseum.mp3"));
   battleMusic.loop = true;
   battleMusic.preload = "auto";
   battleMusic.volume = 0;
@@ -292,7 +281,7 @@ import {
     refs.heroName.textContent = profile.name;
     refs.heroSubtitle.textContent = profile.subtitle;
     refs.heroHp.textContent = profile.stats.life;
-    if (state && ["title", "titleTransition", "opponentSelect", "intro", "ready"].includes(state.phase)) state.heroHp = profile.stats.life;
+    if (state && ["title", "titleTransition", "intro", "ready"].includes(state.phase)) state.heroHp = profile.stats.life;
     setSpriteSource("hero", refs.heroSprite, profile.images.battleIdle ?? profile.images.idle);
     refs.heroSprite.alt = profile.name;
     refs.hero.classList.toggle("mirror-character", shouldMirror(profile, "hero"));
@@ -303,11 +292,6 @@ import {
     refs.prebattleHeroName.textContent = profile.name;
     refs.prebattleHeroAbilities.textContent = profile.abilitiesLabel;
     refs.heroTechniquePanel.setAttribute("aria-label", `${profile.name}の距離別技`);
-    refs.characterOptions.filter((option) => option.dataset.selectSide === "hero").forEach((option) => {
-      const selected = option.dataset.characterId === heroId;
-      option.classList.toggle("selected", selected);
-      option.setAttribute("aria-checked", String(selected));
-    });
     configureTechniquePanel("hero", profile);
     if (state) state.heroTechniqueSelection = [0, 0, 0, 0];
     Object.values(profile.images).flat().forEach((src) => { const image = new Image(); image.src = src; });
@@ -332,7 +316,7 @@ import {
     refs.enemyName.textContent = profile.name;
     refs.enemySubtitle.textContent = profile.subtitle;
     refs.enemyHp.textContent = profile.stats.life;
-    if (state && ["title", "titleTransition", "opponentSelect", "intro", "ready"].includes(state.phase)) state.enemyHp = profile.stats.life;
+    if (state && ["title", "titleTransition", "intro", "ready"].includes(state.phase)) state.enemyHp = profile.stats.life;
     setSpriteSource("enemy", refs.enemySprite, profile.images.idle);
     refs.enemySprite.alt = profile.name;
     refs.enemy.classList.toggle("mirror-character", shouldMirror(profile, "enemy"));
@@ -343,28 +327,10 @@ import {
     refs.prebattleEnemyName.textContent = profile.name;
     refs.prebattleEnemyAbilities.textContent = profile.abilitiesLabel;
     refs.enemyTechniquePanel.setAttribute("aria-label", `${profile.name}の距離別技`);
-    refs.characterOptions.filter((option) => option.dataset.selectSide === "enemy").forEach((option) => {
-      const selected = option.dataset.characterId === enemyId;
-      option.classList.toggle("selected", selected);
-      option.setAttribute("aria-checked", String(selected));
-    });
     configureTechniquePanel("enemy", profile);
     if (state) state.enemyTechniqueSelection = [0, 0, 0, 0];
     Object.values(profile.images).flat().forEach((src) => { const image = new Image(); image.src = src; });
     renderPrebattleStats(1);
-  }
-
-  function applyBattleMusic(battleMusicId) {
-    const source = BATTLE_MUSIC_TRACKS[battleMusicId];
-    if (!source) return;
-    selectedBattleMusicId = battleMusicId;
-    battleMusic.src = assetUrl(source);
-    battleMusic.load();
-    refs.battleMusicOptions.forEach((option) => {
-      const selected = option.dataset.battleMusicId === battleMusicId;
-      option.classList.toggle("selected", selected);
-      option.setAttribute("aria-checked", String(selected));
-    });
   }
 
   function configureTechniquePanel(side, profile) {
@@ -490,17 +456,6 @@ import {
       requestGameFullscreen();
       enterMapFromTitle();
     });
-    refs.battleTrialButton.addEventListener("click", () => {
-      requestGameFullscreen();
-      leaveTitleScreen();
-    });
-    refs.characterOptions.forEach((option) => option.addEventListener("click", () => {
-      if (option.dataset.selectSide === "hero") applyHeroProfile(option.dataset.characterId);
-      else applyEnemyProfile(option.dataset.characterId);
-    }));
-    refs.battleMusicOptions.forEach((option) => option.addEventListener("click", () => {
-      applyBattleMusic(option.dataset.battleMusicId);
-    }));
     window.addEventListener("etokichi:map-battle-request", (event) => {
       const { heroId, opponentId } = event.detail ?? {};
       if (!CHARACTER_PROFILES[heroId] || !CHARACTER_PROFILES[opponentId]) return;
@@ -509,7 +464,6 @@ import {
       refs.resultScreen.classList.remove("visible");
       startPrebattleIntro();
     });
-    refs.opponentConfirmButton.addEventListener("click", confirmOpponentSelection);
     refs.startButton.addEventListener("click", startBattle);
     refs.retryButton.addEventListener("click", startBattle);
     refs.mapReturnButton.addEventListener("click", returnToMap);
@@ -531,7 +485,6 @@ import {
       if (["ShiftLeft", "ShiftRight", "KeyS"].includes(event.code)) pushEnemy();
       if (/^Digit[1-4]$/.test(event.code)) usePlayerTechnique(getSelectedTechnique(Number(event.code.at(-1)) - 1));
       if (event.code === "Enter" && state.phase === "title") enterMapFromTitle();
-      else if (event.code === "Enter" && state.phase === "opponentSelect") confirmOpponentSelection();
       else if (event.code === "Enter" && ["ready", "result"].includes(state.phase)) startBattle();
     });
     window.addEventListener("keyup", (event) => {
@@ -585,26 +538,10 @@ import {
     });
   }
 
-  function leaveTitleScreen() {
-    if (state.phase !== "title") return;
-    state.phase = "titleTransition";
-    refs.gameStartButton.disabled = true;
-    refs.battleTrialButton.disabled = true;
-    refs.titleScreen.classList.add("leaving");
-    armEntranceMusic();
-    setTimeout(() => {
-      if (state.phase !== "titleTransition") return;
-      refs.titleScreen.classList.remove("visible", "leaving");
-      state.phase = "opponentSelect";
-      refs.opponentSelectScreen.classList.add("visible");
-    }, 620);
-  }
-
   function enterMapFromTitle() {
     if (state.phase !== "title") return;
     state.phase = "titleTransition";
     refs.gameStartButton.disabled = true;
-    refs.battleTrialButton.disabled = true;
     refs.titleScreen.classList.add("leaving");
     setTimeout(() => {
       if (state.phase !== "titleTransition") return;
@@ -612,12 +549,6 @@ import {
       state.phase = "map";
       window.etokichiGameSession?.enterMap();
     }, 620);
-  }
-
-  function confirmOpponentSelection() {
-    if (state.phase !== "opponentSelect") return;
-    refs.opponentSelectScreen.classList.remove("visible");
-    startPrebattleIntro();
   }
 
   function bindHoldButton(button, direction) {
@@ -630,7 +561,7 @@ import {
   }
 
   function startBattle() {
-    if (["title", "titleTransition", "opponentSelect", "intro"].includes(state.phase)) return;
+    if (["title", "titleTransition", "intro"].includes(state.phase)) return;
     syncGameSessionForBattleStart();
     stopGameLoop();
     hiddenBattleAt = 0;
@@ -678,15 +609,7 @@ import {
     const gameSession = window.etokichiGameSession;
     if (!gameSession) return;
     const worldState = gameSession.getState();
-    if (worldState.scene !== "battle") {
-      gameSession.beginBattle({
-        encounterId: "battle-trial",
-        heroId: selectedHeroId,
-        opponentId: selectedEnemyId,
-        returnScene: worldState.scene === "map" ? "map" : "title",
-      });
-      return;
-    }
+    if (worldState.scene !== "battle" || !worldState.activeBattle) throw new Error("広場で対戦相手を選んでからバトルを開始してください");
     if (worldState.activeBattle?.result) gameSession.restartBattle();
   }
 
@@ -3293,14 +3216,6 @@ import {
     battleMusic.volume = 0;
     battleMusic.play().catch(() => {
       // FIGHT!時に再試行する。開始ボタン操作時の呼び出しで自動再生許可を確保する。
-    });
-  }
-
-  function armEntranceMusic() {
-    stopEntranceMusic();
-    entranceMusic.volume = 0;
-    entranceMusic.play().catch(() => {
-      // 入場開始時に再試行する。ゲーム開始操作時の呼び出しで自動再生許可を確保する。
     });
   }
 
