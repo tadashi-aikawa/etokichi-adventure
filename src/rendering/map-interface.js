@@ -1,7 +1,9 @@
 import {
   advanceDialogue,
   findFacingNpc,
+  getCharacterGreeting,
   getDialogueNode,
+  getDialogueSpeakerId,
   selectDialogueChoice,
   startDialogue,
 } from "../game/map-interaction.ts";
@@ -81,6 +83,7 @@ export function createMapInterface({
       <button type="button" data-map-action="status"><span>✦</span>ステータス</button>
     </div>
     <section class="map-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="map-dialogue-speaker" hidden>
+      <div class="map-dialogue-portrait" aria-hidden="true" hidden></div>
       <div class="map-dialogue-copy">
         <p id="map-dialogue-speaker" class="map-dialogue-speaker"></p>
         <p class="map-dialogue-text" aria-live="polite"></p>
@@ -123,6 +126,7 @@ export function createMapInterface({
   const statusButton = root.querySelector('[data-map-action="status"]');
   const statusPanel = root.querySelector(".map-status-panel");
   const dialoguePanel = root.querySelector(".map-dialogue-panel");
+  const dialoguePortrait = root.querySelector(".map-dialogue-portrait");
   const dialogueSpeaker = root.querySelector(".map-dialogue-speaker");
   const dialogueText = root.querySelector(".map-dialogue-text");
   const dialogueChoices = root.querySelector(".map-dialogue-choices");
@@ -163,13 +167,13 @@ export function createMapInterface({
     if (!nearbyNpc || isBlocking()) return;
     const characterId = getNpcCharacterId(nearbyNpc.name);
     if (characterId && characterProfiles[characterId]) {
-      characterAction = { marker: nearbyNpc, characterId };
+      characterAction = { marker: nearbyNpc, characterId, stage: "greeting" };
       selectedChoiceIndex = 0;
       dialoguePanel.hidden = false;
       prompt.hidden = true;
       onModeChange("dialogue");
       onDialogueOpen(nearbyNpc);
-      renderCharacterActions();
+      renderCharacterGreeting();
       return;
     }
     const dialogueId = nearbyNpc.properties.dialogueId;
@@ -184,9 +188,22 @@ export function createMapInterface({
     renderDialogue();
   }
 
+  function renderCharacterGreeting() {
+    if (!characterAction) return;
+    const profile = characterProfiles[characterAction.characterId];
+    renderDialoguePortrait(profile, characterAction.characterId);
+    dialogueSpeaker.textContent = profile.name;
+    dialogueText.textContent = getCharacterGreeting(characterAction.characterId);
+    dialogueChoices.replaceChildren();
+    dialogueNext.hidden = false;
+    dialogueNext.textContent = "つぎへ  ●";
+    dialogueNext.focus({ preventScroll: true });
+  }
+
   function renderCharacterActions() {
     if (!characterAction) return;
     const profile = characterProfiles[characterAction.characterId];
+    renderDialoguePortrait(profile, characterAction.characterId);
     dialogueSpeaker.textContent = profile.name;
     dialogueText.textContent = `${profile.name}にどうする？`;
     dialogueChoices.replaceChildren();
@@ -206,6 +223,8 @@ export function createMapInterface({
   function renderDialogue() {
     if (!progress) return;
     const node = getDialogueNode(progress);
+    const speakerId = getDialogueSpeakerId(node);
+    renderDialoguePortrait(speakerId ? characterProfiles[speakerId] : null, speakerId);
     dialogueSpeaker.textContent = node.speaker;
     dialogueText.textContent = node.text;
     dialogueChoices.replaceChildren();
@@ -237,6 +256,11 @@ export function createMapInterface({
 
   function advance() {
     if (characterAction) {
+      if (characterAction.stage === "greeting") {
+        characterAction.stage = "actions";
+        renderCharacterActions();
+        return;
+      }
       chooseCharacterAction(CHARACTER_ACTIONS[selectedChoiceIndex].id);
       return;
     }
@@ -264,10 +288,32 @@ export function createMapInterface({
   function closeDialogue() {
     progress = null;
     characterAction = null;
+    renderDialoguePortrait(null, null);
     dialoguePanel.hidden = true;
     updateNearbyNpc();
     onModeChange("map");
     talkButton.focus({ preventScroll: true });
+  }
+
+  function renderDialoguePortrait(profile, speakerId) {
+    if (!profile || !speakerId) {
+      dialoguePortrait.hidden = true;
+      dialoguePortrait.replaceChildren();
+      delete dialoguePortrait.dataset.characterId;
+      return;
+    }
+
+    if (dialoguePortrait.dataset.characterId === speakerId && dialoguePortrait.firstElementChild) {
+      dialoguePortrait.hidden = false;
+      return;
+    }
+
+    const image = new Image();
+    image.src = profile.images.idle;
+    image.alt = "";
+    dialoguePortrait.replaceChildren(image);
+    dialoguePortrait.dataset.characterId = speakerId;
+    dialoguePortrait.hidden = false;
   }
 
   function openStatus() {
@@ -314,6 +360,7 @@ export function createMapInterface({
 
   function moveChoice(delta) {
     if (characterAction) {
+      if (characterAction.stage !== "actions") return;
       selectedChoiceIndex = (selectedChoiceIndex + delta + CHARACTER_ACTIONS.length) % CHARACTER_ACTIONS.length;
       renderCharacterActions();
       return;
@@ -394,6 +441,7 @@ export function createMapInterface({
         nearbyNpc: nearbyNpc?.name ?? null,
         dialogueNodeId: progress?.nodeId ?? null,
         characterActionId: characterAction?.characterId ?? null,
+        characterActionStage: characterAction?.stage ?? null,
       };
     },
     destroy() {

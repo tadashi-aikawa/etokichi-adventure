@@ -12,10 +12,28 @@ export interface DialogueChoice {
 export interface DialogueNode {
   id: string;
   speaker: string;
+  speakerId?: CharacterId;
   text: string;
   nextNodeId?: string;
   choices?: readonly DialogueChoice[];
   completionFlags?: Record<string, WorldFlagValue>;
+}
+
+export function getDialogueSpeakerId(node: DialogueNode): CharacterId | null {
+  return node.speakerId ?? null;
+}
+
+const CHARACTER_GREETINGS: Readonly<Record<CharacterId, string>> = {
+  etokichi: "やあ！ きみも冒険の予感を感じた？ 今日は何をして遊ぼうか！",
+  kuroboshi: "グルルル……！",
+  sutekichi: "星がきらきら騒いでるよ。今日は何か、面白いことが起こりそう！",
+  salarymanEtokichi: "お疲れさまです。今日の予定を確認したら、さっそく取りかかりましょう。",
+  tatsuo: "来たな。困りごとなら、この大きな腕に任せてくれ。",
+  aster: "来ましたね。星の巡りは、すでに読み終えています。",
+};
+
+export function getCharacterGreeting(characterId: CharacterId): string {
+  return CHARACTER_GREETINGS[characterId];
 }
 
 export interface DialogueDefinition {

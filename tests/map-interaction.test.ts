@@ -5,8 +5,10 @@ import {
   createCharacterHomeMarkers,
   createNpcCollisions,
   findFacingNpc,
+  getCharacterGreeting,
   getFacingToward,
   getDialogueNode,
+  getDialogueSpeakerId,
   getVisibleCharacterHomeMarkers,
   selectDialogueChoice,
   startDialogue,
@@ -49,6 +51,20 @@ const markers: MapMarker[] = [
 ];
 
 describe("マップ会話", () => {
+  it("全メインキャラクターに本題前の導入があり、クロボシは鳴き声だけで応じる", () => {
+    expect(
+      CHARACTER_IDS.map((characterId) => getCharacterGreeting(characterId).length).every((length) => length > 0),
+    ).toBe(true);
+    expect(getCharacterGreeting("kuroboshi")).toBe("グルルル……！");
+  });
+
+  it("会話ノードの話者IDを立ち絵選択用に返す", () => {
+    expect(getDialogueSpeakerId({ id: "line", speaker: "エトキチ", speakerId: "etokichi", text: "行こう！" })).toBe(
+      "etokichi",
+    );
+    expect(getDialogueSpeakerId({ id: "narration", speaker: "広場のガイド", text: "説明するよ。" })).toBeNull();
+  });
+
   it("操作中キャラクター以外のホーム地点をNPCとして返す", () => {
     const homes = CHARACTER_IDS.map(
       (characterId, index): MapMarker => ({
