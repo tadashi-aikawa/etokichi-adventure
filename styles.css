@@ -148,7 +148,7 @@ button { font: inherit; }
 .map-technique-slot { display: grid; place-content: center; border-right: 1px solid rgba(255,255,255,.14); color: #91aa9a; text-align: center; }
 .map-technique-slot span { font-size: 8px; font-weight: 900; letter-spacing: .13em; }
 .map-technique-slot b { color: #ffe478; font: 900 25px/1 "Orbitron",sans-serif; }
-.map-technique-card { --technique-accent: #58e6a5; position: relative; min-width: 0; overflow: hidden; display: grid; grid-template-columns: 44px minmax(0,1fr) auto; grid-template-rows: auto minmax(0,1fr) auto; gap: 4px 8px; padding: 7px 8px; border: 1px solid rgba(255,255,255,.15); border-radius: 10px 20px 10px 20px; background: rgba(2,24,17,.8); box-shadow: 0 10px 24px rgba(0,0,0,.2),inset 3px 0 var(--technique-accent); backdrop-filter: blur(8px); }
+.map-technique-card { --technique-accent: #58e6a5; position: relative; min-width: 0; overflow: hidden; display: grid; grid-template-columns: 44px minmax(0,1fr) auto; grid-template-rows: auto minmax(0,1fr) auto; gap: 3px 8px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.15); border-radius: 10px 20px 10px 20px; background: rgba(2,24,17,.8); box-shadow: 0 10px 24px rgba(0,0,0,.2),inset 3px 0 var(--technique-accent); backdrop-filter: blur(8px); }
 .map-technique-card.power { --technique-accent: #ffd54f; }
 .map-technique-icon { grid-column: 1; grid-row: 1 / 4; width: 44px; height: 100%; min-height: 48px; display: grid; place-items: center; border: 1px solid color-mix(in srgb,var(--technique-accent) 44%,transparent); border-radius: 8px 14px; color: var(--technique-accent); background: rgba(0,0,0,.2); box-shadow: 0 0 17px color-mix(in srgb,var(--technique-accent) 19%,transparent); }
 .map-technique-icon svg { width: 31px; height: 31px; overflow: visible; fill: currentColor; }
@@ -157,7 +157,7 @@ button { font: inherit; }
 .map-technique-cost small { margin-right: 3px; color: #819f8d; font-size: 6px; }
 .map-technique-card > p { grid-column: 2 / 4; margin: 0; overflow: hidden; display: -webkit-box; color: #c5d9ca; font-size: 9px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .map-technique-card dl { grid-column: 2 / 4; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; margin: 0; }
-.map-technique-card dl div { min-width: 0; padding: 3px 2px; border-radius: 5px 9px; text-align: center; background: rgba(255,255,255,.055); }
+.map-technique-card dl div { min-width: 0; padding: 2px; border-radius: 5px 9px; text-align: center; background: rgba(255,255,255,.055); }
 .map-technique-card dt { overflow: hidden; color: #829b8b; font-size: 6px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .map-technique-card dd { margin: 1px 0 0; color: #c7d6cb; font: 900 11px/1 "Orbitron",sans-serif; }
 .map-technique-card dd[data-rank^="S"] { color: #ffe478; text-shadow: 0 0 10px rgba(255,217,84,.35); }
