@@ -77,6 +77,7 @@ describe("EventRunner", () => {
   });
 
   it("全キャラクターの組み合わせで操作側から固有会話を始める", () => {
+    const spokenLines = new Map(CHARACTER_IDS.map((characterId) => [characterId, new Set<string>()]));
     for (const targetId of CHARACTER_IDS) {
       const conversations = new Set<string>();
       for (const controlledCharacterId of CHARACTER_IDS) {
@@ -97,8 +98,18 @@ describe("EventRunner", () => {
         expect(response).toMatchObject({ speakerId: targetId, nodeId: `response:${controlledCharacterId}` });
         expect(action).toMatchObject({ speakerId: targetId, nodeId: "action" });
         conversations.add(`${opener?.text}\n${response?.text}`);
+        if (opener?.speakerId) spokenLines.get(opener.speakerId)?.add(opener.text);
+        if (response?.speakerId) spokenLines.get(response.speakerId)?.add(response.text);
+        if (action?.speakerId) spokenLines.get(action.speakerId)?.add(action.text);
       }
       expect(conversations.size).toBe(CHARACTER_IDS.length - 1);
+    }
+
+    const etokichiLines = [...(spokenLines.get("etokichi") ?? [])];
+    expect(etokichiLines.some((line) => line.includes("キチ！"))).toBe(true);
+    expect(etokichiLines.some((line) => !line.includes("キチ"))).toBe(true);
+    for (const line of spokenLines.get("tatsuo") ?? []) {
+      expect(line).not.toMatch(/(?<!ウホ)[。！？]/u);
     }
   });
 

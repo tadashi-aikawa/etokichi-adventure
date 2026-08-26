@@ -634,7 +634,8 @@ export function createCharacterProfiles(resolveAsset: AssetResolver): Record<Cha
       baseFacing: "left",
       name: "ステキチ",
       subtitle: "STELLAR GUIDE",
-      description: "星の兆しを読む、身軽な案内役。すばやいガッツ回復と高い回避で翻弄し、ひらめきから好機をつかむ。",
+      description:
+        "のんびり屋でお寝坊な、星の兆しを読むゆるふわ案内役。すばやいガッツ回復と高い回避で翻弄し、ひらめきから好機をつかむ。",
       abilitiesLabel: "ひらめき・余裕",
       images: {
         idle: asset("assets/enemies/sutekichi/idle.webp"),

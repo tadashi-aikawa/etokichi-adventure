@@ -48,18 +48,18 @@ const CHARACTER_CONVERSATIONS: Readonly<
   etokichi: {
     kuroboshi: {
       opener: "グルッ、グルルル！",
-      response: "わかった！ その『行こう』って声、ちゃんと聞こえたよ！",
+      response: "わかった！ その『行こう』って声、ちゃんと聞こえたキチ！",
     },
     sutekichi: {
-      opener: "エトキチ、あっちの星が『出発しよう』って光ってるよ！",
-      response: "ほんとだ！ 星が待ってるなら、すぐ出発しよう！",
+      opener: "エトキチ〜、あっちの星が出発しようって光ってるよ。もう少ししたら行こ〜。",
+      response: "ほんとだ！ 星が待ってるなら、すぐ出発するキチ！",
     },
     salarymanEtokichi: {
       opener: "エトキチさん、本日の冒険プランを三案にまとめました。",
       response: "三案とも面白そう！ 順番に全部やってみようよ！",
     },
     tatsuo: {
-      opener: "エトキチ、先頭は任せろ。危ないものは俺が受け止める。",
+      opener: "エトキチ、先頭は任せろウホ。危ないものは俺が受け止めるウホ。",
       response: "頼もしいなあ！ じゃあぼくは、一番わくわくする道を選ぶね！",
     },
     aster: {
@@ -69,11 +69,11 @@ const CHARACTER_CONVERSATIONS: Readonly<
   },
   kuroboshi: {
     etokichi: {
-      opener: "クロボシ、今日もその角、かっこいいね！ 一緒にひと暴れしようよ！",
+      opener: "クロボシ、今日もその角、かっこいいね！ 一緒にひと暴れするキチ！",
       response: "グルルッ！ ワォン！",
     },
     sutekichi: {
-      opener: "クロボシの角、夜空の三日月みたい！ 触ってもいい？",
+      opener: "クロボシの角、三日月みたいで素敵だねぇ。そばでお昼寝してもいい？",
       response: "グル……クゥン。",
     },
     salarymanEtokichi: {
@@ -81,7 +81,7 @@ const CHARACTER_CONVERSATIONS: Readonly<
       response: "グルルル……ペタッ。",
     },
     tatsuo: {
-      opener: "クロボシ、今度こそ正面から力比べだ。",
+      opener: "クロボシ、今度こそ正面から力比べだウホ！",
       response: "グォォォン！",
     },
     aster: {
@@ -92,23 +92,23 @@ const CHARACTER_CONVERSATIONS: Readonly<
   sutekichi: {
     etokichi: {
       opener: "ステキチ、その星はどこから来るの？ ぼくにもひとつ見せて！",
-      response: "いいよ！ いちばん元気な星を捕まえてみせるね！",
+      response: "いいよ〜。でも、星を捕まえる前にちょっとお昼寝してもいい？",
     },
     kuroboshi: {
       opener: "グルル……ワフッ！",
-      response: "今の鳴き声、流れ星みたいに速かったよ！",
+      response: "いまの声、流れ星みたいだったねぇ。なんだか眠くなってきた〜。",
     },
     salarymanEtokichi: {
       opener: "ステキチさん、星探しの進捗を共有いただけますか？",
-      response: "進捗は絶好調！ 新しい星を三つ見つけたよ！",
+      response: "新しい星を三つ見つけたよ〜。報告は、お昼寝のあとでもいい？",
     },
     tatsuo: {
-      opener: "ステキチ、高いところの星なら俺が持ち上げてやる。",
-      response: "ほんと？ じゃあ肩の上から、空をぜんぶ探す！",
+      opener: "ステキチ、高いところの星なら俺が持ち上げてやるウホ。",
+      response: "わあ〜、お願い。肩の上なら、ぽかぽか眠れそうだねぇ。",
     },
     aster: {
       opener: "ステキチ。星々があなたの周りだけ騒がしいですね。",
-      response: "あの青い星！ さっきからぼくらのことを呼んでるよ。",
+      response: "あの青い星かなぁ。ゆっくり光ってて、見てると眠くなるよ〜。",
     },
   },
   salarymanEtokichi: {
@@ -121,11 +121,11 @@ const CHARACTER_CONVERSATIONS: Readonly<
       response: "肉球印、確かに受領しました。迅速なご対応ありがとうございます。",
     },
     sutekichi: {
-      opener: "ねえ、予定表に『星を見る時間』も入れてよ！",
+      opener: "ねえ〜、予定表に『お昼寝しながら星を見る時間』も入れてよ〜。",
       response: "承知しました。毎日十五分、予定表に確保しましょう。",
     },
     tatsuo: {
-      opener: "サラリーマンエトキチ、無理な仕事は俺にも寄こせ。",
+      opener: "サラリーマンエトキチ、無理な仕事は俺にも寄こすウホ。",
       response: "ありがとうございます。ただし、まずは分担と優先順位を整理しましょう。",
     },
     aster: {
@@ -135,29 +135,29 @@ const CHARACTER_CONVERSATIONS: Readonly<
   },
   tatsuo: {
     etokichi: {
-      opener: "タツヲ、その腕ならどんな道でも切り開けそうだね！",
-      response: "任せろ。道を塞ぐものは、この腕でまとめてどけてやる。",
+      opener: "タツヲ、その腕ならどんな道でも切り開けそうだキチ！",
+      response: "任せろウホ。道を塞ぐものは、この腕でまとめてどけてやるウホ！",
     },
     kuroboshi: {
       opener: "グォォン！",
-      response: "いい唸りだ。俺も遠慮せず、全力で受けて立つぞ。",
+      response: "いい唸りだウホ。俺も遠慮せず、全力で受けて立つウホ！",
     },
     sutekichi: {
-      opener: "タツヲの腕に乗ったら、星へ近づけるかな？",
-      response: "任せろ。落ちないよう、しっかりつかまっていろよ。",
+      opener: "タツヲの腕に乗ったら、寝たまま星へ近づけるかなぁ？",
+      response: "任せろウホ。落ちないよう、しっかりつかまっているウホ。",
     },
     salarymanEtokichi: {
       opener: "タツヲさん、重量物の運搬をお願いしてもよろしいですか？",
-      response: "いいとも。だが、お前まで潰れそうな仕事は先に減らすぞ。",
+      response: "いいともウホ。だが、お前まで潰れそうな仕事は先に減らすウホ。",
     },
     aster: {
       opener: "タツヲ。力だけでは開かない扉もあります。",
-      response: "なるほどな。なら、お前が示せ。俺が道を作る。",
+      response: "なるほどウホ。なら、お前が示すウホ。俺が道を作るウホ。",
     },
   },
   aster: {
     etokichi: {
-      opener: "アステール、星の先に何があるか、一緒に見に行こう！",
+      opener: "アステール、星の先に何があるか、一緒に見に行くキチ！",
       response: "勢いだけで星へ届くつもりですか。……嫌いではありません。",
     },
     kuroboshi: {
@@ -165,7 +165,7 @@ const CHARACTER_CONVERSATIONS: Readonly<
       response: "ええ。その警戒心は正しい。闇もまた、こちらを見ています。",
     },
     sutekichi: {
-      opener: "アステール、今日いちばんおしゃべりな星はどれ？",
+      opener: "アステール〜、今日いちばんのんびりしてる星はどれ〜？",
       response: "あの赤い星です。騒がしいのは、あなたに似たのでしょう。",
     },
     salarymanEtokichi: {
@@ -173,7 +173,7 @@ const CHARACTER_CONVERSATIONS: Readonly<
       response: "承知しました。最悪の分岐から順に潰しましょう。",
     },
     tatsuo: {
-      opener: "アステール、先が見えているなら進む道を教えてくれ。",
+      opener: "アステール、先が見えているなら進む道を教えてくれウホ。",
       response: "では私が鍵を読み、あなたが扉を開く。単純で良いでしょう。",
     },
   },
@@ -199,7 +199,12 @@ function createCharacterActionEvent(characterId: CharacterId): EventDefinition {
       type: "choice",
       speaker,
       speakerId: characterId,
-      text: `${speaker}にどうする？`,
+      text:
+        characterId === "sutekichi"
+          ? "ステキチと、なにする〜？"
+          : characterId === "tatsuo"
+            ? "タツヲにどうするウホ？"
+            : `${speaker}にどうする？`,
       choices: [
         { id: "battle", label: "対戦する", nextNodeId: "battle" },
         {
