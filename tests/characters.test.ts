@@ -29,6 +29,20 @@ describe("キャラクター定義", () => {
     }
   });
 
+  it("全技に固有の短い説明文を持たせ、各距離を4スロット以内に収める", () => {
+    const descriptions = Object.values(profiles).flatMap((profile) =>
+      profile.techniques.map((technique) => technique.description),
+    );
+
+    expect(descriptions.every((description) => description.length >= 18 && description.length <= 40)).toBe(true);
+    expect(new Set(descriptions).size).toBe(descriptions.length);
+    for (const profile of Object.values(profiles)) {
+      for (const range of [0, 1, 2, 3]) {
+        expect(profile.techniques.filter((technique) => technique.range === range).length).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+
   it("全キャラクターに固有の説明文を持たせる", () => {
     const descriptions = Object.values(profiles).map(({ description }) => description);
     expect(descriptions.every((description) => description.length >= 40)).toBe(true);

@@ -63,6 +63,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
   {
     id: "punch",
     name: "エトキチパンチ",
+    description: "低コストで素早く放つ、近距離の基本打撃。",
     iconSvg: icon.punch,
     cost: 16,
     power: 90,
@@ -81,6 +82,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
     id: "pentagramNova",
     name: "エトキチ・ペンタグラムノヴァ",
     cardName: "ペンタグラムノヴァ",
+    description: "星型の軌道で突撃する、高威力・高消費の大技。",
     iconSvg: icon.pentagramNova,
     cost: 62,
     power: 380,
@@ -99,6 +101,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
   {
     id: "starRing",
     name: "スターリング",
+    description: "星の輪をまとって打撃。命中と威力のバランス型。",
     iconSvg: icon.starRing,
     cost: 24,
     power: 124,
@@ -116,6 +119,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
   {
     id: "etoileDrive",
     name: "エトワール・ドライブ",
+    description: "攻撃せず距離を詰め、近距離の大技へつなげる。",
     iconSvg: icon.etoileDrive,
     cost: 32,
     power: 0,
@@ -131,6 +135,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
   {
     id: "galaxyRay",
     name: "ギャラクシーレイ",
+    description: "直線状の光線で攻撃。遠距離の軸になるかしこさ技。",
     iconSvg: icon.galaxyRay,
     cost: 32,
     power: 172,
@@ -149,6 +154,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
     id: "galaxyFlash",
     name: "エトキチギャラクシーフラッシュ",
     cardName: "ギャラクシーフラッシュ",
+    description: "遠間から星光を収束。高威力と吹き飛ばしを両立する。",
     iconSvg: icon.galaxyFlash,
     cost: 48,
     power: 292,
@@ -166,6 +172,7 @@ const etokichiTechniques: TechniqueDefinition[] = [
   {
     id: "throwKiss",
     name: "投げキッス",
+    description: "高い命中でガッツを大きく削る、遠距離の牽制技。",
     iconSvg: icon.throwKiss,
     cost: 20,
     power: 46,
@@ -186,6 +193,7 @@ const kuroboshiTechniques: TechniqueDefinition[] = [
   {
     id: "meteorClaw",
     name: "メテオクロー",
+    description: "鋭い爪で切り裂く、命中に優れた近距離の基本技。",
     iconSvg: icon.meteorClaw,
     cost: 16,
     power: 82,
@@ -203,6 +211,7 @@ const kuroboshiTechniques: TechniqueDefinition[] = [
   {
     id: "crescentHorn",
     name: "クレセントホーン",
+    description: "三日月の角で突き上げる、威力と命中のバランス技。",
     iconSvg: icon.crescentHorn,
     cost: 23,
     power: 118,
@@ -220,6 +229,7 @@ const kuroboshiTechniques: TechniqueDefinition[] = [
   {
     id: "darkOrbit",
     name: "ダークオービット",
+    description: "闇の軌道を飛ばし、ダメージとガッツを同時に削る。",
     iconSvg: icon.darkOrbit,
     cost: 30,
     power: 154,
@@ -237,6 +247,7 @@ const kuroboshiTechniques: TechniqueDefinition[] = [
   {
     id: "blackMeteor",
     name: "ブラックメテオ",
+    description: "黒い隕石を落とす、超遠距離の高威力な大技。",
     iconSvg: icon.blackMeteor,
     cost: 43,
     power: 230,
@@ -257,6 +268,7 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   {
     id: "starTouch",
     name: "スターダストタッチ",
+    description: "星屑をまとった肉球で、高い命中からガッツも削る。",
     iconSvg: icon.starTouch,
     cost: 15,
     power: 68,
@@ -274,6 +286,7 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   {
     id: "haloSkip",
     name: "ハロースキップ",
+    description: "光輪とともに跳び込み、威力と命中を両立する。",
     iconSvg: icon.haloSkip,
     cost: 22,
     power: 108,
@@ -291,6 +304,7 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   {
     id: "stellaSearch",
     name: "ステラサーチ",
+    description: "星を探知して狙い撃ちし、ガッツを大きく削る。",
     iconSvg: icon.stellaSearch,
     cost: 29,
     power: 142,
@@ -308,6 +322,7 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   {
     id: "discoveryComet",
     name: "ディスカバリー・コメット",
+    description: "発見した彗星を呼ぶ、高威力・低命中の大技。",
     iconSvg: icon.discoveryComet,
     cost: 46,
     power: 248,
@@ -325,6 +340,7 @@ const sutekichiTechniques: TechniqueDefinition[] = [
   {
     id: "nap",
     name: "おひるね",
+    description: "成功すればライフを全回復する、気ままな休息技。",
     iconSvg: icon.nap,
     cost: 55,
     power: 0,
@@ -347,6 +363,7 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
   {
     id: "businessCardStrike",
     name: "名刺ストライク",
+    description: "名刺を鋭く打ち込み、確実にガッツも削る基本技。",
     iconSvg: icon.businessCard,
     cost: 15,
     power: 76,
@@ -364,6 +381,7 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
   {
     id: "angelWink",
     name: "エンジェルウィンク",
+    description: "魅了を狙いつつガッツを大きく削る、必中級の視線。",
     iconSvg: icon.angelWink,
     cost: 31,
     power: 54,
@@ -382,6 +400,7 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
   {
     id: "approvalMeteor",
     name: "稟議書メテオ",
+    description: "承認済みの隕石を落とす、超遠距離の高威力技。",
     iconSvg: icon.approvalMeteor,
     cost: 45,
     power: 238,
@@ -399,6 +418,7 @@ const salarymanEtokichiTechniques: TechniqueDefinition[] = [
   {
     id: "closingTimeDash",
     name: "定時ダッシュ",
+    description: "一瞬で間合いを詰めて攻撃する、帰宅速度の突進技。",
     iconSvg: icon.closingTime,
     cost: 24,
     power: 126,
@@ -420,6 +440,7 @@ const tatsuoTechniques: TechniqueDefinition[] = [
   {
     id: "tatsuoSlap",
     name: "タツヲビンタ",
+    description: "素早い平手打ちで、ライフとガッツを手堅く削る。",
     iconSvg: icon.tatsuoSlap,
     cost: 14,
     power: 82,
@@ -437,6 +458,7 @@ const tatsuoTechniques: TechniqueDefinition[] = [
   {
     id: "tatsuoRestraint",
     name: "取り押さえ",
+    description: "間合いを詰めて押さえ込み、長時間行動を封じる。",
     iconSvg: icon.tatsuoRestraint,
     cost: 42,
     power: 105,
@@ -456,6 +478,7 @@ const tatsuoTechniques: TechniqueDefinition[] = [
   {
     id: "tatsuoRoar",
     name: "腹の底から咆哮",
+    description: "大声で吹き飛ばし、ガッツを一気に奪う咆哮。",
     iconSvg: icon.tatsuoRoar,
     cost: 30,
     power: 35,
@@ -474,6 +497,7 @@ const tatsuoTechniques: TechniqueDefinition[] = [
   {
     id: "tatsuoPress",
     name: "タツヲプレス",
+    description: "遠間から急接近して押し潰す、破格の高威力技。",
     iconSvg: icon.tatsuoPress,
     cost: 50,
     power: 415,
@@ -496,6 +520,7 @@ const asterTechniques: TechniqueDefinition[] = [
   {
     id: "asterTailSweep",
     name: "蛇尾薙ぎ",
+    description: "長い尾で薙ぎ払い、相手を近距離から押し戻す。",
     iconSvg: icon.tailSweep,
     cost: 12,
     power: 120,
@@ -514,6 +539,7 @@ const asterTechniques: TechniqueDefinition[] = [
   {
     id: "asterMigration",
     name: "マイグレーション",
+    description: "命中は低いが、ライフとガッツを丸ごと吸収する。",
     iconSvg: icon.migration,
     cost: 34,
     power: 105,
@@ -533,6 +559,7 @@ const asterTechniques: TechniqueDefinition[] = [
   {
     id: "asterEvilEye",
     name: "魔眼",
+    description: "視線でダメージを与え、石化による行動停止を狙う。",
     iconSvg: icon.evilEye,
     cost: 38,
     power: 70,
@@ -552,6 +579,7 @@ const asterTechniques: TechniqueDefinition[] = [
   {
     id: "asterDeathEnergy",
     name: "デスエナジー",
+    description: "死の力を放ち、遠距離から高威力で吹き飛ばす。",
     iconSvg: icon.deathEnergy,
     cost: 29,
     power: 155,

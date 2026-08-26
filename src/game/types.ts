@@ -49,6 +49,7 @@ export interface TechniqueDefinition {
   id: string;
   name: string;
   cardName?: string;
+  description: string;
   iconSvg: string;
   cost: number;
   power: number;

@@ -12,6 +12,8 @@ const STAT_LABELS = [
 
 const PARAMETER_MAX = 1000;
 const RANGE_LABELS = ["近距離", "中距離", "遠距離", "超遠距離"];
+const TECHNIQUE_RANGE_ORDER = [3, 2, 1, 0];
+const TECHNIQUE_SLOT_COUNT = 4;
 
 function renderStatRows(profile) {
   return STAT_LABELS.map(([key, label]) => {
@@ -25,26 +27,40 @@ function renderTechniqueRanks(technique) {
   const ranks = [
     ["ダメージ", getTechniqueRank("damage", technique.power)],
     ["命中", getTechniqueRank("accuracy", technique.accuracy)],
-    ["ガッツダウン", getTechniqueRank("gutsDown", technique.gutsDamage)],
+    ["Gダウン", getTechniqueRank("gutsDown", technique.gutsDamage)],
   ];
   return ranks
     .map(([label, rank]) => `<div><dt>${label}</dt><dd data-rank="${rank}">${rank}</dd></div>`)
     .join("");
 }
 
-function renderTechniques(profile) {
-  return profile.techniques
-    .map(
-      (technique) => `<li>
-        <div class="map-technique-heading">
-          <span>${RANGE_LABELS[technique.range]}・${technique.attackStat === "power" ? "ちから" : "かしこさ"}</span>
-          <strong>${technique.name}</strong>
-          <b><small>GUTS</small>${technique.cost}</b>
-        </div>
-        <dl>${renderTechniqueRanks(technique)}</dl>
-      </li>`,
-    )
-    .join("");
+function renderTechniqueCard(technique) {
+  return `<article class="map-technique-card ${technique.attackStat}">
+    <span class="map-technique-icon" aria-hidden="true"><svg viewBox="0 0 48 48">${technique.iconSvg}</svg></span>
+    <strong title="${technique.name}">${technique.cardName ?? technique.name}</strong>
+    <b class="map-technique-cost"><small>GUTS</small>${technique.cost}</b>
+    <p>${technique.description}</p>
+    <dl>${renderTechniqueRanks(technique)}</dl>
+  </article>`;
+}
+
+function renderTechniqueMatrix(profile) {
+  const techniquesByRange = new Map(
+    TECHNIQUE_RANGE_ORDER.map((range) => [
+      range,
+      profile.techniques.filter((technique) => technique.range === range),
+    ]),
+  );
+
+  return Array.from({ length: TECHNIQUE_SLOT_COUNT }, (_, slotIndex) => {
+    const cells = TECHNIQUE_RANGE_ORDER.map((range) => {
+      const technique = techniquesByRange.get(range)[slotIndex];
+      return technique
+        ? renderTechniqueCard(technique)
+        : `<div class="map-technique-empty" aria-label="${RANGE_LABELS[range]}のスロット${slotIndex + 1}は空き">空きスロット</div>`;
+    }).join("");
+    return `<div class="map-technique-slot"><span>SLOT</span><b>${slotIndex + 1}</b></div>${cells}`;
+  }).join("");
 }
 
 export function createMapInterface({
@@ -74,7 +90,7 @@ export function createMapInterface({
       </div>
     </section>
     <section class="map-status-panel" role="dialog" aria-modal="true" aria-labelledby="map-status-title" hidden>
-      <article class="map-status-card" data-character-id="${playerProfile.id}">
+      <article class="map-status-card" data-character-id="${playerProfile.id}" data-status-view="abilities">
         <header>
           <div class="map-status-title"><p>PLAYER PROFILE</p><small>${playerProfile.subtitle}</small><h2 id="map-status-title">${playerProfile.name}</h2></div>
           <div class="map-status-tabs" role="tablist" aria-label="ステータス表示の切り替え">
@@ -93,8 +109,13 @@ export function createMapInterface({
             <dl class="map-status-stats">${renderStatRows(playerProfile)}</dl>
           </section>
           <section id="map-status-techniques" class="map-status-view map-status-techniques" role="tabpanel" aria-labelledby="map-status-techniques-tab" hidden>
-            <div class="map-technique-guide"><strong>所持技</strong><span>性能値は8段階ランクで表示</span></div>
-            <ul class="map-technique-list">${renderTechniques(playerProfile)}</ul>
+            <div class="map-technique-axis" aria-label="技の間合い">
+              <span class="map-technique-axis-title">遠い ←</span>
+              ${TECHNIQUE_RANGE_ORDER.map((range) => `<div><small>RANGE ${range + 1}</small><strong>${RANGE_LABELS[range]}</strong></div>`).join("")}
+            </div>
+            <div class="map-technique-matrix" aria-label="横が間合い、縦がスロットの所持技配置">
+              ${renderTechniqueMatrix(playerProfile)}
+            </div>
           </section>
         </div>
         <footer><span><kbd>M</kbd> / メニューボタン</span><button type="button" data-map-action="close-status">マップへ戻る</button></footer>
@@ -117,7 +138,7 @@ export function createMapInterface({
   const statusCard = root.querySelector(".map-status-card");
   const statusTabs = [...root.querySelectorAll('[role="tab"]')];
   const statusViews = [...root.querySelectorAll('[role="tabpanel"]')];
-  const techniqueList = root.querySelector(".map-technique-list");
+  const techniqueMatrix = root.querySelector(".map-technique-matrix");
 
   let nearbyNpc = null;
   let nearbyNpcKey = "initial";
@@ -296,6 +317,7 @@ export function createMapInterface({
       tab.tabIndex = selected ? 0 : -1;
     }
     for (const view of statusViews) view.hidden = view.id !== selectedTab.getAttribute("aria-controls");
+    statusCard.dataset.statusView = tabId;
     if (focus) selectedTab.focus({ preventScroll: true });
   }
 
@@ -375,7 +397,7 @@ export function createMapInterface({
       stat.textContent = value;
       stat.parentElement.style.setProperty("--stat-level", `${Math.max(0, Math.min(value / PARAMETER_MAX, 1)) * 100}%`);
     }
-    techniqueList.innerHTML = renderTechniques(profile);
+    techniqueMatrix.innerHTML = renderTechniqueMatrix(profile);
   }
 
   return {
