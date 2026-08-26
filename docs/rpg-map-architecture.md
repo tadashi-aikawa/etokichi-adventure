@@ -138,6 +138,7 @@ Phase 1〜3で扱うstep:
 - `say`: 話者名、話者characterId、本文、次step
 - `choice`: 本文、選択肢、選択後step
 - `branch`: event変数の値で次stepを選ぶ
+- `branchControlledCharacter`: 操作キャラクターIDで次stepを選ぶ
 - `setFlags`: 複数変数をatomicに更新するcommand
 - `faceEventTarget`: 会話相手をプレイヤーへ向けるcommand
 - `battle`: event対象キャラクターとのバトルを要求するcommand
@@ -163,12 +164,12 @@ DOMはstep IDやシナリオ分岐を解釈しない。表示完了・選択結�
 - `isActive()`: event実行中か返す
 - `destroy()`: active eventを破棄し、以後の操作を拒否する
 
-`context.eventTargetEntityId`は開始時に固定し、全stepで同じentityを参照する。`faceEventTarget`で変えた向きはevent終了後も維持し、map再ロードまで戻さない。これは既存挙動と同じである。
+`context.eventTargetEntityId / eventTargetCharacterId / controlledCharacterId`は開始時に固定し、全stepで同じ会話参加者を参照する。`faceEventTarget`で変えた向きはevent終了後も維持し、map再ロードまで戻さない。これは既存挙動と同じである。
 
 step解決順序:
 
 1. `start`または`advance`で次nodeへ移る
-2. `branch / setFlags / faceEventTarget`をpresentationへ到達するまで同期的に連続評価する
+2. `branch / branchControlledCharacter / setFlags / faceEventTarget`をpresentationへ到達するまで同期的に連続評価する
 3. `setFlags`はRunner内の作業用flagsへ即時反映し、後続`branch`は更新後の値を見る
 4. command列を定義順に返す
 5. Controllerが全commandを適用してから、返されたpresentationをDOMへ渡す

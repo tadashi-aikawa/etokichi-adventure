@@ -85,6 +85,7 @@ button { font: inherit; }
 .map-interaction-prompt kbd { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid #fff4ac; border-radius: 50%; color: #302300; background: #ffe474; }
 .map-dialogue-panel { --map-dialogue-copy-height: 305px; position: absolute; isolation: isolate; inset: 0; pointer-events: auto; background: linear-gradient(to bottom,transparent 0 55%,rgba(8,29,24,.28)); }
 .map-dialogue-portrait { position: absolute; z-index: 1; top: clamp(8px,2vh,20px); right: 2%; bottom: calc(clamp(18px,4vw,52px) + var(--map-dialogue-copy-height) - 2px); width: min(44%,620px); overflow: visible; pointer-events: none; }
+.map-dialogue-portrait[data-side="self"] { right: auto; left: 2%; }
 .map-dialogue-portrait img { position: absolute; top: 0; left: 50%; width: auto; max-width: none; height: 148%; translate: -50% 0; filter: drop-shadow(0 18px 16px rgba(0,0,0,.52)); animation: map-dialogue-portrait-enter .24s cubic-bezier(.18,.78,.2,1) both; }
 .map-dialogue-portrait[data-character-id="etokichi"] img { top: 14px; height: 108%; }
 .map-dialogue-portrait[data-character-id="kuroboshi"] img { top: 34px; height: 112%; }
@@ -1439,6 +1440,7 @@ button { font: inherit; }
   .map-interaction-prompt kbd { width: 19px; height: 19px; }
   .map-dialogue-panel { --map-dialogue-copy-height: 198px; }
   .map-dialogue-portrait { top: 5px; right: 1%; bottom: calc(max(8px,env(safe-area-inset-bottom)) + var(--map-dialogue-copy-height) - 2px); width: 43%; }
+  .map-dialogue-portrait[data-side="self"] { right: auto; left: 1%; }
   .map-dialogue-portrait[data-character-id="etokichi"] img { top: 10px; height: 105%; }
   .map-dialogue-portrait[data-character-id="kuroboshi"] img { top: 22px; height: 112%; }
   .map-dialogue-portrait[data-character-id="sutekichi"] img { height: 138%; }

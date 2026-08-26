@@ -44,6 +44,11 @@ export interface BranchEventNode extends EventNodeBase {
   elseNodeId: string;
 }
 
+export interface BranchControlledCharacterEventNode extends EventNodeBase {
+  type: "branchControlledCharacter";
+  routes: Readonly<Record<CharacterId, string>>;
+}
+
 export interface SetFlagsEventNode extends EventNodeBase {
   type: "setFlags";
   updates: Readonly<Record<string, WorldFlagValue>>;
@@ -71,6 +76,7 @@ export type EventNode =
   | SayEventNode
   | ChoiceEventNode
   | BranchEventNode
+  | BranchControlledCharacterEventNode
   | SetFlagsEventNode
   | FaceEventTargetNode
   | BattleEventNode
@@ -86,6 +92,7 @@ export interface EventDefinition {
 export interface EventContext {
   eventTargetEntityId: string;
   eventTargetCharacterId: CharacterId;
+  controlledCharacterId: CharacterId;
   canSwitchControlledActor: boolean;
 }
 
@@ -179,6 +186,9 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
         }
         case "branch":
           active.nodeId = flags[node.flag] === node.equals ? node.thenNodeId : node.elseNodeId;
+          break;
+        case "branchControlledCharacter":
+          active.nodeId = node.routes[active.context.controlledCharacterId];
           break;
         case "setFlags":
           commands.push({ type: "setFlags", updates: node.updates });

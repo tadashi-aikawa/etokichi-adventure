@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { EVENT_CATALOG } from "../src/content/event-catalog.ts";
 import { createEventRunner } from "../src/game/event-runner.ts";
+import { CHARACTER_IDS } from "../src/game/types.ts";
 
 const context = {
   eventTargetEntityId: "aster",
   eventTargetCharacterId: "aster",
+  controlledCharacterId: "etokichi",
   canSwitchControlledActor: true,
 } as const;
 
@@ -40,7 +42,14 @@ describe("EventRunner", () => {
 
   it("choiceから終端のbattle commandへ進みeventを閉じる", () => {
     const runner = createEventRunner((eventId) => EVENT_CATALOG.get(eventId));
-    expect(runner.start("character-action:aster", context, {}).presentation?.nodeId).toBe("greeting");
+    expect(runner.start("character-action:aster", context, {}).presentation).toMatchObject({
+      speakerId: "etokichi",
+      nodeId: "opener:etokichi",
+    });
+    expect(runner.advance(null, {}).presentation).toMatchObject({
+      speakerId: "aster",
+      nodeId: "response:etokichi",
+    });
     const action = runner.advance(null, {}).presentation;
     expect(action?.nodeId).toBe("action");
     expect(action?.choices.map((choice) => choice.label)).toEqual(["対戦する", "操作を変える", "なんでもない"]);
@@ -59,12 +68,38 @@ describe("EventRunner", () => {
     const runner = createEventRunner((eventId) => EVENT_CATALOG.get(eventId));
     const unavailableContext = { ...context, canSwitchControlledActor: false };
     runner.start("character-action:aster", unavailableContext, {});
-
+    runner.advance(null, {});
     const action = runner.advance(null, {}).presentation;
 
     expect(action?.choices.map((choice) => choice.label)).toEqual(["対戦する", "なんでもない"]);
     expect(() => runner.advance("switch", {})).toThrow("現在は選択できません");
     expect(runner.isActive()).toBe(true);
+  });
+
+  it("全キャラクターの組み合わせで操作側から固有会話を始める", () => {
+    for (const targetId of CHARACTER_IDS) {
+      const conversations = new Set<string>();
+      for (const controlledCharacterId of CHARACTER_IDS) {
+        if (controlledCharacterId === targetId) continue;
+        const runner = createEventRunner((eventId) => EVENT_CATALOG.get(eventId));
+        const pairContext = {
+          eventTargetEntityId: `${targetId}-home`,
+          eventTargetCharacterId: targetId,
+          controlledCharacterId,
+          canSwitchControlledActor: true,
+        };
+
+        const opener = runner.start(`character-action:${targetId}`, pairContext, {}).presentation;
+        const response = runner.advance(null, {}).presentation;
+        const action = runner.advance(null, {}).presentation;
+
+        expect(opener).toMatchObject({ speakerId: controlledCharacterId, nodeId: `opener:${controlledCharacterId}` });
+        expect(response).toMatchObject({ speakerId: targetId, nodeId: `response:${controlledCharacterId}` });
+        expect(action).toMatchObject({ speakerId: targetId, nodeId: "action" });
+        conversations.add(`${opener?.text}\n${response?.text}`);
+      }
+      expect(conversations.size).toBe(CHARACTER_IDS.length - 1);
+    }
   });
 
   it("選択可能なchoiceが1つもないpresentationを拒否する", () => {

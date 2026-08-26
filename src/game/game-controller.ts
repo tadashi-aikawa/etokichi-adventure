@@ -204,6 +204,7 @@ export function createGameController(
             {
               eventTargetEntityId: actor.entityId,
               eventTargetCharacterId: actor.characterId,
+              controlledCharacterId: state.controlledCharacterId,
               canSwitchControlledActor: currentRuntime.canChangeControlledCharacter(actor.characterId),
             },
             gameSession.getState().flags,

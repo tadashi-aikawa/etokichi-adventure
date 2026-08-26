@@ -1,4 +1,4 @@
-import type { EventDefinition } from "../game/event-runner.ts";
+import type { EventDefinition, EventNode } from "../game/event-runner.ts";
 import { CHARACTER_IDS, type CharacterId } from "../game/types.ts";
 
 export interface EventCatalog {
@@ -36,51 +36,214 @@ const CHARACTER_NAMES: Readonly<Record<CharacterId, string>> = {
   aster: "アステール",
 };
 
-const CHARACTER_GREETINGS: Readonly<Record<CharacterId, string>> = {
-  etokichi: "やあ！ きみも冒険の予感を感じた？ 今日は何をして遊ぼうか！",
-  kuroboshi: "グルルル……！",
-  sutekichi: "星がきらきら騒いでるよ。今日は何か、面白いことが起こりそう！",
-  salarymanEtokichi: "お疲れさまです。今日の予定を確認したら、さっそく取りかかりましょう。",
-  tatsuo: "来たな。困りごとなら、この大きな腕に任せてくれ。",
-  aster: "来ましたね。星の巡りは、すでに読み終えています。",
+interface CharacterConversation {
+  opener: string;
+  response: string;
+}
+
+// 外側を会話相手、内側を操作キャラクターとする。character eventを相手ごとに生成するため、この向きなら定義をそのまま展開できる。
+const CHARACTER_CONVERSATIONS: Readonly<
+  Record<CharacterId, Readonly<Partial<Record<CharacterId, CharacterConversation>>>>
+> = {
+  etokichi: {
+    kuroboshi: {
+      opener: "グルッ、グルルル！",
+      response: "わかった！ その『行こう』って声、ちゃんと聞こえたよ！",
+    },
+    sutekichi: {
+      opener: "エトキチ、あっちの星が『出発しよう』って光ってるよ！",
+      response: "ほんとだ！ 星が待ってるなら、すぐ出発しよう！",
+    },
+    salarymanEtokichi: {
+      opener: "エトキチさん、本日の冒険プランを三案にまとめました。",
+      response: "三案とも面白そう！ 順番に全部やってみようよ！",
+    },
+    tatsuo: {
+      opener: "エトキチ、先頭は任せろ。危ないものは俺が受け止める。",
+      response: "頼もしいなあ！ じゃあぼくは、一番わくわくする道を選ぶね！",
+    },
+    aster: {
+      opener: "エトキチ。あなたの向かう先に、強い星の瞬きが見えます。",
+      response: "強い星？ きっと大冒険のしるしだね！",
+    },
+  },
+  kuroboshi: {
+    etokichi: {
+      opener: "クロボシ、今日もその角、かっこいいね！ 一緒にひと暴れしようよ！",
+      response: "グルルッ！ ワォン！",
+    },
+    sutekichi: {
+      opener: "クロボシの角、夜空の三日月みたい！ 触ってもいい？",
+      response: "グル……クゥン。",
+    },
+    salarymanEtokichi: {
+      opener: "クロボシさん、こちらの申請書に肉球印をお願いします。",
+      response: "グルルル……ペタッ。",
+    },
+    tatsuo: {
+      opener: "クロボシ、今度こそ正面から力比べだ。",
+      response: "グォォォン！",
+    },
+    aster: {
+      opener: "クロボシ。その唸りは、闇への警告ですか？",
+      response: "……グル。グルルル。",
+    },
+  },
+  sutekichi: {
+    etokichi: {
+      opener: "ステキチ、その星はどこから来るの？ ぼくにもひとつ見せて！",
+      response: "いいよ！ いちばん元気な星を捕まえてみせるね！",
+    },
+    kuroboshi: {
+      opener: "グルル……ワフッ！",
+      response: "今の鳴き声、流れ星みたいに速かったよ！",
+    },
+    salarymanEtokichi: {
+      opener: "ステキチさん、星探しの進捗を共有いただけますか？",
+      response: "進捗は絶好調！ 新しい星を三つ見つけたよ！",
+    },
+    tatsuo: {
+      opener: "ステキチ、高いところの星なら俺が持ち上げてやる。",
+      response: "ほんと？ じゃあ肩の上から、空をぜんぶ探す！",
+    },
+    aster: {
+      opener: "ステキチ。星々があなたの周りだけ騒がしいですね。",
+      response: "あの青い星！ さっきからぼくらのことを呼んでるよ。",
+    },
+  },
+  salarymanEtokichi: {
+    etokichi: {
+      opener: "サラリーマンエトキチ、仕事が終わったら冒険に行こうよ！",
+      response: "では定時まで集中し、終了後すぐ出発できる計画にしましょう。",
+    },
+    kuroboshi: {
+      opener: "グルルル、グワッ！",
+      response: "肉球印、確かに受領しました。迅速なご対応ありがとうございます。",
+    },
+    sutekichi: {
+      opener: "ねえ、予定表に『星を見る時間』も入れてよ！",
+      response: "承知しました。毎日十五分、予定表に確保しましょう。",
+    },
+    tatsuo: {
+      opener: "サラリーマンエトキチ、無理な仕事は俺にも寄こせ。",
+      response: "ありがとうございます。ただし、まずは分担と優先順位を整理しましょう。",
+    },
+    aster: {
+      opener: "サラリーマンエトキチ。その計画、三手先で修正が必要です。",
+      response: "助かります。修正点を先に伺い、手戻りを防ぎましょう。",
+    },
+  },
+  tatsuo: {
+    etokichi: {
+      opener: "タツヲ、その腕ならどんな道でも切り開けそうだね！",
+      response: "任せろ。道を塞ぐものは、この腕でまとめてどけてやる。",
+    },
+    kuroboshi: {
+      opener: "グォォン！",
+      response: "いい唸りだ。俺も遠慮せず、全力で受けて立つぞ。",
+    },
+    sutekichi: {
+      opener: "タツヲの腕に乗ったら、星へ近づけるかな？",
+      response: "任せろ。落ちないよう、しっかりつかまっていろよ。",
+    },
+    salarymanEtokichi: {
+      opener: "タツヲさん、重量物の運搬をお願いしてもよろしいですか？",
+      response: "いいとも。だが、お前まで潰れそうな仕事は先に減らすぞ。",
+    },
+    aster: {
+      opener: "タツヲ。力だけでは開かない扉もあります。",
+      response: "なるほどな。なら、お前が示せ。俺が道を作る。",
+    },
+  },
+  aster: {
+    etokichi: {
+      opener: "アステール、星の先に何があるか、一緒に見に行こう！",
+      response: "勢いだけで星へ届くつもりですか。……嫌いではありません。",
+    },
+    kuroboshi: {
+      opener: "……グルルルル。",
+      response: "ええ。その警戒心は正しい。闇もまた、こちらを見ています。",
+    },
+    sutekichi: {
+      opener: "アステール、今日いちばんおしゃべりな星はどれ？",
+      response: "あの赤い星です。騒がしいのは、あなたに似たのでしょう。",
+    },
+    salarymanEtokichi: {
+      opener: "アステールさん、リスク予測のレビューをお願いします。",
+      response: "承知しました。最悪の分岐から順に潰しましょう。",
+    },
+    tatsuo: {
+      opener: "アステール、先が見えているなら進む道を教えてくれ。",
+      response: "では私が鍵を読み、あなたが扉を開く。単純で良いでしょう。",
+    },
+  },
 };
 
 function createCharacterActionEvent(characterId: CharacterId): EventDefinition {
   const speaker = CHARACTER_NAMES[characterId];
+  const nodes: Record<string, EventNode> = {
+    face: { id: "face", type: "faceEventTarget", nextNodeId: "speaker-route" },
+    "speaker-route": {
+      id: "speaker-route",
+      type: "branchControlledCharacter",
+      // 操作中のactorは非表示だが、全CharacterIdを列挙して不正な同一人物eventも決定的に終了させる。
+      routes: Object.fromEntries(
+        CHARACTER_IDS.map((controlledCharacterId) => [
+          controlledCharacterId,
+          controlledCharacterId === characterId ? "action" : `opener:${controlledCharacterId}`,
+        ]),
+      ) as Record<CharacterId, string>,
+    },
+    action: {
+      id: "action",
+      type: "choice",
+      speaker,
+      speakerId: characterId,
+      text: `${speaker}にどうする？`,
+      choices: [
+        { id: "battle", label: "対戦する", nextNodeId: "battle" },
+        {
+          id: "switch",
+          label: "操作を変える",
+          nextNodeId: "switch",
+          requirement: { type: "canSwitchControlledActor" },
+        },
+        { id: "cancel", label: "なんでもない", nextNodeId: "end" },
+      ],
+    },
+    battle: { id: "battle", type: "battle" },
+    switch: { id: "switch", type: "switchControlledActor" },
+    end: { id: "end", type: "end" },
+  };
+  for (const controlledCharacterId of CHARACTER_IDS) {
+    if (controlledCharacterId === characterId) continue;
+    const conversation = CHARACTER_CONVERSATIONS[characterId][controlledCharacterId];
+    if (!conversation) {
+      throw new Error(`${controlledCharacterId}から${characterId}への会話が定義されていません`);
+    }
+    const openerId = `opener:${controlledCharacterId}`;
+    const responseId = `response:${controlledCharacterId}`;
+    nodes[openerId] = {
+      id: openerId,
+      type: "say",
+      speaker: CHARACTER_NAMES[controlledCharacterId],
+      speakerId: controlledCharacterId,
+      text: conversation.opener,
+      nextNodeId: responseId,
+    };
+    nodes[responseId] = {
+      id: responseId,
+      type: "say",
+      speaker,
+      speakerId: characterId,
+      text: conversation.response,
+      nextNodeId: "action",
+    };
+  }
   return {
     id: `character-action:${characterId}`,
     initialNodeId: "face",
-    nodes: {
-      face: { id: "face", type: "faceEventTarget", nextNodeId: "greeting" },
-      greeting: {
-        id: "greeting",
-        type: "say",
-        speaker,
-        speakerId: characterId,
-        text: CHARACTER_GREETINGS[characterId],
-        nextNodeId: "action",
-      },
-      action: {
-        id: "action",
-        type: "choice",
-        speaker,
-        speakerId: characterId,
-        text: `${speaker}にどうする？`,
-        choices: [
-          { id: "battle", label: "対戦する", nextNodeId: "battle" },
-          {
-            id: "switch",
-            label: "操作を変える",
-            nextNodeId: "switch",
-            requirement: { type: "canSwitchControlledActor" },
-          },
-          { id: "cancel", label: "なんでもない", nextNodeId: "end" },
-        ],
-      },
-      battle: { id: "battle", type: "battle" },
-      switch: { id: "switch", type: "switchControlledActor" },
-      end: { id: "end", type: "end" },
-    },
+    nodes,
   };
 }
 
@@ -197,6 +360,9 @@ function validateEventDefinition(definition: EventDefinition): void {
       case "branch":
         requireNode(node.thenNodeId, nodeId);
         requireNode(node.elseNodeId, nodeId);
+        break;
+      case "branchControlledCharacter":
+        for (const characterId of CHARACTER_IDS) requireNode(node.routes[characterId], `${nodeId}:${characterId}`);
         break;
       case "setFlags":
       case "faceEventTarget":

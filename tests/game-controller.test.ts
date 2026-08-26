@@ -15,6 +15,11 @@ function setup() {
   return { session, runtime, controller };
 }
 
+function advanceToAction(controller: ReturnType<typeof setup>["controller"]) {
+  controller.advanceEvent();
+  return controller.advanceEvent();
+}
+
 describe("GameController", () => {
   it("操作キャラクターのruntime更新後にWorldStateをpublishする", () => {
     const { session, runtime, controller } = setup();
@@ -22,7 +27,7 @@ describe("GameController", () => {
     session.subscribe(() => observedRuntimeIds.push(runtime.getSnapshot().controlledCharacterId));
 
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
     expect(controller.advanceEvent("switch")).toBeNull();
 
     expect(session.getState().controlledCharacterId).toBe("aster");
@@ -36,7 +41,7 @@ describe("GameController", () => {
       throw new Error("swap failed");
     });
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
 
     expect(() => controller.advanceEvent("switch")).toThrow("swap failed");
     expect(session.getState().controlledCharacterId).toBe("etokichi");
@@ -50,7 +55,7 @@ describe("GameController", () => {
     runtime.movePlayer({ x: 25, y: 0 }, "right");
 
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
     controller.advanceEvent("battle");
 
     expect(session.getState()).toMatchObject({
@@ -86,7 +91,7 @@ describe("GameController", () => {
       resetToMap() {},
     });
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
     controller.advanceEvent("battle");
 
     expect(calls).toEqual(["checkpoint", "beginBattle", "present"]);
@@ -95,7 +100,7 @@ describe("GameController", () => {
   it("Presenter未登録時はbattle状態へ変更せずeventを終了する", () => {
     const { session, runtime, controller } = setup();
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
 
     expect(() => controller.advanceEvent("battle")).toThrow("BattlePresenterが登録されていません");
     expect(session.getState()).toMatchObject({ scene: "map", activeBattle: null });
@@ -112,7 +117,7 @@ describe("GameController", () => {
       resetToMap,
     });
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
 
     expect(() => controller.advanceEvent("battle")).toThrow("presentation failed");
     expect(session.getState()).toMatchObject({ scene: "map", activeBattle: null });
@@ -127,7 +132,7 @@ describe("GameController", () => {
       throw new Error("begin failed");
     });
     controller.startActorEvent("aster-home");
-    controller.advanceEvent();
+    advanceToAction(controller);
 
     expect(() => controller.advanceEvent("battle")).toThrow("begin failed");
     expect(session.getState()).toMatchObject({ scene: "map", activeBattle: null });
@@ -159,7 +164,11 @@ describe("GameController", () => {
     const controller = createGameController(session, (eventId) => EVENT_CATALOG.get(eventId));
     controller.attachMapRuntime(runtime);
 
-    expect(controller.startActorEvent("aster-home")?.nodeId).toBe("greeting");
+    expect(controller.startActorEvent("aster-home")).toMatchObject({
+      speakerId: "etokichi",
+      nodeId: "opener:etokichi",
+    });
+    expect(controller.advanceEvent()).toMatchObject({ speakerId: "aster", nodeId: "response:etokichi" });
     const action = controller.advanceEvent();
     expect(action?.choices.map((choice) => choice.label)).toEqual(["対戦する", "なんでもない"]);
     controller.cancelEvent();

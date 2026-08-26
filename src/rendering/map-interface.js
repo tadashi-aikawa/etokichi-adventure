@@ -161,6 +161,7 @@ export function createMapInterface({
     renderDialoguePortrait(
       presentation.speakerId ? characterProfiles[presentation.speakerId] : null,
       presentation.speakerId,
+      presentation.speakerId === gameSession.getState().controlledCharacterId ? "self" : "other",
     );
     dialogueSpeaker.textContent = presentation.speaker;
     dialogueText.textContent = presentation.text;
@@ -215,7 +216,7 @@ export function createMapInterface({
 
   function finishDialogue() {
     presentation = null;
-    renderDialoguePortrait(null, null);
+    renderDialoguePortrait(null, null, null);
     dialoguePanel.hidden = true;
     updateNearbyNpc();
     onModeChange("map");
@@ -227,15 +228,20 @@ export function createMapInterface({
     finishDialogue();
   }
 
-  function renderDialoguePortrait(profile, speakerId) {
+  function renderDialoguePortrait(profile, speakerId, side) {
     if (!profile || !speakerId) {
       dialoguePortrait.hidden = true;
       dialoguePortrait.replaceChildren();
       delete dialoguePortrait.dataset.characterId;
+      delete dialoguePortrait.dataset.side;
       return;
     }
 
-    if (dialoguePortrait.dataset.characterId === speakerId && dialoguePortrait.firstElementChild) {
+    if (
+      dialoguePortrait.dataset.characterId === speakerId &&
+      dialoguePortrait.dataset.side === side &&
+      dialoguePortrait.firstElementChild
+    ) {
       dialoguePortrait.hidden = false;
       return;
     }
@@ -245,6 +251,7 @@ export function createMapInterface({
     image.alt = "";
     dialoguePortrait.replaceChildren(image);
     dialoguePortrait.dataset.characterId = speakerId;
+    dialoguePortrait.dataset.side = side;
     dialoguePortrait.hidden = false;
   }
 
