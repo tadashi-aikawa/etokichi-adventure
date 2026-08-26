@@ -1,50 +1,15 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
-import MAP_SOURCE from "../../assets/maps/prototype-plaza.tmj?raw";
-import GUILD_MAP_PROP_URL from "../../assets/maps/props/prototype-guild.svg?url";
-import POND_MAP_PROP_URL from "../../assets/maps/props/prototype-pond.svg?url";
-import ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/etokichi/walk.webp?url";
-import ASTER_MAP_SHEET_URL from "../../assets/map-characters/aster/walk.webp?url";
-import KUROBOSHI_MAP_SHEET_URL from "../../assets/map-characters/kuroboshi/walk.webp?url";
-import SALARYMAN_ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/salarymanEtokichi/walk.webp?url";
-import SUTEKICHI_MAP_SHEET_URL from "../../assets/map-characters/sutekichi/walk.webp?url";
-import TATSUO_MAP_SHEET_URL from "../../assets/map-characters/tatsuo/walk.webp?url";
-import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
-import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
+import { MAP_ACTOR_CATALOG } from "../content/map-actor-catalog.ts";
+import { EVENT_CATALOG } from "../content/event-catalog.ts";
+import { MAP_CONTENT_CATALOG, validateMapPropAssets } from "../content/map-catalog.ts";
 import { createCharacterProfiles } from "../game/characters.ts";
-import {
-  createCharacterHomeMarkers,
-  createNpcCollisions,
-  getFacingToward,
-  getVisibleCharacterHomeMarkers,
-} from "../game/map-interaction.ts";
 import { getMapCharacterFrame, MAP_CHARACTER_COLUMNS, MAP_CHARACTER_ROWS } from "../game/map-character-animation.ts";
-import { calculateMapCamera, getMapBodyDepth, moveMapBody, parseTiledMap } from "../game/tiled-map.ts";
+import { createMapRuntime, MAP_NPC_BODY, MAP_PLAYER_BODY } from "../game/map-runtime.ts";
+import { calculateMapCamera, getMapBodyDepth, parseTiledMap } from "../game/tiled-map.ts";
 import { createMapInterface } from "./map-interface.js";
 
-const PLAYER_BODY = { width: 34, height: 18, offsetY: 25 };
-const NPC_BODY = { width: 68, height: 42, offsetY: 20 };
 const MOVE_SPEED = 230;
 const MAP_SCALE = 1.25;
-const MAP_CHARACTER_VISUALS = {
-  etokichi: { width: 123, height: 92, footRatio: 270 / 313 },
-  kuroboshi: { width: 112, height: 84, footRatio: 303 / 313 },
-  sutekichi: { width: 114, height: 85, footRatio: 303 / 313 },
-  salarymanEtokichi: { width: 118, height: 88, footRatio: 303 / 313 },
-  tatsuo: { width: 107, height: 80, footRatio: 303 / 313 },
-  aster: { width: 113, height: 85, footRatio: 303 / 313 },
-};
-const MAP_CHARACTER_SHEET_URLS = {
-  etokichi: ETOKICHI_MAP_SHEET_URL,
-  kuroboshi: KUROBOSHI_MAP_SHEET_URL,
-  sutekichi: SUTEKICHI_MAP_SHEET_URL,
-  salarymanEtokichi: SALARYMAN_ETOKICHI_MAP_SHEET_URL,
-  tatsuo: TATSUO_MAP_SHEET_URL,
-  aster: ASTER_MAP_SHEET_URL,
-};
-const MAP_PROP_URLS = {
-  guild: GUILD_MAP_PROP_URL,
-  pond: POND_MAP_PROP_URL,
-};
 const MAP_KEYS = new Map([
   ["ArrowUp", "up"],
   ["KeyW", "up"],
@@ -56,15 +21,31 @@ const MAP_KEYS = new Map([
   ["KeyD", "right"],
 ]);
 
-export async function createMapSystem({ arena, stage, ticker, gameSession, mobileControls }) {
-  const map = parseTiledMap(JSON.parse(MAP_SOURCE), JSON.parse(TILESET_SOURCE));
+export async function createMapSystem({ arena, stage, ticker, gameSession, gameController, mobileControls }) {
+  const initialState = gameSession.getState();
+  const content = MAP_CONTENT_CATALOG.get(initialState.player.mapId);
+  const map = parseTiledMap(JSON.parse(content.mapSource), JSON.parse(content.tilesetSource));
+  validateMapPropAssets(map, content.propUrls);
   const [atlasTexture, characterSheets, propTextures] = await Promise.all([
-    Assets.load(TILESET_IMAGE_URL),
+    Assets.load(content.tilesetImageUrl),
     loadCharacterSheets(),
-    loadMapPropTextures(),
+    loadMapPropTextures(content.propUrls),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
-  const characterHomes = createCharacterHomeMarkers(map.markers);
+  const characterFrames = Object.fromEntries(
+    Object.entries(characterSheets).map(([characterId, sheet]) => [
+      characterId,
+      createCharacterFrames(sheet, `map-character-${characterId}`),
+    ]),
+  );
+  const ownedTextures = [...tileTextures, ...Object.values(characterFrames).flat()];
+  const mapRuntime = createMapRuntime({
+    map,
+    initialPlayer: initialState.player,
+    controlledCharacterId: initialState.controlledCharacterId,
+    resolveEventId: (eventId) => EVENT_CATALOG.get(eventId),
+  });
+  gameController.attachMapRuntime(mapRuntime);
   const root = new Container({ label: "map-scene" });
   const viewportMask = new Graphics({ label: "map-viewport-mask" });
   const backdrop = new Graphics();
@@ -76,15 +57,12 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
   actorLayer.sortableChildren = true;
   const foregroundActors = createDepthTileSprites(map, "foreground", tileTextures);
   const entranceLayer = createEntranceLayer(map);
-  const player = createMapCharacterActor(characterSheets.etokichi, { label: "map-player", ...MAP_CHARACTER_VISUALS.etokichi });
-  const npcSystem = createNpcSystem(
-    characterHomes,
-    characterSheets,
-    NPC_BODY,
-    gameSession.getState().controlledCharacterId,
-  );
-  let npcCollisions = createNpcCollisions(npcSystem.getVisibleMarkers(), NPC_BODY);
-  let collisions = [...map.collisions, ...npcCollisions];
+  const initialActorDefinition = MAP_ACTOR_CATALOG[initialState.controlledCharacterId];
+  const player = createMapCharacterActor(characterFrames[initialState.controlledCharacterId], {
+    label: "map-player",
+    ...initialActorDefinition,
+  });
+  const npcSystem = createNpcSystem(mapRuntime.getSnapshot().actors, characterFrames);
   actorLayer.addChild(entranceLayer, ...foregroundActors, ...npcSystem.roots, player.root);
   world.addChild(groundLayer, propLayer, actorLayer);
   root.addChild(backdrop, world);
@@ -96,41 +74,22 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
   const characterProfiles = createCharacterProfiles((source) => window.etokichiAssetUrl?.(source) ?? source);
   let elapsed = 0;
   let viewport = { width: 1, height: 1 };
-  let facing = gameSession.getState().player.facing;
-  let playerCharacterId = gameSession.getState().controlledCharacterId;
+  let facing = initialState.player.facing;
+  let playerCharacterId = initialState.controlledCharacterId;
   const isMapScene = () => gameSession.getState().scene === "map";
-  player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
+  player.setCharacter(characterFrames[playerCharacterId], MAP_ACTOR_CATALOG[playerCharacterId]);
   player.setMotion(facing, 0, false);
   const mapInterface = createMapInterface({
     arena,
     gameSession,
+    gameController,
     playerProfile: characterProfiles.etokichi,
     portraitUrl: characterProfiles.etokichi.images.idle,
     characterProfiles,
-    getNpcMarkers: () => npcSystem.getVisibleMarkers(),
-    getNpcCharacterId: (name) => npcSystem.getCharacterId(name),
-    onDialogueOpen(marker) {
-      npcSystem.setFacing(marker.name, getFacingToward(marker, gameSession.getState().player));
-    },
     onModeChange(mode) {
       pressed.clear();
       const controlsAvailable = isMapScene() && mode === "map";
       mobileControls.setState({ visible: isMapScene(), enabled: controlsAvailable });
-    },
-    onSwitch(_marker, characterId) {
-      gameSession.swapControlledCharacter(characterId);
-    },
-    onBattle(_marker, opponentId) {
-      const state = gameSession.getState();
-      gameSession.beginBattle({
-        encounterId: `${map.id}:${state.controlledCharacterId}-vs-${opponentId}`,
-        heroId: state.controlledCharacterId,
-        opponentId,
-        returnScene: "map",
-      });
-      window.dispatchEvent(new CustomEvent("etokichi:map-battle-request", {
-        detail: { heroId: state.controlledCharacterId, opponentId },
-      }));
     },
   });
 
@@ -157,22 +116,23 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
     root.visible = state.scene === "map";
     if (!root.visible) pressed.clear();
     if (state.player.mapId !== map.id) return;
-    if (playerCharacterId !== state.controlledCharacterId) {
-      playerCharacterId = state.controlledCharacterId;
-      player.setCharacter(characterSheets[playerCharacterId], MAP_CHARACTER_VISUALS[playerCharacterId]);
-      npcSystem.syncControlledCharacter(playerCharacterId);
-      npcCollisions = createNpcCollisions(npcSystem.getVisibleMarkers(), NPC_BODY);
-      collisions = [...map.collisions, ...npcCollisions];
-    }
-    player.root.position.set(state.player.x, state.player.y);
-    player.root.zIndex = getMapBodyDepth(state.player, PLAYER_BODY);
-    if (facing !== state.player.facing) {
-      facing = state.player.facing;
-    }
-    player.setMotion(facing, elapsed, false);
-    applyCamera(state.player);
-    mapInterface.updateNearbyNpc();
+    syncRuntime(false);
   };
+
+  function syncRuntime(moving) {
+    const snapshot = mapRuntime.getSnapshot();
+    if (playerCharacterId !== snapshot.controlledCharacterId) {
+      playerCharacterId = snapshot.controlledCharacterId;
+      player.setCharacter(characterFrames[playerCharacterId], MAP_ACTOR_CATALOG[playerCharacterId]);
+    }
+    facing = snapshot.player.facing;
+    player.root.position.set(snapshot.player.x, snapshot.player.y);
+    player.root.zIndex = getMapBodyDepth(snapshot.player, MAP_PLAYER_BODY);
+    player.setMotion(facing, elapsed, moving);
+    npcSystem.sync(snapshot.actors);
+    applyCamera(snapshot.player);
+    mapInterface.updateNearbyNpc();
+  }
 
   const onKeyDown = (event) => {
     const direction = MAP_KEYS.get(event.code);
@@ -195,34 +155,29 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
     elapsed += deltaSeconds;
     if (mapInterface.isBlocking()) {
       pressed.clear();
-      player.setMotion(facing, elapsed, false);
+      syncRuntime(false);
       return;
     }
     const horizontal = Number(pressed.has("right")) - Number(pressed.has("left"));
     const vertical = Number(pressed.has("down")) - Number(pressed.has("up"));
     if (horizontal === 0 && vertical === 0) {
-      player.setMotion(facing, elapsed, false);
-      player.root.y = gameSession.getState().player.y + Math.sin(elapsed * 4) * 1.2;
+      syncRuntime(false);
+      player.root.y += Math.sin(elapsed * 4) * 1.2;
       return;
     }
 
     const magnitude = Math.hypot(horizontal, vertical) || 1;
-    const state = gameSession.getState();
     const nextFacing = Math.abs(horizontal) > Math.abs(vertical)
       ? horizontal < 0 ? "left" : "right"
       : vertical < 0 ? "up" : "down";
-    const next = moveMapBody(
-      state.player,
+    mapRuntime.movePlayer(
       {
         x: horizontal / magnitude * MOVE_SPEED * deltaSeconds,
         y: vertical / magnitude * MOVE_SPEED * deltaSeconds,
       },
-      PLAYER_BODY,
-      collisions,
-      { width: map.pixelWidth, height: map.pixelHeight },
+      nextFacing,
     );
-    gameSession.updatePlayer({ ...next, facing: nextFacing });
-    player.setMotion(nextFacing, elapsed, true);
+    syncRuntime(true);
   };
   ticker.add(update);
 
@@ -249,24 +204,18 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
     map,
     layout,
     getDebugState() {
-      const state = gameSession.getState();
       return {
         visible: root.visible,
         mapId: map.id,
         mapSize: { width: map.pixelWidth, height: map.pixelHeight },
         viewport: { ...viewport },
-        player: { ...state.player },
+        player: { ...mapRuntime.getSnapshot().player },
         playerFrame: player.getFrameIndex(),
         worldPosition: { x: world.x, y: world.y },
-        collisionCount: collisions.length,
-        npcCollisionCount: npcCollisions.length,
+        collisionCount: map.collisions.length + mapRuntime.getSnapshot().actors.filter((actor) => actor.visible).length,
+        npcCollisionCount: mapRuntime.getSnapshot().actors.filter((actor) => actor.visible).length,
         visibleNpcCharacterIds: npcSystem.getVisibleCharacterIds(),
-        characterHomes: Object.fromEntries(
-          Object.entries(characterHomes).map(([characterId, marker]) => [
-            characterId,
-            { x: marker.x, y: marker.y },
-          ]),
-        ),
+        characterHomes: Object.fromEntries(mapRuntime.getSnapshot().actors.map((actor) => [actor.characterId, { x: actor.x, y: actor.y }])),
         npcFacings: npcSystem.getFacings(),
         markerCount: map.markers.length,
         propCount: map.props.length,
@@ -284,9 +233,12 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, mobil
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
       mapInterface.destroy();
+      gameController.detachMapRuntime(mapRuntime);
+      mapRuntime.destroy();
       root.mask = null;
       viewportMask.destroy();
-      root.destroy({ children: true, texture: true });
+      root.destroy({ children: true, texture: false });
+      for (const texture of ownedTextures) texture.destroy(false);
     },
   };
 }
@@ -343,8 +295,8 @@ function createTileEntries(map, definition, tileTextures) {
   return entries;
 }
 
-function createMapCharacterActor(sheetTexture, options) {
-  let frames = createCharacterFrames(sheetTexture, options.label);
+function createMapCharacterActor(initialFrames, options) {
+  let frames = initialFrames;
   const root = new Container({ label: options.label });
   const shadow = new Graphics().ellipse(0, 0, 22, 8).fill({ color: 0x102e25, alpha: .35 });
   const sprite = new Sprite({ texture: frames[1], roundPixels: true });
@@ -358,8 +310,8 @@ function createMapCharacterActor(sheetTexture, options) {
     getFrameIndex() {
       return frameIndex;
     },
-    setCharacter(nextSheetTexture, visual) {
-      frames = createCharacterFrames(nextSheetTexture, options.label);
+    setCharacter(nextFrames, visual) {
+      frames = nextFrames;
       sprite.setSize(visual.width, visual.height);
       shadow.y = getMapCharacterFootY(visual);
       sprite.texture = frames[frameIndex];
@@ -395,14 +347,14 @@ function createCharacterFrames(sheetTexture, label) {
 
 async function loadCharacterSheets() {
   const entries = await Promise.all(
-    Object.entries(MAP_CHARACTER_SHEET_URLS).map(async ([characterId, url]) => [characterId, await Assets.load(url)]),
+    Object.values(MAP_ACTOR_CATALOG).map(async ({ characterId, sheetUrl }) => [characterId, await Assets.load(sheetUrl)]),
   );
   return Object.fromEntries(entries);
 }
 
-async function loadMapPropTextures() {
+async function loadMapPropTextures(propUrls) {
   const entries = await Promise.all(
-    Object.entries(MAP_PROP_URLS).map(async ([assetId, url]) => [assetId, await Assets.load(url)]),
+    Object.entries(propUrls).map(async ([assetId, url]) => [assetId, await Assets.load(url)]),
   );
   return Object.fromEntries(entries);
 }
@@ -420,32 +372,22 @@ function createMapPropLayer(map, propTextures) {
   return layer;
 }
 
-function createNpcSystem(characterHomes, characterSheets, body, controlledCharacterId) {
+function createNpcSystem(actorStates, characterFrames) {
   const actors = new Map();
   const characterIds = new Map();
   const facings = new Map();
   const roots = [];
-  let currentControlledCharacterId = controlledCharacterId;
-  for (const marker of Object.values(characterHomes)) {
-    const characterId = marker.properties.characterId;
-    const sheetTexture = characterSheets[characterId];
-    const visual = MAP_CHARACTER_VISUALS[characterId];
-    if (!sheetTexture || !visual) throw new Error(`${marker.name}のcharacterIdが不正です`);
-    const npc = createMapCharacterActor(sheetTexture, { label: `npc-${marker.name}`, ...visual });
-    npc.setMotion("down", 0, false);
-    npc.root.position.set(marker.x, marker.y);
-    npc.root.zIndex = getMapBodyDepth(marker, body);
-    npc.root.visible = characterId !== controlledCharacterId;
-    actors.set(marker.name, npc);
-    characterIds.set(marker.name, characterId);
-    facings.set(marker.name, "down");
+  for (const state of actorStates) {
+    const frames = characterFrames[state.characterId];
+    const visual = MAP_ACTOR_CATALOG[state.characterId];
+    if (!frames || !visual) throw new Error(`${state.entityId}のcharacterIdが不正です`);
+    const npc = createMapCharacterActor(frames, { label: `npc-${state.entityId}`, ...visual });
+    actors.set(state.entityId, npc);
+    characterIds.set(state.entityId, state.characterId);
     roots.push(npc.root);
   }
   return {
     roots,
-    getVisibleMarkers() {
-      return getVisibleCharacterHomeMarkers(characterHomes, currentControlledCharacterId);
-    },
     getVisibleCharacterIds() {
       return [...characterIds.entries()]
         .filter(([name]) => actors.get(name)?.root.visible)
@@ -454,21 +396,16 @@ function createNpcSystem(characterHomes, characterSheets, body, controlledCharac
     getFacings() {
       return Object.fromEntries(facings);
     },
-    setFacing(name, facing) {
-      const actor = actors.get(name);
-      if (!actor) return;
-      actor.setMotion(facing, 0, false);
-      facings.set(name, facing);
-    },
-    syncControlledCharacter(nextControlledCharacterId) {
-      currentControlledCharacterId = nextControlledCharacterId;
-      for (const [name, characterId] of characterIds) {
-        const actor = actors.get(name);
-        if (actor) actor.root.visible = characterId !== nextControlledCharacterId;
+    sync(states) {
+      for (const state of states) {
+        const actor = actors.get(state.entityId);
+        if (!actor) continue;
+        actor.root.visible = state.visible;
+        actor.root.position.set(state.x, state.y);
+        actor.root.zIndex = getMapBodyDepth(state, MAP_NPC_BODY);
+        actor.setMotion(state.facing, 0, false);
+        facings.set(state.entityId, state.facing);
       }
-    },
-    getCharacterId(name) {
-      return characterIds.get(name) ?? null;
     },
   };
 }

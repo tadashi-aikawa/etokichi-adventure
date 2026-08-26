@@ -7,7 +7,7 @@ describe("ゲームセッション", () => {
 
     expect(session.getState().scene).toBe("title");
     session.enterMap({ mapId: "test-map", x: 128, y: 96, facing: "right" });
-    session.setFlag("talkedToGuide", true);
+    session.setFlags({ talkedToGuide: true });
     session.beginBattle({ encounterId: "guide-battle", opponentId: "kuroboshi" });
 
     expect(session.getState()).toMatchObject({
@@ -58,7 +58,7 @@ describe("ゲームセッション", () => {
   it("直列化した状態を同じ内容で復元できる", () => {
     const session = createGameSession();
     session.enterMap({ x: 220, y: 180, facing: "up" });
-    session.setFlag("route", "north");
+    session.setFlags({ route: "north" });
 
     expect(parseWorldState(session.serialize())).toEqual(session.getState());
   });
@@ -134,7 +134,7 @@ describe("ゲームセッション", () => {
     const listener = vi.fn();
     const unsubscribe = session.subscribe(listener);
 
-    session.updatePlayer({ x: 720 });
+    session.checkpointPlayer({ ...session.getState().player, x: 720 });
     const notifiedState = listener.mock.calls[0]?.[0];
     expect(notifiedState).toBeDefined();
     if (!notifiedState) throw new Error("ゲームセッションから状態が通知されていません");
@@ -142,7 +142,49 @@ describe("ゲームセッション", () => {
     expect(session.getState().player.x).toBe(720);
 
     unsubscribe();
-    session.updatePlayer({ y: 420 });
+    session.checkpointPlayer({ ...session.getState().player, y: 420 });
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("checkpointと複数event変数更新をそれぞれ1回の通知でcommitする", () => {
+    const session = createGameSession();
+    const listener = vi.fn();
+    session.subscribe(listener);
+
+    session.checkpointPlayer({ mapId: "prototype-plaza", x: 640, y: 360, facing: "left" });
+    session.setFlags({ route: "west", talked: true });
+
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(session.getState()).toMatchObject({
+      player: { mapId: "prototype-plaza", x: 640, y: 360, facing: "left" },
+      flags: { route: "west", talked: true },
+    });
+  });
+
+  it("購読者の例外を隔離して後続購読者へ通知する", () => {
+    const session = createGameSession();
+    const report = vi.spyOn(console, "error").mockImplementation(() => {});
+    const listener = vi.fn();
+    session.subscribe(() => {
+      throw new Error("view failed");
+    });
+    session.subscribe(listener);
+
+    expect(() => session.setFlags({ committed: true })).not.toThrow();
+    expect(session.getState().flags.committed).toBe(true);
+    expect(listener).toHaveBeenCalledOnce();
+    expect(report).toHaveBeenCalledOnce();
+    report.mockRestore();
+  });
+
+  it("表示開始に失敗した未解決バトルを直前のsceneへ戻す", () => {
+    const session = createGameSession();
+    session.enterMap();
+    session.beginBattle({ encounterId: "rollback", opponentId: "aster" });
+
+    session.abortBattleStart();
+
+    expect(session.getState()).toMatchObject({ scene: "map", activeBattle: null });
+    expect(() => session.abortBattleStart()).toThrow("開始を中断できるバトルがありません");
   });
 });

@@ -136,8 +136,10 @@
           "name":"etokichi",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"etokichi"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"etokichi"},
+            {"name":"eventId","type":"string","value":"character-action:etokichi"}
           ],
           "rotation":0,
           "type":"npc",
@@ -152,8 +154,10 @@
           "name":"kuroboshi",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"kuroboshi"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"kuroboshi"},
+            {"name":"eventId","type":"string","value":"character-action:kuroboshi"}
           ],
           "rotation":0,
           "type":"npc",
@@ -168,8 +172,10 @@
           "name":"sutekichi",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"sutekichi"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"sutekichi"},
+            {"name":"eventId","type":"string","value":"character-action:sutekichi"}
           ],
           "rotation":0,
           "type":"npc",
@@ -184,8 +190,10 @@
           "name":"salarymanEtokichi",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"salarymanEtokichi"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"salarymanEtokichi"},
+            {"name":"eventId","type":"string","value":"character-action:salarymanEtokichi"}
           ],
           "rotation":0,
           "type":"npc",
@@ -200,8 +208,10 @@
           "name":"tatsuo",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"tatsuo"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"tatsuo"},
+            {"name":"eventId","type":"string","value":"character-action:tatsuo"}
           ],
           "rotation":0,
           "type":"npc",
@@ -216,8 +226,10 @@
           "name":"aster",
           "point":true,
           "properties":[
+            {"name":"behaviorId","type":"string","value":"idle"},
             {"name":"characterId","type":"string","value":"aster"},
-            {"name":"dialogueId","type":"string","value":"prototype-guide"}
+            {"name":"entityId","type":"string","value":"aster"},
+            {"name":"eventId","type":"string","value":"character-action:aster"}
           ],
           "rotation":0,
           "type":"npc",

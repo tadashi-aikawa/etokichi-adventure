@@ -55,10 +55,11 @@ export interface BattleResolution {
 export interface GameSession {
   getState(): WorldState;
   enterMap(position?: Partial<MapPosition>): WorldState;
-  updatePlayer(position: Partial<Omit<MapPosition, "mapId">>): WorldState;
+  checkpointPlayer(position: MapPosition): WorldState;
   swapControlledCharacter(characterId: CharacterId): WorldState;
-  setFlag(key: string, value: WorldFlagValue): WorldState;
+  setFlags(updates: Readonly<Record<string, WorldFlagValue>>): WorldState;
   beginBattle(request: BattleRequest): WorldState;
+  abortBattleStart(): WorldState;
   resolveBattle(resolution: BattleResolution): WorldState;
   restartBattle(): WorldState;
   leaveBattle(): WorldState;
@@ -97,7 +98,14 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
 
   const publish = (nextState: WorldState) => {
     state = nextState;
-    for (const listener of listeners) listener(cloneWorldState(state));
+    // 状態commit後の表示層の失敗で、別の購読者通知やControllerの処理を巻き戻さない。
+    for (const listener of listeners) {
+      try {
+        listener(cloneWorldState(state));
+      } catch (error) {
+        console.error("ゲームセッション購読者の処理に失敗しました", error);
+      }
+    }
     return cloneWorldState(state);
   };
 
@@ -111,11 +119,10 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
         player: { ...state.player, ...position },
       });
     },
-    updatePlayer: (position) =>
-      publish({
-        ...state,
-        player: { ...state.player, ...position },
-      }),
+    checkpointPlayer: (position) => {
+      if (!isMapPosition(position)) throw new Error("checkpointするマップ位置が不正です");
+      return publish({ ...state, player: { ...position } });
+    },
     swapControlledCharacter: (characterId) => {
       if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外では操作キャラクターを変更できません");
       if (!isCharacterId(characterId)) throw new Error(`${characterId}は操作可能なキャラクターではありません`);
@@ -125,11 +132,12 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
         controlledCharacterId: characterId,
       });
     },
-    setFlag: (key, value) =>
-      publish({
-        ...state,
-        flags: { ...state.flags, [key]: value },
-      }),
+    setFlags: (updates) => {
+      for (const [key, value] of Object.entries(updates)) {
+        if (!key || !isFlagValue(value)) throw new Error("更新するevent変数が不正です");
+      }
+      return publish({ ...state, flags: { ...state.flags, ...updates } });
+    },
     beginBattle: (request) => {
       if (state.activeBattle) throw new Error("進行中のバトルがあります");
       const returnScene = request.returnScene ?? (state.scene === "map" ? "map" : "title");
@@ -145,6 +153,12 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
           result: null,
         },
       });
+    },
+    abortBattleStart: () => {
+      if (!state.activeBattle || state.activeBattle.result || state.scene !== "battle") {
+        throw new Error("開始を中断できるバトルがありません");
+      }
+      return publish({ ...state, scene: state.activeBattle.returnScene, activeBattle: null });
     },
     resolveBattle: (resolution) => {
       if (!state.activeBattle) throw new Error("解決対象のバトルがありません");
@@ -254,7 +268,11 @@ function isBattleResult(value: unknown): value is BattleResult {
 
 function isFlagRecord(value: unknown): value is Record<string, WorldFlagValue> {
   if (!isRecord(value)) return false;
-  return Object.values(value).every((entry) => ["boolean", "number", "string"].includes(typeof entry));
+  return Object.values(value).every(isFlagValue);
+}
+
+function isFlagValue(value: unknown): value is WorldFlagValue {
+  return ["boolean", "number", "string"].includes(typeof value);
 }
 
 function isScene(value: unknown): value is AppScene {

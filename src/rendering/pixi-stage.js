@@ -112,7 +112,7 @@ function rendererName(type) {
   return "unknown";
 }
 
-export async function createPixiStage({ arena, gameShell, preference = "auto" }) {
+export async function createPixiStage({ arena, gameShell, gameSession, gameController, preference = "auto" }) {
   if (!arena || !gameShell) throw new Error("描画先のアリーナが見つかりません。");
 
   const app = await createRenderLoopWithFallback(arena, preference);
@@ -253,7 +253,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       arena,
       stage: app.stage,
       ticker: app.ticker,
-      gameSession: window.etokichiGameSession,
+      gameSession,
+      gameController,
       mobileControls,
     });
   } catch (error) {
@@ -267,8 +268,8 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     mobileControls.setMode(mapVisible ? "map" : "battle");
     mobileControls.setState({ visible: mapVisible, enabled: mapVisible });
   };
-  const unsubscribeGameScene = window.etokichiGameSession.subscribe(syncGameScene);
-  syncGameScene(window.etokichiGameSession.getState());
+  const unsubscribeGameScene = gameSession.subscribe(syncGameScene);
+  syncGameScene(gameSession.getState());
 
   const camera = {
     mode: null,
@@ -620,7 +621,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
     actorShadows.visible = !prebattle;
     fighterSystem.setVisible(!prebattle);
     effectLayer.visible = !prebattle;
-    if (window.etokichiGameSession.getState().scene !== "map") {
+    if (gameSession.getState().scene !== "map") {
       mobileControls.setState({ visible: !prebattle });
     }
     background.tint = prebattle ? 0xa89dbd : 0xc9bfdc;
@@ -742,7 +743,7 @@ export async function createPixiStage({ arena, gameShell, preference = "auto" })
       mobileControls.setHandlers(handlers, "battle");
     },
     setMobileControlState(state) {
-      if (window.etokichiGameSession.getState().scene !== "map") {
+      if (gameSession.getState().scene !== "map") {
         mobileControls.setState(state);
       }
     },

@@ -1,12 +1,3 @@
-import {
-  advanceDialogue,
-  findFacingNpc,
-  getCharacterGreeting,
-  getDialogueNode,
-  getDialogueSpeakerId,
-  selectDialogueChoice,
-  startDialogue,
-} from "../game/map-interaction.ts";
 import { getTechniqueRank } from "../game/technique-rank.ts";
 
 const STAT_LABELS = [
@@ -55,24 +46,14 @@ function renderTechniques(profile) {
     .join("");
 }
 
-const CHARACTER_ACTIONS = [
-  { id: "battle", label: "対戦する" },
-  { id: "switch", label: "操作を変える" },
-  { id: "cancel", label: "なんでもない" },
-];
-
 export function createMapInterface({
   arena,
   gameSession,
+  gameController,
   playerProfile,
   portraitUrl,
   characterProfiles,
-  getNpcMarkers,
-  getNpcCharacterId,
-  onDialogueOpen = () => {},
   onModeChange = () => {},
-  onBattle = () => {},
-  onSwitch = () => {},
 }) {
   const root = document.createElement("div");
   root.className = "map-interface";
@@ -138,8 +119,7 @@ export function createMapInterface({
   const techniqueList = root.querySelector(".map-technique-list");
 
   let nearbyNpc = null;
-  let progress = null;
-  let characterAction = null;
+  let presentation = null;
   let selectedChoiceIndex = 0;
 
   function isMapVisible() {
@@ -151,13 +131,10 @@ export function createMapInterface({
   }
 
   function updateNearbyNpc() {
-    nearbyNpc = isMapVisible() && !isBlocking()
-      ? findFacingNpc(gameSession.getState().player, getNpcMarkers())
-      : null;
+    nearbyNpc = isMapVisible() && !isBlocking() ? gameController.getMapRuntime()?.findFacingActor() ?? null : null;
     const canTalk = Boolean(nearbyNpc);
     if (nearbyNpc) {
-      const characterId = getNpcCharacterId(nearbyNpc.name);
-      promptText.textContent = `${characterProfiles[characterId]?.name ?? nearbyNpc.name}に話す`;
+      promptText.textContent = `${characterProfiles[nearbyNpc.characterId]?.name ?? nearbyNpc.entityId}に話す`;
     }
     prompt.hidden = !canTalk;
     talkButton.disabled = !canTalk;
@@ -165,70 +142,25 @@ export function createMapInterface({
 
   function openDialogue() {
     if (!nearbyNpc || isBlocking()) return;
-    const characterId = getNpcCharacterId(nearbyNpc.name);
-    if (characterId && characterProfiles[characterId]) {
-      characterAction = { marker: nearbyNpc, characterId, stage: "greeting" };
-      selectedChoiceIndex = 0;
-      dialoguePanel.hidden = false;
-      prompt.hidden = true;
-      onModeChange("dialogue");
-      onDialogueOpen(nearbyNpc);
-      renderCharacterGreeting();
-      return;
-    }
-    const dialogueId = nearbyNpc.properties.dialogueId;
-    if (typeof dialogueId !== "string") return;
-    progress = startDialogue(dialogueId, gameSession.getState().flags);
-    if (!progress) return;
+    presentation = gameController.startActorEvent(nearbyNpc.entityId);
+    if (!presentation) return;
     selectedChoiceIndex = 0;
     dialoguePanel.hidden = false;
     prompt.hidden = true;
     onModeChange("dialogue");
-    onDialogueOpen(nearbyNpc);
     renderDialogue();
   }
 
-  function renderCharacterGreeting() {
-    if (!characterAction) return;
-    const profile = characterProfiles[characterAction.characterId];
-    renderDialoguePortrait(profile, characterAction.characterId);
-    dialogueSpeaker.textContent = profile.name;
-    dialogueText.textContent = getCharacterGreeting(characterAction.characterId);
-    dialogueChoices.replaceChildren();
-    dialogueNext.hidden = false;
-    dialogueNext.textContent = "つぎへ  ●";
-    dialogueNext.focus({ preventScroll: true });
-  }
-
-  function renderCharacterActions() {
-    if (!characterAction) return;
-    const profile = characterProfiles[characterAction.characterId];
-    renderDialoguePortrait(profile, characterAction.characterId);
-    dialogueSpeaker.textContent = profile.name;
-    dialogueText.textContent = `${profile.name}にどうする？`;
-    dialogueChoices.replaceChildren();
-    dialogueNext.hidden = true;
-    CHARACTER_ACTIONS.forEach((action, index) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.characterAction = action.id;
-      button.className = index === selectedChoiceIndex ? "selected" : "";
-      button.innerHTML = `<span>${index + 1}</span>${action.label}`;
-      button.addEventListener("click", () => chooseCharacterAction(action.id));
-      dialogueChoices.append(button);
-    });
-    dialogueChoices.querySelector(".selected")?.focus({ preventScroll: true });
-  }
-
   function renderDialogue() {
-    if (!progress) return;
-    const node = getDialogueNode(progress);
-    const speakerId = getDialogueSpeakerId(node);
-    renderDialoguePortrait(speakerId ? characterProfiles[speakerId] : null, speakerId);
-    dialogueSpeaker.textContent = node.speaker;
-    dialogueText.textContent = node.text;
+    if (!presentation) return;
+    renderDialoguePortrait(
+      presentation.speakerId ? characterProfiles[presentation.speakerId] : null,
+      presentation.speakerId,
+    );
+    dialogueSpeaker.textContent = presentation.speaker;
+    dialogueText.textContent = presentation.text;
     dialogueChoices.replaceChildren();
-    const choices = node.choices ?? [];
+    const choices = presentation.choices;
     dialogueNext.hidden = choices.length > 0;
     choices.forEach((choice, index) => {
       const button = document.createElement("button");
@@ -239,60 +171,55 @@ export function createMapInterface({
       button.addEventListener("click", () => choose(choice.id));
       dialogueChoices.append(button);
     });
-    dialogueNext.textContent = node.nextNodeId ? "つぎへ  ●" : "会話を終える  ●";
+    dialogueNext.textContent = presentation.advanceLabel === "close" ? "会話を終える  ●" : "つぎへ  ●";
     (dialogueChoices.querySelector(".selected") ?? dialogueNext).focus({ preventScroll: true });
   }
 
-  function applyTransition(transition) {
-    for (const [key, value] of Object.entries(transition.flagUpdates)) gameSession.setFlag(key, value);
-    progress = transition.progress;
-    if (!progress) {
-      closeDialogue();
+  function advance() {
+    if (!presentation) return;
+    if (presentation.choices.length) {
+      choose(presentation.choices[selectedChoiceIndex].id);
+      return;
+    }
+    continueEvent();
+  }
+
+  function choose(choiceId) {
+    if (presentation) continueEvent(choiceId);
+  }
+
+  function continueEvent(choiceId) {
+    try {
+      applyPresentation(gameController.advanceEvent(choiceId));
+    } catch (error) {
+      gameController.cancelEvent();
+      finishDialogue();
+      throw error;
+    }
+  }
+
+  function applyPresentation(nextPresentation) {
+    presentation = nextPresentation;
+    if (!presentation) {
+      finishDialogue();
       return;
     }
     selectedChoiceIndex = 0;
     renderDialogue();
   }
 
-  function advance() {
-    if (characterAction) {
-      if (characterAction.stage === "greeting") {
-        characterAction.stage = "actions";
-        renderCharacterActions();
-        return;
-      }
-      chooseCharacterAction(CHARACTER_ACTIONS[selectedChoiceIndex].id);
-      return;
-    }
-    if (!progress) return;
-    const node = getDialogueNode(progress);
-    if (node.choices?.length) {
-      choose(node.choices[selectedChoiceIndex].id);
-      return;
-    }
-    applyTransition(advanceDialogue(progress));
-  }
-
-  function chooseCharacterAction(actionId) {
-    if (!characterAction) return;
-    const selection = characterAction;
-    closeDialogue();
-    if (actionId === "battle") onBattle(selection.marker, selection.characterId);
-    else if (actionId === "switch") onSwitch(selection.marker, selection.characterId);
-  }
-
-  function choose(choiceId) {
-    if (progress) applyTransition(selectDialogueChoice(progress, choiceId));
-  }
-
-  function closeDialogue() {
-    progress = null;
-    characterAction = null;
+  function finishDialogue() {
+    presentation = null;
     renderDialoguePortrait(null, null);
     dialoguePanel.hidden = true;
     updateNearbyNpc();
     onModeChange("map");
     talkButton.focus({ preventScroll: true });
+  }
+
+  function cancelDialogue() {
+    gameController.cancelEvent();
+    finishDialogue();
   }
 
   function renderDialoguePortrait(profile, speakerId) {
@@ -322,11 +249,13 @@ export function createMapInterface({
     selectStatusTab("abilities");
     statusPanel.hidden = false;
     prompt.hidden = true;
+    gameController.openStatus();
     onModeChange("status");
     statusPanel.querySelector('[data-map-action="close-status"]').focus({ preventScroll: true });
   }
 
   function closeStatus() {
+    gameController.closeStatus();
     statusPanel.hidden = true;
     updateNearbyNpc();
     onModeChange("map");
@@ -359,14 +288,8 @@ export function createMapInterface({
   }
 
   function moveChoice(delta) {
-    if (characterAction) {
-      if (characterAction.stage !== "actions") return;
-      selectedChoiceIndex = (selectedChoiceIndex + delta + CHARACTER_ACTIONS.length) % CHARACTER_ACTIONS.length;
-      renderCharacterActions();
-      return;
-    }
-    if (!progress) return;
-    const choices = getDialogueNode(progress).choices ?? [];
+    if (!presentation) return;
+    const choices = presentation.choices;
     if (!choices.length) return;
     selectedChoiceIndex = (selectedChoiceIndex + delta + choices.length) % choices.length;
     renderDialogue();
@@ -386,7 +309,7 @@ export function createMapInterface({
         if (event.code === "ArrowUp") moveChoice(-1);
         else if (event.code === "ArrowDown") moveChoice(1);
         else if (["Enter", "Space", "KeyE"].includes(event.code)) advance();
-        else if (event.code === "Escape") closeDialogue();
+        else if (event.code === "Escape") cancelDialogue();
       } else {
         if (moveStatusTab(event)) return;
         if (["Escape", "KeyM"].includes(event.code)) closeStatus();
@@ -438,10 +361,9 @@ export function createMapInterface({
     getDebugState() {
       return {
         mode: dialoguePanel.hidden ? (statusPanel.hidden ? "map" : "status") : "dialogue",
-        nearbyNpc: nearbyNpc?.name ?? null,
-        dialogueNodeId: progress?.nodeId ?? null,
-        characterActionId: characterAction?.characterId ?? null,
-        characterActionStage: characterAction?.stage ?? null,
+        nearbyNpc: nearbyNpc?.entityId ?? null,
+        eventId: presentation?.eventId ?? null,
+        eventNodeId: presentation?.nodeId ?? null,
       };
     },
     destroy() {

@@ -61,7 +61,7 @@ map ─────────────┴───────────�
 | `ground` | Tile Layer | 地面・道・建物・水面など、キャラクターより背面の描画 |
 | `foreground` | Tile Layer | 木の葉や花など、キャラクターより前面の描画 |
 | `collision` | Object Layer | 通過できない軸並行の矩形 |
-| `actors` | Object Layer | NPCのpoint。`dialogueId`などをカスタムプロパティに持つ |
+| `actors` | Object Layer | actorのpoint。`entityId / characterId / eventId / behaviorId`をカスタムプロパティに持つ |
 | `entrances` | Object Layer | 出入口と初期地点のpoint |
 
 `src/game/tiled-map.ts`がこの規約を検証し、描画用レイヤー・衝突矩形・NPC・入口へ変換する。不正データは読み飛ばさず起動時にエラーとする。移動はキャラクターの足元へ寄せた当たり判定をX軸、Y軸の順に解決するため、見た目が水や障害物へ入り込まず、壁へ斜めに入力しても壁沿いの軸は動ける。
@@ -98,11 +98,11 @@ pnpm map-character:normalize -- \
 
 追加・更新後は`pnpm map-character:validate`を実行する。各セルの四辺に4px以上の透明余白があることと、方向ごとの3コマで中心軸・足元の差が3px以内であることを自動検査する。この検査は`pnpm check`にも含まれる。検査後も上下左右すべての停止・歩行を実画面で確認し、欠け・隣セルの混入・進行方向と直交する揺れがないことを完了条件とする。
 
-追加後は`src/rendering/pixi-map.js`の`MAP_CHARACTER_SHEET_URLS`へURL、`MAP_CHARACTER_VISUALS`へ表示寸法を登録する。表示寸法は元セルと同じ縦横比を保ち、正面中央フレームの不透明部分が既存キャラクターと同程度の高さになるよう調整する。TiledのNPCマーカーには既存の`dialogueId`に加えて、素材と戦闘プロフィールを結び付ける文字列`characterId`を設定する。フレーム幅・高さは画像寸法から計算し、3列×4行で割り切れなければ起動時にエラーとする。
+追加後は`src/content/map-actor-catalog.ts`へURLと表示寸法を登録する。表示寸法は元セルと同じ縦横比を保ち、正面中央フレームの不透明部分が既存キャラクターと同程度の高さになるよう調整する。Tiledのactorマーカーには`entityId / characterId / eventId / behaviorId`を設定する。フレーム幅・高さは画像寸法から計算し、3列×4行で割り切れなければ起動時にエラーとする。
 
 ## 会話イベント規約
 
-Tiledの`actors`レイヤーに置くNPCは、文字列プロパティ`dialogueId`で`src/game/map-interaction.ts`の会話定義を参照する。NPCの座標や見た目と会話データを分離し、同じ会話を別マップでも利用できるようにする。
+Tiledの`actors`レイヤーに置くactorは、文字列プロパティ`eventId`で`src/content/event-catalog.ts`の宣言的イベントを参照する。actorの座標や見た目とイベントデータを分離し、同じイベントを別マップでも利用できるようにする。詳細な責務境界は`docs/rpg-map-architecture.md`を参照する。
 
 - NPCには静的な当たり判定を置き、プレイヤーとNPCが重ならないようにする
 - NPCへの接触では開始せず、正面104px以内・横ずれ56px以内で決定操作をしたときだけ会話する

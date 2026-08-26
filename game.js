@@ -456,13 +456,17 @@ import {
       requestGameFullscreen();
       enterMapFromTitle();
     });
-    window.addEventListener("etokichi:map-battle-request", (event) => {
-      const { heroId, opponentId } = event.detail ?? {};
-      if (!CHARACTER_PROFILES[heroId] || !CHARACTER_PROFILES[opponentId]) return;
-      applyHeroProfile(heroId);
-      applyEnemyProfile(opponentId);
-      refs.resultScreen.classList.remove("visible");
-      startPrebattleIntro();
+    window.etokichiGameController?.setBattlePresenter({
+      present({ heroId, opponentId }) {
+        if (!CHARACTER_PROFILES[heroId] || !CHARACTER_PROFILES[opponentId]) {
+          throw new Error("バトル表示対象のキャラクターが見つかりません");
+        }
+        applyHeroProfile(heroId);
+        applyEnemyProfile(opponentId);
+        refs.resultScreen.classList.remove("visible");
+        startPrebattleIntro();
+      },
+      resetToMap: resetBattlePresentationToMap,
     });
     refs.startButton.addEventListener("click", startBattle);
     refs.retryButton.addEventListener("click", startBattle);
@@ -617,6 +621,11 @@ import {
     const gameSession = window.etokichiGameSession;
     const activeBattle = gameSession?.getState().activeBattle;
     if (!activeBattle?.result || activeBattle.returnScene !== "map") return;
+    resetBattlePresentationToMap();
+    window.etokichiGameController.leaveBattle();
+  }
+
+  function resetBattlePresentationToMap() {
     stopGameLoop();
     stopEntranceMusic();
     stopMusic();
@@ -630,7 +639,6 @@ import {
     refs.arena.style.removeProperty("--victory-focus-x");
     refs.effects.replaceChildren();
     state.phase = "map";
-    gameSession.leaveBattle();
   }
 
   function startGameLoop(now = performance.now()) {
