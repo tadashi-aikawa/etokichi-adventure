@@ -1,4 +1,5 @@
 import { getTechniqueRank } from "../game/technique-rank.ts";
+import { shouldMirrorDialoguePortrait } from "../game/dialogue-portrait.ts";
 
 const STAT_LABELS = [
   ["life", "ライフ"],
@@ -158,10 +159,15 @@ export function createMapInterface({
 
   function renderDialogue() {
     if (!presentation) return;
+    const speakerSide =
+      presentation.speakerId && presentation.speakerId !== gameSession.getState().controlledCharacterId
+        ? "other"
+        : "self";
+    dialoguePanel.dataset.speakerSide = speakerSide;
     renderDialoguePortrait(
       presentation.speakerId ? characterProfiles[presentation.speakerId] : null,
       presentation.speakerId,
-      presentation.speakerId === gameSession.getState().controlledCharacterId ? "self" : "other",
+      speakerSide,
     );
     dialogueSpeaker.textContent = presentation.speaker;
     dialogueText.textContent = presentation.text;
@@ -217,6 +223,7 @@ export function createMapInterface({
   function finishDialogue() {
     presentation = null;
     renderDialoguePortrait(null, null, null);
+    delete dialoguePanel.dataset.speakerSide;
     dialoguePanel.hidden = true;
     updateNearbyNpc();
     onModeChange("map");
@@ -234,12 +241,16 @@ export function createMapInterface({
       dialoguePortrait.replaceChildren();
       delete dialoguePortrait.dataset.characterId;
       delete dialoguePortrait.dataset.side;
+      delete dialoguePortrait.dataset.mirrored;
       return;
     }
+
+    const mirrored = String(shouldMirrorDialoguePortrait(profile.baseFacing, side));
 
     if (
       dialoguePortrait.dataset.characterId === speakerId &&
       dialoguePortrait.dataset.side === side &&
+      dialoguePortrait.dataset.mirrored === mirrored &&
       dialoguePortrait.firstElementChild
     ) {
       dialoguePortrait.hidden = false;
@@ -252,6 +263,7 @@ export function createMapInterface({
     dialoguePortrait.replaceChildren(image);
     dialoguePortrait.dataset.characterId = speakerId;
     dialoguePortrait.dataset.side = side;
+    dialoguePortrait.dataset.mirrored = mirrored;
     dialoguePortrait.hidden = false;
   }
 

@@ -87,16 +87,19 @@ button { font: inherit; }
 .map-dialogue-portrait { position: absolute; z-index: 1; top: clamp(8px,2vh,20px); right: 2%; bottom: calc(clamp(18px,4vw,52px) + var(--map-dialogue-copy-height) - 2px); width: min(44%,620px); overflow: visible; pointer-events: none; }
 .map-dialogue-portrait[data-side="self"] { right: auto; left: 2%; }
 .map-dialogue-portrait img { position: absolute; top: 0; left: 50%; width: auto; max-width: none; height: 148%; translate: -50% 0; filter: drop-shadow(0 18px 16px rgba(0,0,0,.52)); animation: map-dialogue-portrait-enter .24s cubic-bezier(.18,.78,.2,1) both; }
+.map-dialogue-portrait[data-mirrored="true"] img { transform: scaleX(-1); }
 .map-dialogue-portrait[data-character-id="etokichi"] img { top: 14px; height: 108%; }
 .map-dialogue-portrait[data-character-id="kuroboshi"] img { top: 34px; height: 112%; }
 .map-dialogue-portrait[data-character-id="sutekichi"] img { height: 142%; }
 .map-dialogue-portrait[data-character-id="salarymanEtokichi"] img { height: 178%; }
 .map-dialogue-portrait[data-character-id="tatsuo"] img { height: 152%; }
-.map-dialogue-portrait[data-character-id="aster"] img { height: 150%; transform: scaleX(-1); }
+.map-dialogue-portrait[data-character-id="aster"] img { height: 150%; }
 @keyframes map-dialogue-portrait-enter { from { opacity: 0; translate: -50% 14px; scale: .96; } to { opacity: 1; translate: -50% 0; scale: 1; } }
 .map-dialogue-copy { position: absolute; z-index: 2; left: clamp(18px,7vw,120px); right: clamp(18px,7vw,120px); bottom: clamp(18px,4vw,52px); height: var(--map-dialogue-copy-height); padding: 23px clamp(24px,4vw,52px) 20px; border: 2px solid rgba(255,244,176,.82); border-radius: 10px 28px 16px 28px; color: #f7fff4; background: linear-gradient(120deg,rgba(12,43,34,.98),rgba(21,72,53,.96)); box-shadow: 0 22px 65px rgba(4,25,18,.58),inset 0 1px rgba(255,255,255,.17); }
 .map-dialogue-copy::before { position: absolute; inset: 7px; content: ""; pointer-events: none; border: 1px solid rgba(255,255,255,.14); border-radius: 6px 20px 11px 20px; }
-.map-dialogue-speaker { position: relative; display: inline-block; margin: -42px 0 12px -10px; padding: 9px 24px; border: 1px solid #fff0a4; border-radius: 7px 16px; color: #2c2200; font-size: clamp(14px,2vw,20px); font-weight: 900; background: linear-gradient(#fff6b0,#f6c845); box-shadow: 0 6px 18px rgba(9,34,25,.36); }
+/* 名前札を会話枠へ少し重ね、独立したラベルではなく枠から生えたタブとして見せる。 */
+.map-dialogue-speaker { position: absolute; z-index: 3; left: clamp(24px,4vw,52px); bottom: calc(100% - 2px); display: inline-block; margin: 0; padding: 9px 24px; border: 2px solid rgba(255,244,176,.92); border-bottom: 0; border-radius: 10px 16px 0 0; color: #2c2200; font-size: clamp(14px,2vw,20px); font-weight: 900; background: linear-gradient(#fff6b0,#f6c845); box-shadow: 0 -5px 18px rgba(9,34,25,.28); }
+.map-dialogue-panel[data-speaker-side="other"] .map-dialogue-speaker { right: clamp(24px,4vw,52px); left: auto; border-radius: 16px 10px 0 0; }
 .map-dialogue-text { position: relative; min-height: 54px; margin: 0; font-size: clamp(15px,2vw,21px); font-weight: 700; line-height: 1.8; letter-spacing: .025em; }
 .map-dialogue-next { position: absolute; right: clamp(24px,4vw,52px); bottom: 20px; padding: 8px 16px; border: 0; border-radius: 999px; color: #fffbd7; font-size: 12px; font-weight: 900; cursor: pointer; background: rgba(0,0,0,.24); }
 .map-dialogue-choices { position: relative; display: grid; gap: 7px; width: min(600px,100%); margin: 12px auto 0; }
@@ -1448,7 +1451,8 @@ button { font: inherit; }
   .map-dialogue-portrait[data-character-id="tatsuo"] img { height: 147%; }
   .map-dialogue-portrait[data-character-id="aster"] img { height: 145%; }
   .map-dialogue-copy { left: 10px; right: 10px; bottom: max(8px,env(safe-area-inset-bottom)); padding: 21px 20px 13px; }
-  .map-dialogue-speaker { margin: -34px 0 8px -6px; padding: 7px 17px; font-size: clamp(13px,3.8vh,16px); }
+  .map-dialogue-speaker { left: 20px; padding: 7px 17px; font-size: clamp(13px,3.8vh,16px); }
+  .map-dialogue-panel[data-speaker-side="other"] .map-dialogue-speaker { right: 20px; left: auto; }
   .map-dialogue-text { min-height: 32px; font-size: clamp(15px,4.2vh,18px); line-height: 1.5; }
   .map-dialogue-next { right: 20px; bottom: 13px; padding: 7px 13px; font-size: clamp(11px,3.2vh,13px); }
   .map-dialogue-choices { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 8px; }
