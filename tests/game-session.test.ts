@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGameSession, createInitialWorldState, parseWorldState } from "../src/game/game-session.ts";
+import {
+  createGameSession,
+  createInitialWorldState,
+  parseWorldState,
+  serializeWorldState,
+} from "../src/game/game-session.ts";
+
+const INITIAL_POSITION = { mapId: "prototype-plaza", x: 736, y: 512, facing: "down" } as const;
+const createInitialState = () => createInitialWorldState(INITIAL_POSITION);
+const createSession = () => createGameSession(createInitialState());
 
 describe("ゲームセッション", () => {
   it("タイトル・マップ・バトルをワールド状態として遷移する", () => {
-    const session = createGameSession();
+    const session = createSession();
 
     expect(session.getState().scene).toBe("title");
     session.enterMap({ mapId: "test-map", x: 128, y: 96, facing: "right" });
@@ -37,7 +46,7 @@ describe("ゲームセッション", () => {
   });
 
   it("再戦時は同じエンカウントを維持して結果だけを戻す", () => {
-    const session = createGameSession();
+    const session = createSession();
     session.beginBattle({ encounterId: "trial", opponentId: "sutekichi", returnScene: "title" });
     session.resolveBattle({ outcome: "loss", reason: "time" });
     session.restartBattle();
@@ -56,15 +65,15 @@ describe("ゲームセッション", () => {
   });
 
   it("直列化した状態を同じ内容で復元できる", () => {
-    const session = createGameSession();
+    const session = createSession();
     session.enterMap({ x: 220, y: 180, facing: "up" });
     session.setFlags({ route: "north" });
 
-    expect(parseWorldState(session.serialize())).toEqual(session.getState());
+    expect(parseWorldState(serializeWorldState(session.getState()))).toEqual(session.getState());
   });
 
   it("操作キャラクターをキャラクターIDで変更する", () => {
-    const session = createGameSession();
+    const session = createSession();
     session.enterMap();
 
     session.swapControlledCharacter("sutekichi");
@@ -80,7 +89,7 @@ describe("ゲームセッション", () => {
   });
 
   it("不正な状態や未解決バトルの退出を拒否する", () => {
-    const session = createGameSession();
+    const session = createSession();
     expect(() => parseWorldState('{"version":1,"scene":"map"}')).toThrow("ワールド状態の形式が不正です");
     expect(() => session.leaveBattle()).toThrow("未解決のバトルからは退出できません");
     session.beginBattle({ encounterId: "trial", opponentId: "aster" });
@@ -91,7 +100,7 @@ describe("ゲームセッション", () => {
   });
 
   it("未知のキャラクターIDを含む復元データを拒否する", () => {
-    const state = createInitialWorldState();
+    const state = createInitialState();
     const serialized = JSON.stringify({
       ...state,
       scene: "battle",
@@ -108,12 +117,12 @@ describe("ゲームセッション", () => {
   });
 
   it("旧バージョンのワールド状態を拒否する", () => {
-    const state = createInitialWorldState();
+    const state = createInitialState();
     expect(() => parseWorldState(JSON.stringify({ ...state, version: 1 }))).toThrow("ワールド状態の形式が不正です");
   });
 
   it("バトルシーンと進行中エンカウントが食い違う復元データを拒否する", () => {
-    const state = createInitialWorldState();
+    const state = createInitialState();
     const serialized = JSON.stringify({
       ...state,
       scene: "map",
@@ -130,7 +139,7 @@ describe("ゲームセッション", () => {
   });
 
   it("購読者へ外部から変更できないスナップショットを通知する", () => {
-    const session = createGameSession(createInitialWorldState());
+    const session = createSession();
     const listener = vi.fn();
     const unsubscribe = session.subscribe(listener);
 
@@ -147,7 +156,7 @@ describe("ゲームセッション", () => {
   });
 
   it("checkpointと複数event変数更新をそれぞれ1回の通知でcommitする", () => {
-    const session = createGameSession();
+    const session = createSession();
     const listener = vi.fn();
     session.subscribe(listener);
 
@@ -162,7 +171,7 @@ describe("ゲームセッション", () => {
   });
 
   it("購読者の例外を隔離して後続購読者へ通知する", () => {
-    const session = createGameSession();
+    const session = createSession();
     const report = vi.spyOn(console, "error").mockImplementation(() => {});
     const listener = vi.fn();
     session.subscribe(() => {
@@ -178,7 +187,7 @@ describe("ゲームセッション", () => {
   });
 
   it("表示開始に失敗した未解決バトルを直前のsceneへ戻す", () => {
-    const session = createGameSession();
+    const session = createSession();
     session.enterMap();
     session.beginBattle({ encounterId: "rollback", opponentId: "aster" });
 

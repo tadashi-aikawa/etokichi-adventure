@@ -456,7 +456,8 @@ import {
       requestGameFullscreen();
       enterMapFromTitle();
     });
-    window.etokichiGameController?.setBattlePresenter({
+    if (!window.etokichiGameController) throw new Error("GameControllerが初期化されていません");
+    window.etokichiGameController.setBattlePresenter({
       present({ heroId, opponentId }) {
         if (!CHARACTER_PROFILES[heroId] || !CHARACTER_PROFILES[opponentId]) {
           throw new Error("バトル表示対象のキャラクターが見つかりません");

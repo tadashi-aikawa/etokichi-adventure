@@ -63,22 +63,15 @@ export interface GameSession {
   resolveBattle(resolution: BattleResolution): WorldState;
   restartBattle(): WorldState;
   leaveBattle(): WorldState;
-  serialize(): string;
   subscribe(listener: (state: WorldState) => void): () => void;
 }
 
-const INITIAL_POSITION: MapPosition = {
-  mapId: "prototype-plaza",
-  x: 736,
-  y: 512,
-  facing: "down",
-};
-
-export function createInitialWorldState(): WorldState {
+export function createInitialWorldState(initialPosition: MapPosition): WorldState {
+  if (!isMapPosition(initialPosition)) throw new Error("初期マップ位置が不正です");
   return {
     version: WORLD_STATE_VERSION,
     scene: "title",
-    player: { ...INITIAL_POSITION },
+    player: { ...initialPosition },
     controlledCharacterId: "etokichi",
     flags: {},
     activeBattle: null,
@@ -92,7 +85,12 @@ export function parseWorldState(serialized: string): WorldState {
   return cloneWorldState(value);
 }
 
-export function createGameSession(initialState = createInitialWorldState()): GameSession {
+export function serializeWorldState(state: WorldState): string {
+  if (!isWorldState(state)) throw new Error("直列化するワールド状態の形式が不正です");
+  return JSON.stringify(state);
+}
+
+export function createGameSession(initialState: WorldState): GameSession {
   let state = cloneWorldState(initialState);
   const listeners = new Set<(nextState: WorldState) => void>();
 
@@ -191,7 +189,6 @@ export function createGameSession(initialState = createInitialWorldState()): Gam
         activeBattle: null,
       });
     },
-    serialize: () => JSON.stringify(state),
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

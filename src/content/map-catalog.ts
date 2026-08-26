@@ -3,7 +3,8 @@ import GUILD_MAP_PROP_URL from "../../assets/maps/props/prototype-guild.svg?url"
 import POND_MAP_PROP_URL from "../../assets/maps/props/prototype-pond.svg?url";
 import TILESET_SOURCE from "../../assets/tilesets/prototype-plaza.tsj?raw";
 import TILESET_IMAGE_URL from "../../assets/tilesets/prototype-plaza.svg?url";
-import type { ParsedTiledMap } from "../game/tiled-map.ts";
+import type { MapFacing, MapPosition } from "../game/game-session.ts";
+import { parseTiledMap, type ParsedTiledMap } from "../game/tiled-map.ts";
 
 export interface MapContentDefinition {
   id: string;
@@ -17,6 +18,8 @@ export interface MapContentCatalog {
   get(mapId: string): MapContentDefinition;
   has(mapId: string): boolean;
 }
+
+export const INITIAL_MAP_ID = "prototype-plaza";
 
 export function createMapContentCatalog(definitions: readonly MapContentDefinition[]): MapContentCatalog {
   const entries = new Map<string, MapContentDefinition>();
@@ -43,9 +46,21 @@ export function validateMapPropAssets(map: ParsedTiledMap, propUrls: Readonly<Re
   }
 }
 
+export function getMapInitialPosition(mapId: string): MapPosition {
+  const content = MAP_CONTENT_CATALOG.get(mapId);
+  const map = parseTiledMap(JSON.parse(content.mapSource), JSON.parse(content.tilesetSource));
+  const starts = map.markers.filter((marker) => marker.kind === "entrance" && marker.name === "player-start");
+  if (starts.length !== 1) throw new Error(`${mapId}にはplayer-startを1つだけ配置してください`);
+  const start = starts[0];
+  if (!start) throw new Error(`${mapId}にplayer-startがありません`);
+  const facing = start.properties.facing;
+  if (!isMapFacing(facing)) throw new Error(`${mapId}のplayer-startにはfacingを指定してください`);
+  return { mapId, x: start.x, y: start.y, facing };
+}
+
 export const MAP_CONTENT_CATALOG = createMapContentCatalog([
   {
-    id: "prototype-plaza",
+    id: INITIAL_MAP_ID,
     mapSource: MAP_SOURCE,
     tilesetSource: TILESET_SOURCE,
     tilesetImageUrl: TILESET_IMAGE_URL,
@@ -55,3 +70,7 @@ export const MAP_CONTENT_CATALOG = createMapContentCatalog([
     },
   },
 ]);
+
+function isMapFacing(value: unknown): value is MapFacing {
+  return value === "up" || value === "down" || value === "left" || value === "right";
+}

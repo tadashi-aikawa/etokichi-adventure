@@ -13,9 +13,7 @@
 - map・actor・eventのcatalog型を追加する
 - `pixi-map.js`から広場固有のmap・prop・actor asset importを除く
 - Tiled actorへ`entityId / eventId / behaviorId`を追加する
-- `dialogueId`と既存会話経路はこの時点では残す
-
-Phase 1では`eventId`が空でない文字列であることだけを検証し、event catalogとの解決は行わない。6人分の`EventDefinition`が揃うPhase 3で参照解決を有効にする。Phase 1〜2の`eventId`はlegacy会話から新eventへ移すための未使用参照である。
+- Tiledの`eventId`をevent catalogで解決し、未知参照をロード時に拒否する
 
 完了条件は、初期`WorldState.player.mapId`から任意の登録済みmapをロードでき、広場の見た目と操作が変わらないこと。実行中のmap転送はPhase 5へ送り、Phase 1〜3では公開しない。
 
@@ -79,20 +77,23 @@ Phase 1〜3では既存JSON形式との互換を保つ。`flags`の保存形式�
 - 衝突矩形
 - 操作ロック
 
-1フレームごとの移動では`WorldState`をpublishしない。戦闘開始・マップ退出・将来のセーブ要求の直前に、`GameController.checkpointMap()`でプレイヤー位置を`WorldState`へ反映する。
+1フレームごとの移動では`WorldState`をpublishしない。戦闘開始、runtimeのdetach、Controller経由の直列化の直前に、Controllerがプレイヤー位置を`WorldState`へ反映する。アプリケーション層は`GameSession`を直接直列化しない。
 
 `MapRuntime`はPixiJSオブジェクトを保持しない。公開APIは次に限定する。
 
-- `getSnapshot()`: 現在のplayer、visible actor、lock状態を複製して返す
+- `getSnapshot()`: 現在のplayer、actor、lock状態と`version / actorVersion`を読み取り専用で返す。actor配列はactor変更時だけ再生成する
+- `getActor()` / `findFacingActor()`: actorを読み取り専用の複製として返す
 - `movePlayer(delta, facing)`: 衝突解決後のsnapshotを返す
 - `faceActor(entityId, target)`: actorの向きを変更する
+- `canChangeControlledCharacter(characterId)`: 操作変更を選択肢へ提示できるか返す
 - `validateControlledCharacterChange(characterId)`: 対象actorと必要な表示更新を事前検証する
 - `setControlledCharacter(characterId)`: playerとNPCの表示・衝突を同時に更新する
 - `setInputLock(reason, locked)`: `event / status / loading / battle`単位でロックを増減する
+- `clearInputLocks()`: detach・破棄境界で全reasonを解除する
 - `checkpoint()`: mapIdを含む現在の`MapPosition`を返す
 - `destroy()`: 状態を破棄し、以後の更新commandを拒否する
 
-描画・カメラ・近接NPC判定・NPCの振り向きはすべて`getSnapshot()`を現在位置の正とする。描画層はtickerでsnapshotを読み、Spriteへ反映する。`WorldState.player`を移動中の表示に使わない。
+描画・カメラ・NPC同期は`getSnapshot()`を現在位置の正とする。DOMは可変な`MapRuntime`を受け取らず、Controllerの`findFacingActor()`だけを使う。描画層はtickerでsnapshotを読み、`actorVersion`が変わった場合だけNPC Sprite群を同期する。`WorldState.player`を移動中の表示に使わない。
 
 ロック解除の責任は`GameController`へ置く。イベント終了・cancel・status closeでは対応reasonだけを解除する。battle遷移では`event / status`を解除して`battle`を追加し、マップ帰還時に`battle`を解除する。runtime detachは全reasonを破棄する。イベント開始・status開始・map loadに失敗した場合は、追加したreasonを`finally`で解除する。
 
@@ -106,6 +107,8 @@ mapIdから次を解決する。Phase 1〜3では起動時に1mapをロードし
 - 外部TSJ raw data
 - tileset image URL
 - map固有prop asset URLの`Readonly<Record<assetId, URL>>`
+
+初期位置は初期mapのTiled marker `player-start`から解決する。markerはmap内にちょうど1つとし、`facing` propertyを必須とする。`GameSession`側に同じ座標を定数として持たない。保存済み位置からの復元はspawnと一致する必要がない。
 
 `pixi-map.js`は個別のmapファイルやpropをimportしない。未知のmapIdはエラーにし、別mapへ縮退させない。Tiled mapはPhase 1〜3でも外部tilesetをちょうど1件だけ参照する。`parseTiledMap()`後、全propの`assetId`がcatalogのrecordに存在することをview生成前に検証する。
 
@@ -124,7 +127,7 @@ eventIdから`EventDefinition`を解決する。Tiledのactor markerは次の参
 
 `entityId`はTiledの数値`id`や表示名`name`から推論しない。旧`dialogueId`はPhase 3完了時に使用しない。不明な`characterId / behaviorId`はPhase 1から、不明な`eventId`はPhase 3からマップロード時にエラーにする。
 
-mapごとに全6キャラクターのhomeを必須にはしない。mapに置かれたactorだけをruntimeへ登録する。操作キャラクター変更eventは、対象characterと現在の操作characterに対応するactorがそのmapに存在する場合だけ有効とし、開始前に検証する。既存広場は6人全員を置くため従来の入れ替えを維持できる。
+mapごとに全6キャラクターのhomeを必須にはしない。mapに置かれたactorだけをruntimeへ登録する。操作キャラクター変更eventは、対象characterと現在の操作characterに対応するactorがそのmapに存在する場合だけ選択肢へ提示する。会話や対戦はその条件に巻き込まず開始できる。既存広場は6人全員を置くため従来の入れ替えを維持できる。
 
 ## EventRunner
 
@@ -147,6 +150,8 @@ Runnerは現在stepを解決し、次の2種類を返す。
 2. `EventCommand[]`: Controllerが順番に処理する状態変更・actor操作・シーン要求
 
 DOMはstep IDやシナリオ分岐を解釈しない。表示完了・選択結果をRunnerへ返すだけとする。
+
+`choice.requirement`は宣言的な表示・実行条件であり、Phase 3では`canSwitchControlledActor`を扱う。Runnerは満たさない選択肢を`EventPresentation`から除外し、非表示choice IDの直接指定も拒否する。各choice nodeには条件なしのfallbackを1つ以上必須とし、実行時にも選択肢が全消滅した不正状態を拒否する。条件追加はdiscriminated unionと網羅チェックへ追加する。
 
 最初はblocking eventを同時に1本だけ実行する。並列event、演出途中の永続化、任意スクリプトは実装しない。
 
@@ -201,15 +206,15 @@ terminalのeventは復元せず完了扱いとし、dialogueは閉じたまま�
 
 操作キャラクター変更は次の順序に固定する。
 
-Controllerはevent開始前に、初期nodeから到達可能な経路へ`switchControlledActor`が含まれるかを宣言データから判定する。作者が別の前提メタデータを付ける方式にはせず、含まれる場合は対象characterと現操作characterのactorが両方存在することを開始前に検証する。
-
 1. `MapRuntime.validateControlledCharacterChange()`と`GameSession`のscene条件を事前検証
 2. `MapRuntime.setControlledCharacter()`でruntime全体を先に更新
 3. 検証済み更新として`GameSession.swapControlledCharacter()`を適用し、同期購読者へpublish
 
-runtime側はplayer texture対象、旧操作キャラクターのNPC表示、新操作キャラクターのNPC非表示、NPC衝突を1回の更新で切り替える。publish時点ではWorldStateとMapRuntimeの両方が新characterを示す。
+runtime側はplayer texture対象、旧操作キャラクターのNPC表示、新操作キャラクターのNPC非表示、NPC衝突を1回の更新で切り替える。publish時点ではWorldStateとMapRuntimeの両方が新characterを示す。`swapControlledCharacter()`が失敗した場合はruntimeを旧characterへrollbackし、rollback自体も失敗した場合は両方の例外を`AggregateError`で保持する。
 
-`GameSession`の購読者例外はpublish元へ伝播させず、他の購読者通知を継続してエラー報告する。状態commit後の購読者例外をControllerのtransaction失敗として扱わないためである。事前検証後の`swapControlledCharacter()`自体は失敗しない契約とする。
+`GameSession`の購読者例外はpublish元へ伝播させず、他の購読者通知を継続してエラー報告する。状態commit後の購読者例外をControllerのtransaction失敗として扱わないためである。
+
+`detachMapRuntime()`はruntime位置のcheckpoint、active eventのcancel、全input lock解除を行ってから参照を外す。`serialize()`もruntimeがattach中なら先にcheckpointする。これらの永続化・ライフサイクル境界を描画adapterへ分散させない。
 
 ## 描画adapter
 
@@ -219,6 +224,8 @@ runtime側はplayer texture対象、旧操作キャラクターのNPC表示、�
 - MapRuntime snapshotをSpriteへ反映する
 - キー・画面コントローラー入力をMapRuntimeまたはGameControllerへ渡す
 - 初期`WorldState.player.mapId`のviewを起動時にロードする
+- `MapRuntime.inputLocked`だけを移動入力可否の正とし、DOM panel状態はDOM内のキー処理にだけ使う
+- map markerと現在の操作characterから必要なcharacter sheetを列挙し、そのmapで使うassetだけをロードする
 
 PixiJSの`Assets.load()`が返すbase textureとTextureSourceは共有cacheの所有物として扱い、map viewから破棄しない。tile・character sheetからview内で生成したsubtextureはview所有として配列で追跡し、view破棄時にsubtextureだけを明示的に破棄する。ContainerとSpriteは`texture: false`で破棄した後、view所有subtextureを破棄する。
 
@@ -231,7 +238,7 @@ PixiJSの`Assets.load()`が返すbase textureとTextureSourceは共有cacheの�
 - event変数、戦闘、操作キャラクターを直接変更しない
 - ステータス画面は既存どおり読み取り専用で表示する
 
-Dialogue viewは`GameController.startEvent / advanceEvent / cancelEvent`だけを呼ぶ。Status viewは`GameController.openStatus / closeStatus`で`status` lockを管理する。
+Dialogue viewは`GameController.startActorEvent / advanceEvent / cancelEvent`だけを呼ぶ。Status viewは`GameController.openStatus / closeStatus`で`status` lockを管理する。
 
 ## 既存コンテンツの移行
 
@@ -249,16 +256,16 @@ Dialogue viewは`GameController.startEvent / advanceEvent / cancelEvent`だけ�
 - 6キャラクターの導入、3択、操作変更、対戦が維持される
 - 会話・ステータス中に移動入力が漏れない
 - 戦闘開始前のプレイヤー位置と帰還後の位置が一致する
-- map catalogへテスト用map定義を加え、描画本体を変更せず解決できる
+- 独立したmap定義をcatalogへ登録・解決でき、描画本体にmap IDの分岐を追加しなくてよい
 - EventRunnerとMapRuntimeをPixiJS・DOMなしでユニットテストできる
 - `pnpm check`を通す
 - PC 1280×720とスマートフォン横844×390で既存広場を確認する
 
 ユニットテスト対象API:
 
-- map catalog: 登録済みmap解決、未知map拒否、prop asset不足拒否
+- map catalog: 登録済みmap解決、未知map拒否、prop asset不足拒否、`player-start`からの初期位置解決
 - Tiled actor: `entityId`の空文字・重複、未知`characterId / behaviorId / eventId`をPhaseごとの契約で拒否
 - GameSession: mapId込み`checkpointPlayer()`と複数値`setFlags()`がそれぞれ1回だけpublishされること、購読者例外が他の通知とcommitを壊さないこと、`abortBattleStart()`がsceneとactive battleを復元すること
-- MapRuntime: 生成、move、snapshot、lock reasonの独立性、操作character変更、checkpoint、destroy後command拒否
-- EventRunner: start、say advance、choice、setFlags後branch、cancel、同時event拒否、command定義順、presentation前適用、battle/switch終端、destroy後操作拒否
-- GameController: checkpoint→battle順序、presenter未登録拒否、presenter例外時のWorldState・battle UI・event/lock整合性、操作変更のpublish中にWorldStateとRuntimeが同じcharacterを示すこと
+- MapRuntime: 生成、move、version付きsnapshot、actor配列再利用、lock reasonの独立性、操作character変更、checkpoint、destroy後command拒否
+- EventRunner: start、say advance、choiceとrequirement、setFlags後branch、cancel、同時event拒否、command定義順、presentation前適用、battle/switch終端、destroy後操作拒否
+- GameController: checkpoint→battle順序、presenter未登録拒否、presenter例外時のWorldState・battle UI・event/lock整合性、操作変更のpublish中整合性と失敗時rollback、detach・serialize時checkpoint

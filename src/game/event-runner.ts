@@ -5,6 +5,14 @@ export interface EventChoice {
   id: string;
   label: string;
   nextNodeId: string;
+  requirement?: EventChoiceRequirement;
+}
+
+export type EventChoiceRequirement = { type: "canSwitchControlledActor" };
+
+export interface EventPresentationChoice {
+  id: string;
+  label: string;
 }
 
 interface EventNodeBase {
@@ -78,6 +86,7 @@ export interface EventDefinition {
 export interface EventContext {
   eventTargetEntityId: string;
   eventTargetCharacterId: CharacterId;
+  canSwitchControlledActor: boolean;
 }
 
 export type EventCommand =
@@ -92,7 +101,7 @@ export interface EventPresentation {
   speaker: string;
   speakerId: CharacterId | null;
   text: string;
-  choices: readonly EventChoice[];
+  choices: readonly EventPresentationChoice[];
   advanceLabel: "next" | "close";
 }
 
@@ -119,39 +128,6 @@ interface ActiveEvent {
 
 const MAX_COMMAND_STEPS = 1000;
 
-export function eventCanSwitchControlledActor(definition: EventDefinition): boolean {
-  const pending = [definition.initialNodeId];
-  const visited = new Set<string>();
-  while (pending.length > 0) {
-    const nodeId = pending.pop();
-    if (!nodeId || visited.has(nodeId)) continue;
-    visited.add(nodeId);
-    const node = definition.nodes[nodeId];
-    if (!node) continue;
-    switch (node.type) {
-      case "switchControlledActor":
-        return true;
-      case "say":
-        if (node.nextNodeId) pending.push(node.nextNodeId);
-        break;
-      case "choice":
-        pending.push(...node.choices.map((choice) => choice.nextNodeId));
-        break;
-      case "branch":
-        pending.push(node.thenNodeId, node.elseNodeId);
-        break;
-      case "setFlags":
-      case "faceEventTarget":
-        pending.push(node.nextNodeId);
-        break;
-      case "battle":
-      case "end":
-        break;
-    }
-  }
-  return false;
-}
-
 export function createEventRunner(resolveDefinition: (eventId: string) => EventDefinition): EventRunner {
   let active: ActiveEvent | null = null;
   let destroyed = false;
@@ -176,7 +152,16 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
       const node = currentNode();
       switch (node.type) {
         case "say":
-        case "choice":
+        case "choice": {
+          const choices =
+            node.type === "choice"
+              ? node.choices
+                  .filter((choice) => isChoiceAvailable(choice, active?.context))
+                  .map(({ id, label }) => ({ id, label }))
+              : [];
+          if (node.type === "choice" && choices.length === 0) {
+            throw new Error(`event ${active.definition.id}:${node.id} に現在選択できるchoiceがありません`);
+          }
           active.awaitingPresentation = true;
           return {
             presentation: {
@@ -185,12 +170,13 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
               speaker: node.speaker,
               speakerId: node.speakerId ?? null,
               text: node.text,
-              choices: node.type === "choice" ? node.choices : [],
+              choices,
               advanceLabel: node.type === "say" ? (node.advanceLabel ?? "next") : "next",
             },
             commands,
             completed: false,
           };
+        }
         case "branch":
           active.nodeId = flags[node.flag] === node.equals ? node.thenNodeId : node.elseNodeId;
           break;
@@ -214,9 +200,13 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
         case "end":
           active = null;
           return { presentation: null, commands, completed: true };
+        default:
+          return assertNever(node, "未対応のevent nodeです");
       }
     }
-    throw new Error("eventのcommand-only stepが上限を超えました");
+    throw new Error(
+      `event ${active.definition.id}:${active.nodeId} のcommand-only stepが上限 ${MAX_COMMAND_STEPS} を超えました`,
+    );
   };
 
   return {
@@ -236,19 +226,25 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
       assertUsable();
       if (!active?.awaitingPresentation) throw new Error("進行できるevent presentationがありません");
       const node = currentNode();
-      if (node.type === "say") {
-        if (choiceId) throw new Error("say nodeにchoiceIdは指定できません");
-        if (!node.nextNodeId) {
-          active = null;
-          return { presentation: null, commands: [], completed: true };
+      switch (node.type) {
+        case "say":
+          if (choiceId) throw new Error("say nodeにchoiceIdは指定できません");
+          if (!node.nextNodeId) {
+            active = null;
+            return { presentation: null, commands: [], completed: true };
+          }
+          active.nodeId = node.nextNodeId;
+          break;
+        case "choice": {
+          const choice = node.choices.find(
+            (candidate) => candidate.id === choiceId && isChoiceAvailable(candidate, active?.context),
+          );
+          if (!choice) throw new Error(`event choice ${choiceId ?? ""} は存在しないか、現在は選択できません`);
+          active.nodeId = choice.nextNodeId;
+          break;
         }
-        active.nodeId = node.nextNodeId;
-      } else if (node.type === "choice") {
-        const choice = node.choices.find((candidate) => candidate.id === choiceId);
-        if (!choice) throw new Error(`event choice ${choiceId ?? ""} が見つかりません`);
-        active.nodeId = choice.nextNodeId;
-      } else {
-        throw new Error("presentation nodeの形式が不正です");
+        default:
+          throw new Error(`presentation nodeの形式が不正です: ${node.type}`);
       }
       active.awaitingPresentation = false;
       try {
@@ -269,4 +265,16 @@ export function createEventRunner(resolveDefinition: (eventId: string) => EventD
       destroyed = true;
     },
   };
+}
+
+function isChoiceAvailable(choice: EventChoice, context: EventContext | undefined): boolean {
+  if (!choice.requirement) return true;
+  const handlers = {
+    canSwitchControlledActor: () => context?.canSwitchControlledActor === true,
+  } satisfies Record<EventChoiceRequirement["type"], () => boolean>;
+  return handlers[choice.requirement.type]();
+}
+
+function assertNever(value: never, message: string): never {
+  throw new Error(`${message}: ${JSON.stringify(value)}`);
 }

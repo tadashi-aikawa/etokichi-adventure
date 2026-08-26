@@ -119,6 +119,7 @@ export function createMapInterface({
   const techniqueList = root.querySelector(".map-technique-list");
 
   let nearbyNpc = null;
+  let nearbyNpcKey = "initial";
   let presentation = null;
   let selectedChoiceIndex = 0;
 
@@ -127,12 +128,15 @@ export function createMapInterface({
   }
 
   function isBlocking() {
-    return !dialoguePanel.hidden || !statusPanel.hidden;
+    return !dialoguePanel.hidden || !statusPanel.hidden || gameController.getMapSnapshot()?.inputLocked === true;
   }
 
   function updateNearbyNpc() {
-    nearbyNpc = isMapVisible() && !isBlocking() ? gameController.getMapRuntime()?.findFacingActor() ?? null : null;
+    nearbyNpc = isMapVisible() && !isBlocking() ? gameController.findFacingActor() : null;
     const canTalk = Boolean(nearbyNpc);
+    const nextKey = nearbyNpc?.entityId ?? "none";
+    if (nearbyNpcKey === nextKey) return;
+    nearbyNpcKey = nextKey;
     if (nearbyNpc) {
       promptText.textContent = `${characterProfiles[nearbyNpc.characterId]?.name ?? nearbyNpc.entityId}に話す`;
     }
@@ -147,6 +151,7 @@ export function createMapInterface({
     selectedChoiceIndex = 0;
     dialoguePanel.hidden = false;
     prompt.hidden = true;
+    nearbyNpcKey = "blocked";
     onModeChange("dialogue");
     renderDialogue();
   }
@@ -245,11 +250,12 @@ export function createMapInterface({
 
   function openStatus() {
     if (!isMapVisible() || isBlocking()) return;
+    gameController.openStatus();
     updatePlayerProfile(characterProfiles[gameSession.getState().controlledCharacterId]);
     selectStatusTab("abilities");
     statusPanel.hidden = false;
     prompt.hidden = true;
-    gameController.openStatus();
+    nearbyNpcKey = "blocked";
     onModeChange("status");
     statusPanel.querySelector('[data-map-action="close-status"]').focus({ preventScroll: true });
   }

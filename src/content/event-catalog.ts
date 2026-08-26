@@ -68,7 +68,12 @@ function createCharacterActionEvent(characterId: CharacterId): EventDefinition {
         text: `${speaker}にどうする？`,
         choices: [
           { id: "battle", label: "対戦する", nextNodeId: "battle" },
-          { id: "switch", label: "操作を変える", nextNodeId: "switch" },
+          {
+            id: "switch",
+            label: "操作を変える",
+            nextNodeId: "switch",
+            requirement: { type: "canSwitchControlledActor" },
+          },
           { id: "cancel", label: "なんでもない", nextNodeId: "end" },
         ],
       },
@@ -178,6 +183,9 @@ function validateEventDefinition(definition: EventDefinition): void {
       case "choice": {
         const choiceIds = new Set<string>();
         if (node.choices.length === 0) throw new Error(`${definition.id}:${nodeId}の選択肢が空です`);
+        if (node.choices.every((choice) => choice.requirement)) {
+          throw new Error(`${definition.id}:${nodeId}には条件なしの選択肢を1つ以上指定してください`);
+        }
         for (const choice of node.choices) {
           if (!choice.id || choiceIds.has(choice.id))
             throw new Error(`${definition.id}:${nodeId}のchoice IDが不正です`);
@@ -198,6 +206,12 @@ function validateEventDefinition(definition: EventDefinition): void {
       case "switchControlledActor":
       case "end":
         break;
+      default:
+        assertNever(node, `${definition.id}:${nodeId}のnode形式が不正です`);
     }
   }
+}
+
+function assertNever(value: never, message: string): never {
+  throw new Error(`${message}: ${JSON.stringify(value)}`);
 }

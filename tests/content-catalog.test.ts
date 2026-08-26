@@ -1,9 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { createEventCatalog } from "../src/content/event-catalog.ts";
-import { createMapContentCatalog, validateMapPropAssets } from "../src/content/map-catalog.ts";
+import { getRequiredMapCharacterIds } from "../src/content/map-actor-catalog.ts";
+import {
+  createMapContentCatalog,
+  getMapInitialPosition,
+  INITIAL_MAP_ID,
+  validateMapPropAssets,
+} from "../src/content/map-catalog.ts";
 import { createMap } from "./fixtures/map.ts";
 
 describe("content catalog", () => {
+  it("初期位置をマップのplayer-startから一意に解決する", () => {
+    expect(getMapInitialPosition(INITIAL_MAP_ID)).toEqual({
+      mapId: "prototype-plaza",
+      x: 736,
+      y: 512,
+      facing: "down",
+    });
+  });
+
   it("未知と重複のmapIdを拒否する", () => {
     const definition = {
       id: "map-a",
@@ -23,6 +38,13 @@ describe("content catalog", () => {
     map.props.push({ id: 1, name: "gate", assetId: "gate", x: 0, y: 0, width: 32, height: 32 });
     expect(() => validateMapPropAssets(map, {})).toThrow("map catalogに登録されていません");
     expect(() => validateMapPropAssets(map, { gate: "gate.svg" })).not.toThrow();
+  });
+
+  it("mapで使うcharacter sheetだけを重複なく列挙する", () => {
+    const map = createMap();
+    map.markers = map.markers.slice(0, 1);
+
+    expect(getRequiredMapCharacterIds(map, "etokichi")).toEqual(["etokichi", "aster"]);
   });
 
   it("eventの重複IDと不明な初期nodeを拒否する", () => {
@@ -63,5 +85,30 @@ describe("content catalog", () => {
         },
       ]),
     ).toThrow("choice IDが不正");
+    expect(() =>
+      createEventCatalog([
+        {
+          id: "conditional-only",
+          initialNodeId: "choice",
+          nodes: {
+            choice: {
+              id: "choice",
+              type: "choice",
+              speaker: "test",
+              text: "test",
+              choices: [
+                {
+                  id: "switch",
+                  label: "switch",
+                  nextNodeId: "end",
+                  requirement: { type: "canSwitchControlledActor" },
+                },
+              ],
+            },
+            end: { id: "end", type: "end" },
+          },
+        },
+      ]),
+    ).toThrow("条件なしの選択肢");
   });
 });

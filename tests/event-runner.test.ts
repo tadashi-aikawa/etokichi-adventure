@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { EVENT_CATALOG } from "../src/content/event-catalog.ts";
 import { createEventRunner } from "../src/game/event-runner.ts";
 
-const context = { eventTargetEntityId: "aster", eventTargetCharacterId: "aster" } as const;
+const context = {
+  eventTargetEntityId: "aster",
+  eventTargetCharacterId: "aster",
+  canSwitchControlledActor: true,
+} as const;
 
 describe("EventRunner", () => {
   it("commandを定義順に返してpresentationまで進む", () => {
@@ -48,6 +52,47 @@ describe("EventRunner", () => {
       commands: [{ type: "battle", opponentId: "aster" }],
       completed: true,
     });
+    expect(runner.isActive()).toBe(false);
+  });
+
+  it("実行条件を満たさない選択肢を提示せず、直接指定も拒否する", () => {
+    const runner = createEventRunner((eventId) => EVENT_CATALOG.get(eventId));
+    const unavailableContext = { ...context, canSwitchControlledActor: false };
+    runner.start("character-action:aster", unavailableContext, {});
+
+    const action = runner.advance(null, {}).presentation;
+
+    expect(action?.choices.map((choice) => choice.label)).toEqual(["対戦する", "なんでもない"]);
+    expect(() => runner.advance("switch", {})).toThrow("現在は選択できません");
+    expect(runner.isActive()).toBe(true);
+  });
+
+  it("選択可能なchoiceが1つもないpresentationを拒否する", () => {
+    const runner = createEventRunner(() => ({
+      id: "no-choice",
+      initialNodeId: "choice",
+      nodes: {
+        choice: {
+          id: "choice",
+          type: "choice",
+          speaker: "test",
+          text: "test",
+          choices: [
+            {
+              id: "switch",
+              label: "操作を変える",
+              nextNodeId: "end",
+              requirement: { type: "canSwitchControlledActor" },
+            },
+          ],
+        },
+        end: { id: "end", type: "end" },
+      },
+    }));
+
+    expect(() => runner.start("no-choice", { ...context, canSwitchControlledActor: false }, {})).toThrow(
+      "現在選択できるchoiceがありません",
+    );
     expect(runner.isActive()).toBe(false);
   });
 

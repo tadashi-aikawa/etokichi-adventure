@@ -251,7 +251,7 @@
       "name": "entrances",
       "objects": [
         {"height":0,"id":10,"name":"south","point":true,"rotation":0,"type":"entrance","visible":true,"width":0,"x":736,"y":928},
-        {"height":0,"id":11,"name":"player-start","point":true,"rotation":0,"type":"entrance","visible":true,"width":0,"x":736,"y":512}
+        {"height":0,"id":11,"name":"player-start","point":true,"properties":[{"name":"facing","type":"string","value":"down"}],"rotation":0,"type":"entrance","visible":true,"width":0,"x":736,"y":512}
       ],
       "opacity": 1,
       "type": "objectgroup",

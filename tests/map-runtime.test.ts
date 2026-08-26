@@ -44,6 +44,25 @@ describe("MapRuntime", () => {
     expect(() => runtime.setControlledCharacter("aster")).toThrow("すでに操作中");
   });
 
+  it("actorとlockの不変スナップショットを変更時だけ作り直す", () => {
+    const runtime = createRuntime();
+    const initial = runtime.getSnapshot();
+
+    const moved = runtime.movePlayer({ x: 10, y: 0 }, "right");
+    expect(moved.version).toBeGreaterThan(initial.version);
+    expect(moved.actorVersion).toBe(initial.actorVersion);
+    expect(moved.actors).toBe(initial.actors);
+
+    const faced = runtime.faceActor("aster-home");
+    expect(faced.actorVersion).toBeGreaterThan(moved.actorVersion);
+    expect(faced.actors).not.toBe(moved.actors);
+
+    const locked = runtime.setInputLock("status", true);
+    expect(locked.version).toBeGreaterThan(faced.version);
+    expect(locked.actors).toBe(faced.actors);
+    expect(runtime.clearInputLocks()).toMatchObject({ inputLocked: false, lockReasons: [] });
+  });
+
   it("不正なactor参照と破棄後の更新を拒否する", () => {
     const map = createMap();
     const firstActor = map.markers[0];

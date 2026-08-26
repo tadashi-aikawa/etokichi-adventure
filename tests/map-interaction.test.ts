@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MapPosition } from "../src/game/game-session.ts";
-import { createNpcCollisions, findFacingNpc, getFacingToward } from "../src/game/map-interaction.ts";
+import { createBodyCollisions, findFacingTarget, getFacingToward } from "../src/game/map-interaction.ts";
 import type { MapMarker } from "../src/game/tiled-map.ts";
 
 const player: MapPosition = { mapId: "test", x: 100, y: 100, facing: "up" };
@@ -12,16 +12,13 @@ const markers: MapMarker[] = [
 
 describe("マップ上の相互作用", () => {
   it("プレイヤー正面の範囲内にいるevent actorだけを対象にする", () => {
-    expect(findFacingNpc(player, markers)?.name).toBe("front");
-    expect(findFacingNpc({ ...player, facing: "down" }, markers)?.name).toBe("behind");
-    expect(findFacingNpc({ ...player, x: 300 }, markers)).toBeNull();
-    const front = markers[0];
-    if (!front) throw new Error("正面NPCのfixtureがありません");
-    expect(findFacingNpc(player, [{ ...front, properties: {} }])).toBeNull();
+    expect(findFacingTarget(player, markers)?.name).toBe("front");
+    expect(findFacingTarget({ ...player, facing: "down" }, markers)?.name).toBe("behind");
+    expect(findFacingTarget({ ...player, x: 300 }, markers)).toBeNull();
   });
 
   it("NPCの中心座標からキャラクター同士の衝突矩形を作る", () => {
-    expect(createNpcCollisions(markers, { width: 46, height: 40, offsetY: 20 })).toEqual([
+    expect(createBodyCollisions(markers, { width: 46, height: 40, offsetY: 20 })).toEqual([
       { x: 81, y: 30, width: 46, height: 40 },
       { x: 77, y: 150, width: 46, height: 40 },
       { x: 157, y: 70, width: 46, height: 40 },

@@ -5,6 +5,7 @@ import SALARYMAN_ETOKICHI_MAP_SHEET_URL from "../../assets/map-characters/salary
 import SUTEKICHI_MAP_SHEET_URL from "../../assets/map-characters/sutekichi/walk.webp?url";
 import TATSUO_MAP_SHEET_URL from "../../assets/map-characters/tatsuo/walk.webp?url";
 import type { CharacterId } from "../game/types.ts";
+import type { ParsedTiledMap } from "../game/tiled-map.ts";
 
 export interface MapActorDefinition {
   characterId: CharacterId;
@@ -43,4 +44,23 @@ export const MAP_ACTOR_CATALOG: Readonly<Record<CharacterId, MapActorDefinition>
 
 export function getMapActorDefinition(characterId: CharacterId): MapActorDefinition {
   return MAP_ACTOR_CATALOG[characterId];
+}
+
+export function getRequiredMapCharacterIds(
+  map: ParsedTiledMap,
+  controlledCharacterId: CharacterId,
+): readonly CharacterId[] {
+  const characterIds = new Set<CharacterId>([controlledCharacterId]);
+  for (const marker of map.markers.filter((candidate) => candidate.kind === "npc")) {
+    const characterId = marker.properties.characterId;
+    if (typeof characterId !== "string" || !isCharacterId(characterId)) {
+      throw new Error(`${marker.name}のcharacterIdがmap actor catalogに登録されていません`);
+    }
+    characterIds.add(characterId);
+  }
+  return [...characterIds];
+}
+
+function isCharacterId(value: string): value is CharacterId {
+  return Object.hasOwn(MAP_ACTOR_CATALOG, value);
 }

@@ -1,4 +1,4 @@
-import { findFacingNpc, getFacingToward } from "./map-interaction.ts";
+import { createBodyCollisions, findFacingTarget, getFacingToward } from "./map-interaction.ts";
 import type { MapFacing, MapPosition } from "./game-session.ts";
 import { moveMapBody, type MapBody, type MapMarker, type MapPoint, type ParsedTiledMap } from "./tiled-map.ts";
 import { CHARACTER_IDS, type CharacterId } from "./types.ts";
@@ -20,10 +20,12 @@ export interface MapActorState {
 }
 
 export interface MapRuntimeSnapshot {
+  version: number;
+  actorVersion: number;
   mapId: string;
-  player: MapPosition;
+  player: Readonly<MapPosition>;
   controlledCharacterId: CharacterId;
-  actors: readonly MapActorState[];
+  actors: readonly Readonly<MapActorState>[];
   inputLocked: boolean;
   lockReasons: readonly MapInputLockReason[];
 }
@@ -35,9 +37,11 @@ export interface MapRuntime {
   findFacingActor(maximumDistance?: number, maximumLateralDistance?: number): MapActorState | null;
   movePlayer(delta: MapPoint, facing: MapFacing): MapRuntimeSnapshot;
   faceActor(entityId: string, target?: MapPoint): MapRuntimeSnapshot;
+  canChangeControlledCharacter(characterId: CharacterId): boolean;
   validateControlledCharacterChange(characterId: CharacterId): void;
   setControlledCharacter(characterId: CharacterId): MapRuntimeSnapshot;
   setInputLock(reason: MapInputLockReason, locked: boolean): MapRuntimeSnapshot;
+  clearInputLocks(): MapRuntimeSnapshot;
   checkpoint(): MapPosition;
   destroy(): void;
 }
@@ -78,39 +82,59 @@ export function createMapRuntime(options: CreateMapRuntimeOptions): MapRuntime {
   let player = { ...initialPlayer };
   let controlled = controlledCharacterId;
   let destroyed = false;
+  let version = 0;
+  let actorVersion = 0;
   const lockReasons = new Set<MapInputLockReason>();
+  let actorSnapshot: readonly MapActorState[] = [];
+  let actorCollisions = [] as ReturnType<typeof createBodyCollisions>;
+  let lockSnapshot: readonly MapInputLockReason[] = [];
 
   const assertUsable = () => {
     if (destroyed) throw new Error("破棄済みのMapRuntimeは利用できません");
   };
 
+  const rebuildActorDerivedState = () => {
+    actorSnapshot = Object.freeze([...actors.values()].map((actor) => Object.freeze({ ...actor })));
+    actorCollisions = createBodyCollisions(
+      actorSnapshot.filter((actor) => actor.visible),
+      MAP_NPC_BODY,
+    );
+    actorVersion += 1;
+    version += 1;
+  };
+
+  const rebuildLockSnapshot = () => {
+    lockSnapshot = Object.freeze([...lockReasons]);
+    version += 1;
+  };
+
   const snapshot = (): MapRuntimeSnapshot => ({
+    version,
+    actorVersion,
     mapId: map.id,
     player: { ...player },
     controlledCharacterId: controlled,
-    actors: [...actors.values()].map((actor) => ({ ...actor })),
+    actors: actorSnapshot,
     inputLocked: lockReasons.size > 0,
-    lockReasons: [...lockReasons],
+    lockReasons: lockSnapshot,
   });
 
-  const visibleActorMarkers = (): MapMarker[] =>
-    [...actors.values()]
-      .filter((actor) => actor.visible)
-      .map((actor, index) => ({
-        id: index + 1,
-        name: actor.entityId,
-        kind: "npc",
-        x: actor.x,
-        y: actor.y,
-        width: 0,
-        height: 0,
-        properties: {
-          entityId: actor.entityId,
-          characterId: actor.characterId,
-          eventId: actor.eventId,
-          behaviorId: actor.behaviorId,
-        },
-      }));
+  const canChangeControlledCharacter = (characterId: CharacterId): boolean =>
+    characterId !== controlled &&
+    [...actors.values()].some((actor) => actor.characterId === characterId) &&
+    [...actors.values()].some((actor) => actor.characterId === controlled);
+
+  const validateControlledCharacterChange = (characterId: CharacterId) => {
+    if (characterId === controlled) throw new Error(`${characterId}はすでに操作中です`);
+    if (![...actors.values()].some((actor) => actor.characterId === characterId)) {
+      throw new Error(`${characterId}のactorが現在のマップに存在しません`);
+    }
+    if (![...actors.values()].some((actor) => actor.characterId === controlled)) {
+      throw new Error(`${controlled}のactorが現在のマップに存在しません`);
+    }
+  };
+
+  rebuildActorDerivedState();
 
   return {
     mapId: map.id,
@@ -126,56 +150,67 @@ export function createMapRuntime(options: CreateMapRuntimeOptions): MapRuntime {
     },
     findFacingActor(maximumDistance, maximumLateralDistance) {
       assertUsable();
-      const marker = findFacingNpc(player, visibleActorMarkers(), maximumDistance, maximumLateralDistance);
-      if (!marker) return null;
-      const actor = actors.get(String(marker.properties.entityId));
-      if (!actor) throw new Error("会話対象のactorがruntimeに存在しません");
-      return { ...actor };
+      const actor = findFacingTarget(
+        player,
+        actorSnapshot.filter((candidate) => candidate.visible),
+        maximumDistance,
+        maximumLateralDistance,
+      );
+      return actor ? { ...actor } : null;
     },
     movePlayer(delta, facing) {
       assertUsable();
       if (lockReasons.size > 0) return snapshot();
-      const actorCollisions = visibleActorMarkers().map((marker) => ({
-        x: marker.x + (MAP_NPC_BODY.offsetX ?? 0) - MAP_NPC_BODY.width / 2,
-        y: marker.y + (MAP_NPC_BODY.offsetY ?? 0) - MAP_NPC_BODY.height / 2,
-        width: MAP_NPC_BODY.width,
-        height: MAP_NPC_BODY.height,
-      }));
       const next = moveMapBody(player, delta, MAP_PLAYER_BODY, [...map.collisions, ...actorCollisions], {
         width: map.pixelWidth,
         height: map.pixelHeight,
       });
+      const changed = player.x !== next.x || player.y !== next.y || player.facing !== facing;
       player = { ...player, ...next, facing };
+      if (changed) version += 1;
       return snapshot();
     },
     faceActor(entityId, target = player) {
       assertUsable();
       const actor = actors.get(entityId);
       if (!actor) throw new Error(`entityId ${entityId} は現在のマップに存在しません`);
-      actor.facing = getFacingToward(actor, target);
+      const nextFacing = getFacingToward(actor, target);
+      if (actor.facing !== nextFacing) {
+        actor.facing = nextFacing;
+        rebuildActorDerivedState();
+      }
       return snapshot();
+    },
+    canChangeControlledCharacter(characterId) {
+      assertUsable();
+      return canChangeControlledCharacter(characterId);
     },
     validateControlledCharacterChange(characterId) {
       assertUsable();
-      if (characterId === controlled) throw new Error(`${characterId}はすでに操作中です`);
-      if (![...actors.values()].some((actor) => actor.characterId === characterId)) {
-        throw new Error(`${characterId}のactorが現在のマップに存在しません`);
-      }
-      if (![...actors.values()].some((actor) => actor.characterId === controlled)) {
-        throw new Error(`${controlled}のactorが現在のマップに存在しません`);
-      }
+      validateControlledCharacterChange(characterId);
     },
     setControlledCharacter(characterId) {
       assertUsable();
-      this.validateControlledCharacterChange(characterId);
+      validateControlledCharacterChange(characterId);
       for (const actor of actors.values()) actor.visible = actor.characterId !== characterId;
       controlled = characterId;
+      rebuildActorDerivedState();
       return snapshot();
     },
     setInputLock(reason, locked) {
       assertUsable();
+      const changed = locked ? !lockReasons.has(reason) : lockReasons.has(reason);
       if (locked) lockReasons.add(reason);
       else lockReasons.delete(reason);
+      if (changed) rebuildLockSnapshot();
+      return snapshot();
+    },
+    clearInputLocks() {
+      assertUsable();
+      if (lockReasons.size > 0) {
+        lockReasons.clear();
+        rebuildLockSnapshot();
+      }
       return snapshot();
     },
     checkpoint() {

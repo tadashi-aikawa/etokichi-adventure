@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
-import { MAP_ACTOR_CATALOG } from "../content/map-actor-catalog.ts";
+import { getRequiredMapCharacterIds, MAP_ACTOR_CATALOG } from "../content/map-actor-catalog.ts";
 import { EVENT_CATALOG } from "../content/event-catalog.ts";
 import { MAP_CONTENT_CATALOG, validateMapPropAssets } from "../content/map-catalog.ts";
 import { createCharacterProfiles } from "../game/characters.ts";
@@ -26,9 +26,10 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
   const content = MAP_CONTENT_CATALOG.get(initialState.player.mapId);
   const map = parseTiledMap(JSON.parse(content.mapSource), JSON.parse(content.tilesetSource));
   validateMapPropAssets(map, content.propUrls);
+  const requiredCharacterIds = getRequiredMapCharacterIds(map, initialState.controlledCharacterId);
   const [atlasTexture, characterSheets, propTextures] = await Promise.all([
     Assets.load(content.tilesetImageUrl),
-    loadCharacterSheets(),
+    loadCharacterSheets(requiredCharacterIds),
     loadMapPropTextures(content.propUrls),
   ]);
   const tileTextures = createTileTextures(map, atlasTexture);
@@ -76,6 +77,9 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
   let viewport = { width: 1, height: 1 };
   let facing = initialState.player.facing;
   let playerCharacterId = initialState.controlledCharacterId;
+  let lastActorVersion = -1;
+  let lastNearbyVersion = -1;
+  let lastInputLocked = null;
   const isMapScene = () => gameSession.getState().scene === "map";
   player.setCharacter(characterFrames[playerCharacterId], MAP_ACTOR_CATALOG[playerCharacterId]);
   player.setMotion(facing, 0, false);
@@ -88,14 +92,14 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     characterProfiles,
     onModeChange(mode) {
       pressed.clear();
-      const controlsAvailable = isMapScene() && mode === "map";
+      const controlsAvailable = isMapScene() && mode === "map" && !mapRuntime.getSnapshot().inputLocked;
       mobileControls.setState({ visible: isMapScene(), enabled: controlsAvailable });
     },
   });
 
   function setMobileDirection(direction, active) {
     if (!isMapScene()) return;
-    if (mapInterface.isBlocking()) {
+    if (mapRuntime.getSnapshot().inputLocked) {
       pressed.delete(direction);
       return;
     }
@@ -119,8 +123,7 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     syncRuntime(false);
   };
 
-  function syncRuntime(moving) {
-    const snapshot = mapRuntime.getSnapshot();
+  function syncRuntime(moving, snapshot = mapRuntime.getSnapshot()) {
     if (playerCharacterId !== snapshot.controlledCharacterId) {
       playerCharacterId = snapshot.controlledCharacterId;
       player.setCharacter(characterFrames[playerCharacterId], MAP_ACTOR_CATALOG[playerCharacterId]);
@@ -129,15 +132,26 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     player.root.position.set(snapshot.player.x, snapshot.player.y);
     player.root.zIndex = getMapBodyDepth(snapshot.player, MAP_PLAYER_BODY);
     player.setMotion(facing, elapsed, moving);
-    npcSystem.sync(snapshot.actors);
+    if (lastActorVersion !== snapshot.actorVersion) {
+      npcSystem.sync(snapshot.actors);
+      lastActorVersion = snapshot.actorVersion;
+    }
     applyCamera(snapshot.player);
-    mapInterface.updateNearbyNpc();
+    if (lastNearbyVersion !== snapshot.version) {
+      mapInterface.updateNearbyNpc();
+      lastNearbyVersion = snapshot.version;
+    }
+    if (lastInputLocked !== snapshot.inputLocked) {
+      mobileControls.setState({ visible: isMapScene(), enabled: isMapScene() && !snapshot.inputLocked });
+      lastInputLocked = snapshot.inputLocked;
+    }
   }
 
   const onKeyDown = (event) => {
     const direction = MAP_KEYS.get(event.code);
     if (!direction || !isMapScene()) return;
     event.preventDefault();
+    if (mapRuntime.getSnapshot().inputLocked) return;
     pressed.add(direction);
   };
   const onKeyUp = (event) => {
@@ -153,15 +167,16 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     if (!root.visible) return;
     const deltaSeconds = Math.min(frame.deltaMS, 50) / 1000;
     elapsed += deltaSeconds;
-    if (mapInterface.isBlocking()) {
+    const snapshot = mapRuntime.getSnapshot();
+    if (snapshot.inputLocked) {
       pressed.clear();
-      syncRuntime(false);
+      syncRuntime(false, snapshot);
       return;
     }
     const horizontal = Number(pressed.has("right")) - Number(pressed.has("left"));
     const vertical = Number(pressed.has("down")) - Number(pressed.has("up"));
     if (horizontal === 0 && vertical === 0) {
-      syncRuntime(false);
+      syncRuntime(false, snapshot);
       player.root.y += Math.sin(elapsed * 4) * 1.2;
       return;
     }
@@ -170,14 +185,14 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     const nextFacing = Math.abs(horizontal) > Math.abs(vertical)
       ? horizontal < 0 ? "left" : "right"
       : vertical < 0 ? "up" : "down";
-    mapRuntime.movePlayer(
+    const movedSnapshot = mapRuntime.movePlayer(
       {
         x: horizontal / magnitude * MOVE_SPEED * deltaSeconds,
         y: vertical / magnitude * MOVE_SPEED * deltaSeconds,
       },
       nextFacing,
     );
-    syncRuntime(true);
+    syncRuntime(true, movedSnapshot);
   };
   ticker.add(update);
 
@@ -204,18 +219,20 @@ export async function createMapSystem({ arena, stage, ticker, gameSession, gameC
     map,
     layout,
     getDebugState() {
+      const snapshot = mapRuntime.getSnapshot();
       return {
         visible: root.visible,
         mapId: map.id,
         mapSize: { width: map.pixelWidth, height: map.pixelHeight },
         viewport: { ...viewport },
-        player: { ...mapRuntime.getSnapshot().player },
+        player: { ...snapshot.player },
         playerFrame: player.getFrameIndex(),
         worldPosition: { x: world.x, y: world.y },
-        collisionCount: map.collisions.length + mapRuntime.getSnapshot().actors.filter((actor) => actor.visible).length,
-        npcCollisionCount: mapRuntime.getSnapshot().actors.filter((actor) => actor.visible).length,
+        collisionCount: map.collisions.length + snapshot.actors.filter((actor) => actor.visible).length,
+        npcCollisionCount: snapshot.actors.filter((actor) => actor.visible).length,
         visibleNpcCharacterIds: npcSystem.getVisibleCharacterIds(),
-        characterHomes: Object.fromEntries(mapRuntime.getSnapshot().actors.map((actor) => [actor.characterId, { x: actor.x, y: actor.y }])),
+        loadedCharacterIds: [...requiredCharacterIds],
+        characterHomes: Object.fromEntries(snapshot.actors.map((actor) => [actor.characterId, { x: actor.x, y: actor.y }])),
         npcFacings: npcSystem.getFacings(),
         markerCount: map.markers.length,
         propCount: map.props.length,
@@ -345,9 +362,13 @@ function createCharacterFrames(sheetTexture, label) {
   }));
 }
 
-async function loadCharacterSheets() {
+async function loadCharacterSheets(characterIds) {
   const entries = await Promise.all(
-    Object.values(MAP_ACTOR_CATALOG).map(async ({ characterId, sheetUrl }) => [characterId, await Assets.load(sheetUrl)]),
+    characterIds.map(async (characterId) => {
+      const actor = MAP_ACTOR_CATALOG[characterId];
+      if (!actor) throw new Error(`${characterId}はmap actor catalogに登録されていません`);
+      return [characterId, await Assets.load(actor.sheetUrl)];
+    }),
   );
   return Object.fromEntries(entries);
 }

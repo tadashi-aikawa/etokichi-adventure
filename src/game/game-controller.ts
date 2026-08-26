@@ -1,7 +1,7 @@
 import type { EventPresentation, EventRunResult } from "./event-runner.ts";
-import { createEventRunner, eventCanSwitchControlledActor } from "./event-runner.ts";
-import type { GameSession } from "./game-session.ts";
-import type { MapRuntime } from "./map-runtime.ts";
+import { createEventRunner } from "./event-runner.ts";
+import { serializeWorldState, type GameSession } from "./game-session.ts";
+import type { MapActorState, MapRuntime, MapRuntimeSnapshot } from "./map-runtime.ts";
 import type { CharacterId } from "./types.ts";
 
 export interface BattlePresentationPayload {
@@ -18,9 +18,10 @@ export interface BattlePresenter {
 export interface GameController {
   attachMapRuntime(runtime: MapRuntime): void;
   detachMapRuntime(runtime: MapRuntime): void;
-  getMapRuntime(): MapRuntime | null;
+  getMapSnapshot(): MapRuntimeSnapshot | null;
+  findFacingActor(): MapActorState | null;
   setBattlePresenter(presenter: BattlePresenter): void;
-  checkpointMap(): void;
+  serialize(): string;
   startActorEvent(entityId: string): EventPresentation | null;
   advanceEvent(choiceId?: string): EventPresentation | null;
   cancelEvent(): void;
@@ -53,9 +54,22 @@ export function createGameController(
     const state = gameSession.getState();
     if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外では操作キャラクターを変更できません");
     currentRuntime.validateControlledCharacterChange(characterId);
+    const previousCharacterId = state.controlledCharacterId;
     // sessionの同期購読者が読む時点で、runtime側も新しい操作キャラクターへ切り替わっている。
     currentRuntime.setControlledCharacter(characterId);
-    gameSession.swapControlledCharacter(characterId);
+    try {
+      gameSession.swapControlledCharacter(characterId);
+    } catch (error) {
+      try {
+        currentRuntime.setControlledCharacter(previousCharacterId);
+      } catch (rollbackError) {
+        throw new AggregateError(
+          [error, rollbackError],
+          "操作キャラクター変更に失敗し、MapRuntimeのrollbackにも失敗しました",
+        );
+      }
+      throw error;
+    }
   };
 
   const startBattle = (opponentId: CharacterId) => {
@@ -66,19 +80,35 @@ export function createGameController(
     currentRuntime.setInputLock("event", false);
     currentRuntime.setInputLock("status", false);
     currentRuntime.setInputLock("battle", true);
-    gameSession.checkpointPlayer(currentRuntime.checkpoint());
-    gameSession.beginBattle({ encounterId, opponentId, returnScene: "map" });
+    let presentationAttempted = false;
     try {
+      gameSession.checkpointPlayer(currentRuntime.checkpoint());
+      gameSession.beginBattle({ encounterId, opponentId, returnScene: "map" });
+      presentationAttempted = true;
       battlePresenter.present({ encounterId, heroId: state.controlledCharacterId, opponentId });
     } catch (error) {
-      try {
-        gameSession.abortBattleStart();
-      } finally {
+      const rollbackErrors: unknown[] = [];
+      if (gameSession.getState().activeBattle?.encounterId === encounterId) {
+        try {
+          gameSession.abortBattleStart();
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
+        }
+      }
+      if (presentationAttempted) {
         try {
           battlePresenter.resetToMap();
-        } finally {
-          currentRuntime.setInputLock("battle", false);
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
         }
+      }
+      try {
+        currentRuntime.setInputLock("battle", false);
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+      if (rollbackErrors.length > 0) {
+        throw new AggregateError([error, ...rollbackErrors], "battle表示とrollbackに失敗しました");
       }
       throw error;
     }
@@ -101,9 +131,29 @@ export function createGameController(
         case "battle":
           startBattle(command.opponentId);
           break;
+        default:
+          assertNever(command, "未対応のevent commandです");
       }
     }
     return result.presentation;
+  };
+
+  const recoverEventFailure = (error: unknown, currentRuntime: MapRuntime): never => {
+    const recoveryErrors: unknown[] = [];
+    try {
+      runner.cancel();
+    } catch (recoveryError) {
+      recoveryErrors.push(recoveryError);
+    }
+    try {
+      currentRuntime.setInputLock("event", false);
+    } catch (recoveryError) {
+      recoveryErrors.push(recoveryError);
+    }
+    if (recoveryErrors.length > 0) {
+      throw new AggregateError([error, ...recoveryErrors], "event処理と復旧に失敗しました");
+    }
+    throw error;
   };
 
   return {
@@ -118,39 +168,49 @@ export function createGameController(
     detachMapRuntime(targetRuntime) {
       assertUsable();
       if (runtime !== targetRuntime) return;
+      gameSession.checkpointPlayer(targetRuntime.checkpoint());
       runner.cancel();
+      targetRuntime.clearInputLocks();
       runtime = null;
     },
-    getMapRuntime: () => runtime,
+    getMapSnapshot() {
+      assertUsable();
+      return runtime?.getSnapshot() ?? null;
+    },
+    findFacingActor() {
+      assertUsable();
+      return runtime?.findFacingActor() ?? null;
+    },
     setBattlePresenter(presenter) {
       assertUsable();
       battlePresenter = presenter;
     },
-    checkpointMap() {
+    serialize() {
       assertUsable();
-      gameSession.checkpointPlayer(requireRuntime().checkpoint());
+      if (runtime) gameSession.checkpointPlayer(runtime.checkpoint());
+      return serializeWorldState(gameSession.getState());
     },
     startActorEvent(entityId) {
       assertUsable();
       const currentRuntime = requireRuntime();
+      const state = gameSession.getState();
+      if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外ではeventを開始できません");
       const actor = currentRuntime.getActor(entityId);
-      const definition = resolveEventDefinition(actor.eventId);
-      if (eventCanSwitchControlledActor(definition)) {
-        currentRuntime.validateControlledCharacterChange(actor.characterId);
-      }
       currentRuntime.setInputLock("event", true);
       try {
         return applyResult(
           runner.start(
             actor.eventId,
-            { eventTargetEntityId: actor.entityId, eventTargetCharacterId: actor.characterId },
+            {
+              eventTargetEntityId: actor.entityId,
+              eventTargetCharacterId: actor.characterId,
+              canSwitchControlledActor: currentRuntime.canChangeControlledCharacter(actor.characterId),
+            },
             gameSession.getState().flags,
           ),
         );
       } catch (error) {
-        runner.cancel();
-        currentRuntime.setInputLock("event", false);
-        throw error;
+        return recoverEventFailure(error, currentRuntime);
       }
     },
     advanceEvent(choiceId) {
@@ -158,9 +218,11 @@ export function createGameController(
       try {
         return applyResult(runner.advance(choiceId ?? null, gameSession.getState().flags));
       } catch (error) {
-        runner.cancel();
-        runtime?.setInputLock("event", false);
-        throw error;
+        if (!runtime) {
+          runner.cancel();
+          throw error;
+        }
+        return recoverEventFailure(error, runtime);
       }
     },
     cancelEvent() {
@@ -170,6 +232,8 @@ export function createGameController(
     },
     openStatus() {
       assertUsable();
+      const state = gameSession.getState();
+      if (state.scene !== "map" || state.activeBattle) throw new Error("マップ外ではstatusを開けません");
       requireRuntime().setInputLock("status", true);
     },
     closeStatus() {
@@ -182,10 +246,21 @@ export function createGameController(
       runtime?.setInputLock("battle", false);
     },
     destroy() {
-      runner.destroy();
-      runtime = null;
-      battlePresenter = null;
-      destroyed = true;
+      try {
+        if (runtime) {
+          gameSession.checkpointPlayer(runtime.checkpoint());
+          runtime.clearInputLocks();
+        }
+      } finally {
+        runner.destroy();
+        runtime = null;
+        battlePresenter = null;
+        destroyed = true;
+      }
     },
   };
+}
+
+function assertNever(value: never, message: string): never {
+  throw new Error(`${message}: ${JSON.stringify(value)}`);
 }

@@ -1,7 +1,8 @@
 import { resolveActorUrl } from "./actor-assets.ts";
 import { EVENT_CATALOG } from "./content/event-catalog.ts";
+import { getMapInitialPosition, INITIAL_MAP_ID } from "./content/map-catalog.ts";
 import { createGameController } from "./game/game-controller.ts";
-import { createGameSession } from "./game/game-session.ts";
+import { createGameSession, createInitialWorldState } from "./game/game-session.ts";
 import { createPixiStage } from "./rendering/pixi-stage.js";
 
 const requestedRenderer = new URLSearchParams(window.location.search).get("renderer");
@@ -9,7 +10,7 @@ const preference = requestedRenderer === "webgl" || requestedRenderer === "webgp
   ? requestedRenderer
   : "auto";
 window.etokichiAssetUrl = resolveActorUrl;
-window.etokichiGameSession = createGameSession();
+window.etokichiGameSession = createGameSession(createInitialWorldState(getMapInitialPosition(INITIAL_MAP_ID)));
 window.etokichiGameController = createGameController(window.etokichiGameSession, (eventId) => EVENT_CATALOG.get(eventId));
 document.documentElement.dataset.gameScene = window.etokichiGameSession.getState().scene;
 window.etokichiGameSession.subscribe((state) => {
